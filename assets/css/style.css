@@ -1,0 +1,189 @@
+/* Подключаем тему */
+@import url('theme.css');
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: var(--font-size-base);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+}
+
+/* Шапка */
+.header {
+    background-color: var(--color-bg-card);
+    padding: 15px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-header);
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.nav a {
+    margin-left: 20px;
+    text-decoration: none;
+    color: var(--color-text-light);
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav a:hover {
+    color: var(--color-primary);
+}
+
+/* Профиль */
+.profile-container {
+    max-width: 700px;
+    margin: var(--gap-blocks) auto;
+    padding: 0 20px;
+}
+
+.profile-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: var(--padding-card);
+    box-shadow: var(--shadow-card);
+    text-align: center;
+    margin-bottom: var(--gap-blocks);
+}
+
+.profile-photo {
+    width: 150px;
+    height: 150px;
+    background-color: #e0e7ef;
+    border-radius: var(--radius-photo);
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}
+
+.profile-name {
+    font-size: var(--font-size-h1);
+    margin-bottom: 5px;
+    color: var(--color-heading);
+}
+
+.profile-specialty {
+    font-size: var(--font-size-base);
+    color: var(--color-primary);
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.profile-description {
+    font-size: 15px;
+    color: var(--color-text-light);
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.profile-details {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 25px;
+    font-size: var(--font-size-base);
+}
+
+.profile-experience {
+    color: var(--color-text-light);
+}
+
+.profile-price {
+    font-weight: bold;
+    color: var(--color-heading);
+}
+
+.btn-book {
+    background-color: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 15px 30px;
+    border-radius: var(--radius-button);
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.btn-book:hover {
+    background-color: var(--color-primary-hover);
+    transform: translateY(-2px);
+}
+
+/* Отзывы */
+.reviews-section {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 30px;
+    box-shadow: var(--shadow-card);
+}
+
+.reviews-section h2 {
+    font-size: var(--font-size-h2);
+    margin-bottom: 20px;
+    color: var(--color-heading);
+}
+
+.review-card {
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+}
+
+.review-card:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.review-author {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.review-rating {
+    color: var(--color-rating);
+    font-size: 18px;
+}
+
+.review-text {
+    font-size: 15px;
+    color: var(--color-text-light);
+    margin-bottom: 5px;
+}
+
+.review-date {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+/* Подвал */
+.footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-small);
+}

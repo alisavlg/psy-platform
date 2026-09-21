@@ -1,0 +1,51 @@
+/* ============================================
+   ТЕМА САЙТА (все настройки в одном месте)
+   Меняйте значения здесь — обновится весь сайт
+   ============================================ */
+
+:root {
+    /* --- ЦВЕТА --- */
+    --color-primary: #4a90e2;
+    --color-primary-hover: #357abd;
+    --color-text: #333;
+    --color-text-light: #666;
+    --color-text-muted: #999;
+    --color-heading: #222;
+    --color-bg: #f4f7fc;
+    --color-bg-card: #ffffff;
+    --color-border: #eee;
+    --color-rating: #f5a623;
+
+    /* --- ШРИФТЫ --- */
+    --font-family: 'Segoe UI', Arial, sans-serif;
+    --font-size-base: 16px;
+    --font-size-h1: 28px;
+    --font-size-h2: 22px;
+    --font-size-small: 14px;
+
+    /* --- ОТСТУПЫ И РАЗМЕРЫ --- */
+    --radius-card: 20px;
+    --radius-button: 50px;
+    --radius-photo: 50%;
+    --padding-card: 40px;
+    --gap-blocks: 40px;
+
+    /* --- ТЕНИ --- */
+    --shadow-card: 0 10px 30px rgba(0,0,0,0.08);
+    --shadow-header: 0 2px 10px rgba(0,0,0,0.05);
+
+    /* --- ИКОНКИ --- */
+    --color-icon: var(--color-primary);
+    --color-icon-active: #ffffff;
+    --color-sidebar-active-bg: var(--color-primary);
+    --icon-size: 20px;
+
+    /* --- РАЗМЕРЫ САЙДБАРА --- */
+    --sidebar-width: 260px;
+    --right-panel-width: 300px;
+
+    /* --- КАЛЕНДАРЬ --- */
+    --calendar-cell-height: 60px;
+    --calendar-visible-height: 600px;
+    --calendar-scroll-hour: 8;
+}
