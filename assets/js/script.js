@@ -21,7 +21,7 @@ const sections = {
     },
     profile: {
         title: 'Личная страница',
-        content: 'Здесь вы можете редактировать свой публичный профиль.'
+        isProfile: true
     },
     payments: {
         title: 'Оплаты',
@@ -62,6 +62,7 @@ function renderSection() {
     const calendarSection = document.getElementById('calendarSection');
     const requestsSection = document.getElementById('requestsSection');
     const clientsSection = document.getElementById('clientsSection');
+    const profileSection = document.getElementById('profileSection');
     const placeholderSection = document.getElementById('placeholderSection');
 
     if (!calendarSection || !placeholderSection) return;
@@ -70,6 +71,7 @@ function renderSection() {
     calendarSection.style.display = 'none';
     if (requestsSection) requestsSection.style.display = 'none';
     if (clientsSection) clientsSection.style.display = 'none';
+    if (profileSection) profileSection.style.display = 'none';
     placeholderSection.style.display = 'none';
 
     // Показываем нужное
@@ -88,6 +90,11 @@ function renderSection() {
         if (clientsSection) {
             clientsSection.style.display = 'block';
             if (typeof renderClients === 'function') renderClients();
+        }
+    } else if (section.isProfile) {
+        if (profileSection) {
+            profileSection.style.display = 'block';
+            if (typeof renderProfileForm === 'function') renderProfileForm();
         }
     } else {
         placeholderSection.style.display = 'block';

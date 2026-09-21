@@ -273,3 +273,192 @@
     background-color: var(--color-primary-hover);
     transform: translateY(-2px);
 }
+/* ============================================
+   РАЗДЕЛ «ЛИЧНАЯ СТРАНИЦА»
+   ============================================ */
+
+.profile-edit-container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 40px;
+    box-shadow: var(--shadow-card);
+}
+
+.profile-edit-header {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.profile-edit-header h2 {
+    font-size: 24px;
+    color: var(--color-heading);
+    margin-bottom: 6px;
+}
+
+.profile-edit-header p {
+    font-size: 14px;
+    color: var(--color-text-muted);
+}
+
+.profile-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Фото */
+.profile-edit-photo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.profile-edit-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: #e0e7ef;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background-size: cover;
+    background-position: center;
+}
+
+.btn-photo {
+    background: none;
+    border: 1px solid var(--color-border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.btn-photo:hover {
+    background-color: #f0f4fa;
+}
+
+/* Поля */
+.profile-edit-form .form-group {
+    margin-bottom: 0;
+}
+
+.profile-edit-form textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: #fff;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+.profile-edit-form textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Кнопки */
+.profile-edit-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    align-items: center;
+}
+
+.btn-save-profile {
+    flex: 1;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-save-profile:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-save-profile:active {
+    transform: scale(0.98);
+}
+
+.btn-preview {
+    padding: 14px 20px;
+    border-radius: 10px;
+    background: #f0f0f0;
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.btn-preview:hover {
+    background: #e0e0e0;
+}
+
+/* Сообщение */
+.profile-edit-container .form-message {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 15px;
+    text-align: center;
+    display: none;
+}
+
+.profile-edit-container .form-message.success {
+    background: #d4edda;
+    color: #155724;
+    display: block;
+}
+
+/* Адаптив */
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-edit-container {
+        padding: 25px 20px;
+    }
+
+    .profile-edit-actions {
+        flex-direction: column;
+    }
+
+    .btn-save-profile,
+    .btn-preview {
+        width: 100%;
+        text-align: center;
+    }
+}

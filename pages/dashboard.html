@@ -143,6 +143,75 @@
                         <div class="clients-list" id="clientsList"></div>
                     </div>
 
+                    <!-- РАЗДЕЛ: Личная страница -->
+                    <div id="profileSection" style="display:none;">
+                        <div class="profile-edit-container">
+                            <div class="profile-edit-header">
+                                <h2>Публичный профиль</h2>
+                                <p>Эта информация видна клиентам на главной странице</p>
+                            </div>
+
+                            <form class="profile-edit-form" id="profileForm" novalidate>
+                                <!-- Фото -->
+                                <div class="profile-edit-photo-block">
+                                    <div class="profile-edit-photo" id="profilePhotoPreview">Фото</div>
+                                    <button type="button" class="btn-photo">Загрузить фото</button>
+                                    <p class="form-hint">JPG или PNG, до 5 МБ</p>
+                                </div>
+
+                                <!-- Имя -->
+                                <div class="form-group">
+                                    <label for="profileFirstName">Имя</label>
+                                    <input type="text" id="profileFirstName" placeholder="Анна" required>
+                                    <span class="form-error" id="profileFirstNameError"></span>
+                                </div>
+
+                                <!-- Отчество -->
+                                <div class="form-group">
+                                    <label for="profileMiddleName">Отчество</label>
+                                    <input type="text" id="profileMiddleName" placeholder="Сергеевна" required>
+                                    <span class="form-error" id="profileMiddleNameError"></span>
+                                </div>
+
+                                <!-- Специализация -->
+                                <div class="form-group">
+                                    <label for="profileSpecialty">Специализация</label>
+                                    <input type="text" id="profileSpecialty" placeholder="Тревога, отношения, самооценка" required>
+                                    <span class="form-error" id="profileSpecialtyError"></span>
+                                </div>
+
+                                <!-- Описание -->
+                                <div class="form-group">
+                                    <label for="profileDescription">Описание</label>
+                                    <textarea id="profileDescription" rows="5" placeholder="Расскажите о своём подходе..." required></textarea>
+                                    <span class="form-error" id="profileDescriptionError"></span>
+                                </div>
+
+                                <!-- Стаж и цена -->
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="profileExperience">Стаж (лет)</label>
+                                        <input type="number" id="profileExperience" min="0" max="60" placeholder="8" required>
+                                        <span class="form-error" id="profileExperienceError"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="profilePrice">Цена за сессию (₽)</label>
+                                        <input type="number" id="profilePrice" min="0" placeholder="3000" required>
+                                        <span class="form-error" id="profilePriceError"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Кнопка -->
+                                <div class="profile-edit-actions">
+                                    <button type="submit" class="btn-save-profile" id="saveProfileBtn">Сохранить изменения</button>
+                                    <a href="../index.html" target="_blank" class="btn-preview">Посмотреть на сайте ↗</a>
+                                </div>
+
+                                <div class="form-message" id="profileMessage"></div>
+                            </form>
+                        </div>
+                    </div>
+
                     <!-- РАЗДЕЛ: Заглушка -->
                     <div id="placeholderSection" style="display:none;">
                         <div class="placeholder">
@@ -248,5 +317,6 @@
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>
+    <script src="../assets/js/profile.js"></script>
 </body>
 </html>
