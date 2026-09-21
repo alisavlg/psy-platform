@@ -1,5 +1,5 @@
 /* ============================================
-   КАЛЕНДАРЬ-ПЛАНИРОВЩИК (24 часа)
+   КАЛЕНДАРЬ-ПЛАНИРОВЩИК
    ============================================ */
 
 .calendar-toolbar {
@@ -213,7 +213,7 @@
     opacity: 0.9;
 }
 
-/* Модальное окно */
+/* Модальные окна */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -342,14 +342,13 @@
         flex-direction: column;
         align-items: flex-start;
     }
-    
     .calendar-wrapper {
         overflow-x: auto;
     }
 }
 
 /* ============================================
-   РАЗДЕЛ «ЗАЯВКИ»
+   ЗАЯВКИ
    ============================================ */
 
 .requests-toolbar {
@@ -543,7 +542,7 @@
 }
 
 /* ============================================
-   РАЗДЕЛ «КЛИЕНТЫ»
+   КЛИЕНТЫ
    ============================================ */
 
 .clients-toolbar {
@@ -762,7 +761,7 @@
 }
 
 /* ============================================
-   РАЗДЕЛ «ЛИЧНАЯ СТРАНИЦА»
+   ЛИЧНАЯ СТРАНИЦА
    ============================================ */
 
 .profile-edit-container {
@@ -774,7 +773,6 @@
     box-shadow: var(--shadow-card);
 }
 
-/* Блок ФИО (read-only) */
 .profile-fio-block {
     background: #fafbfd;
     border: 1px solid var(--color-border);
@@ -790,7 +788,6 @@
     margin-bottom: 15px;
 }
 
-/* Заголовок — мелкий, как label формы */
 .profile-fio-header h3 {
     font-size: 14px;
     font-weight: 600;
@@ -837,7 +834,6 @@
     grid-column: 1 / -1;
 }
 
-/* Метка — мелкая, НЕ заглавными */
 .profile-fio-label {
     font-size: 12px;
     color: var(--color-text-muted);
@@ -846,7 +842,6 @@
     letter-spacing: normal;
 }
 
-/* Значение — как поля формы */
 .profile-fio-value {
     font-size: 15px;
     color: var(--color-text);
@@ -864,7 +859,6 @@
     text-transform: none;
 }
 
-/* Разделитель — мелкий */
 .profile-divider {
     display: flex;
     align-items: center;
@@ -885,7 +879,6 @@
     background: var(--color-border);
 }
 
-/* Форма */
 .profile-edit-form {
     display: flex;
     flex-direction: column;
@@ -1018,7 +1011,7 @@
 }
 
 /* ============================================
-   БЛОК «БЕЗОПАСНОСТЬ»
+   БЕЗОПАСНОСТЬ (смена пароля)
    ============================================ */
 
 .security-block {
@@ -1214,31 +1207,10 @@
     display: block;
 }
 
-@media (max-width: 600px) {
-    .form-row,
-    .profile-fio-row {
-        grid-template-columns: 1fr;
-    }
-
-    .profile-edit-container {
-        padding: 25px 20px;
-    }
-
-    .profile-edit-actions {
-        flex-direction: column;
-    }
-
-    .btn-save-profile,
-    .btn-preview {
-        width: 100%;
-        text-align: center;
-    }
-}
 /* ============================================
-   РАЗДЕЛ «ОПЛАТЫ»
+   ОТЧЁТЫ
    ============================================ */
 
-/* Сводка */
 .payments-summary {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -1273,7 +1245,69 @@
     color: var(--color-heading);
 }
 
-/* Панель фильтров */
+/* График */
+.reports-chart-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 25px;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 25px;
+}
+
+.reports-chart-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin: 0 0 20px 0;
+}
+
+.reports-chart {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    gap: 15px;
+    height: 200px;
+    padding: 0 10px;
+}
+
+.chart-bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+    height: 100%;
+    gap: 6px;
+}
+
+.chart-bar-value {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-heading);
+    white-space: nowrap;
+}
+
+.chart-bar {
+    width: 100%;
+    max-width: 60px;
+    background: linear-gradient(180deg, #4a90e2, #357abd);
+    border-radius: 6px 6px 0 0;
+    min-height: 4px;
+    transition: height 0.4s ease, opacity 0.2s;
+    cursor: pointer;
+}
+
+.chart-bar:hover {
+    opacity: 0.85;
+}
+
+.chart-bar-label {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* Фильтры */
 .payments-toolbar {
     display: flex;
     justify-content: space-between;
@@ -1335,7 +1369,7 @@
     padding: 16px 22px;
     box-shadow: var(--shadow-card);
     display: grid;
-    grid-template-columns: 100px 1fr 140px 120px 110px;
+    grid-template-columns: 80px 1fr 110px 100px;
     gap: 15px;
     align-items: center;
     transition: transform 0.15s;
@@ -1373,6 +1407,7 @@
     font-weight: 600;
     color: var(--color-heading);
     text-align: right;
+    white-space: nowrap;
 }
 
 .payment-status {
@@ -1383,6 +1418,7 @@
     text-align: center;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
 .payment-status.paid {
@@ -1427,8 +1463,62 @@
         gap: 8px;
         padding: 15px;
     }
-
     .payment-amount {
         text-align: left;
     }
+}
+
+@media (max-width: 600px) {
+    .form-row,
+    .profile-fio-row {
+        grid-template-columns: 1fr;
+    }
+    .profile-edit-container {
+        padding: 25px 20px;
+    }
+    .profile-edit-actions {
+        flex-direction: column;
+    }
+    .btn-save-profile,
+    .btn-preview {
+        width: 100%;
+        text-align: center;
+    }
+    .reports-chart {
+        height: 150px;
+    }
+}
+/* ============================================
+   ПРАВИЛО КОНФИДЕНЦИАЛЬНОСТИ — подсказка в модалке
+   ============================================ */
+
+.client-chat-hint {
+    background: #eaf4ff;
+    color: #357abd;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.btn-chat {
+    flex: 1;
+    background: #f0f4fa;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.btn-chat:hover {
+    background: #e8f0fe;
 }

@@ -11,7 +11,6 @@
 <body>
     <div class="dashboard-layout">
 
-        <!-- ЛЕВОЕ МЕНЮ -->
         <aside class="sidebar">
             <div class="logo">PsyHelp</div>
             <nav class="sidebar-nav">
@@ -60,12 +59,13 @@
                     Личная страница
                 </a>
 
-                <a href="dashboard.html?section=payments" class="nav-item">
+                <a href="dashboard.html?section=reports" class="nav-item">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                        <line x1="1" y1="10" x2="23" y2="10"></line>
+                        <line x1="12" y1="20" x2="12" y2="10"></line>
+                        <line x1="18" y1="20" x2="18" y2="4"></line>
+                        <line x1="6" y1="20" x2="6" y2="16"></line>
                     </svg>
-                    Оплаты
+                    Отчёты
                 </a>
 
                 <a href="dashboard.html?section=settings" class="nav-item">
@@ -79,7 +79,6 @@
             </nav>
         </aside>
 
-        <!-- ОСНОВНАЯ ЧАСТЬ -->
         <div class="main-wrapper">
 
             <header class="topbar">
@@ -94,8 +93,7 @@
 
                 <main class="main-content">
 
-                    
-                    <!-- РАЗДЕЛ: Календарь -->
+                    <!-- КАЛЕНДАРЬ -->
                     <div id="calendarSection">
                         <div class="calendar-toolbar">
                             <div class="calendar-nav">
@@ -115,13 +113,12 @@
                                 <button class="btn-add-event" id="addEventBtn">+ Событие</button>
                             </div>
                         </div>
-
                         <div class="calendar-wrapper">
                             <div class="calendar-grid" id="calendarGrid"></div>
                         </div>
                     </div>
 
-                    <!-- РАЗДЕЛ: Заявки -->
+                    <!-- ЗАЯВКИ -->
                     <div id="requestsSection" style="display:none;">
                         <div class="requests-toolbar">
                             <div class="requests-tabs">
@@ -133,7 +130,7 @@
                         <div class="requests-list" id="requestsList"></div>
                     </div>
 
-                    <!-- РАЗДЕЛ: Клиенты -->
+                    <!-- КЛИЕНТЫ -->
                     <div id="clientsSection" style="display:none;">
                         <div class="clients-toolbar">
                             <div class="clients-search">
@@ -144,11 +141,10 @@
                         <div class="clients-list" id="clientsList"></div>
                     </div>
 
-                    <!-- РАЗДЕЛ: Личная страница -->
+                    <!-- ЛИЧНАЯ СТРАНИЦА -->
                     <div id="profileSection" style="display:none;">
                         <div class="profile-edit-container">
 
-                            <!-- Блок ФИО (read-only) -->
                             <div class="profile-fio-block">
                                 <div class="profile-fio-header">
                                     <h3>Персональные данные</h3>
@@ -175,12 +171,10 @@
                                 </p>
                             </div>
 
-                            <!-- Разделитель -->
                             <div class="profile-divider">
                                 <span>Редактируемая информация</span>
                             </div>
 
-                            <!-- Форма редактирования -->
                             <form class="profile-edit-form" id="profileForm" novalidate>
                                 <div class="profile-edit-photo-block">
                                     <div class="profile-edit-photo" id="profilePhotoPreview">Фото</div>
@@ -221,11 +215,9 @@
                                 <div class="form-message" id="profileMessage"></div>
                             </form>
 
-                            <!-- Блок «Безопасность» -->
                             <div class="security-block">
                                 <h3>Безопасность</h3>
 
-                                <!-- Статус пароля -->
                                 <div class="password-status" id="passwordStatus">
                                     <span class="password-status-icon" id="passwordStatusIcon">✓</span>
                                     <div class="password-status-text">
@@ -238,10 +230,8 @@
                                     </div>
                                 </div>
 
-                                <!-- Кнопка -->
                                 <button type="button" class="btn-change-password" id="changePasswordBtn">Сменить пароль</button>
 
-                                <!-- Форма смены пароля -->
                                 <div class="change-password-form" id="changePasswordForm">
                                     <div class="form-group">
                                         <label for="currentPassword">Текущий пароль</label>
@@ -271,42 +261,45 @@
                         </div>
                     </div>
 
-                    <!-- РАЗДЕЛ: Оплаты -->
-<div id="paymentsSection" style="display:none;">
-    <!-- Сводка -->
-    <div class="payments-summary" id="paymentsSummary">
-        <div class="summary-card">
-            <span class="summary-label">За месяц</span>
-            <span class="summary-value" id="sumMonth">0 ₽</span>
-        </div>
-        <div class="summary-card">
-            <span class="summary-label">За всё время</span>
-            <span class="summary-value" id="sumTotal">0 ₽</span>
-        </div>
-        <div class="summary-card">
-            <span class="summary-label">Средний чек</span>
-            <span class="summary-value" id="sumAverage">0 ₽</span>
-        </div>
-        <div class="summary-card">
-            <span class="summary-label">Возвраты</span>
-            <span class="summary-value" id="sumRefunds">0 ₽</span>
-        </div>
-    </div>
+                    <!-- ОТЧЁТЫ -->
+                    <div id="reportsSection" style="display:none;">
+                        <div class="payments-summary" id="paymentsSummary">
+                            <div class="summary-card">
+                                <span class="summary-label">За месяц</span>
+                                <span class="summary-value" id="sumMonth">0 ₽</span>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">За всё время</span>
+                                <span class="summary-value" id="sumTotal">0 ₽</span>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Средний чек</span>
+                                <span class="summary-value" id="sumAverage">0 ₽</span>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Возвраты</span>
+                                <span class="summary-value" id="sumRefunds">0 ₽</span>
+                            </div>
+                        </div>
 
-    <!-- Фильтры -->
-    <div class="payments-toolbar">
-        <div class="payments-filters">
-            <button class="filter-btn active" data-period="month">За месяц</button>
-            <button class="filter-btn" data-period="week">За неделю</button>
-            <button class="filter-btn" data-period="all">За всё время</button>
-        </div>
-        <div class="payments-count" id="paymentsCount">Всего: 0</div>
-    </div>
+                        <div class="reports-chart-card">
+                            <h3 class="reports-chart-title">Доход по месяцам</h3>
+                            <div class="reports-chart" id="reportsChart"></div>
+                        </div>
 
-    <!-- Список платежей -->
-    <div class="payments-list" id="paymentsList"></div>
-</div>
-                    
+                        <div class="payments-toolbar">
+                            <div class="payments-filters">
+                                <button class="filter-btn active" data-period="month">За месяц</button>
+                                <button class="filter-btn" data-period="week">За неделю</button>
+                                <button class="filter-btn" data-period="all">За всё время</button>
+                            </div>
+                            <div class="payments-count" id="paymentsCount">Всего: 0</div>
+                        </div>
+
+                        <div class="payments-list" id="paymentsList"></div>
+                    </div>
+
+                    <!-- ЗАГЛУШКА -->
                     <div id="placeholderSection" style="display:none;">
                         <div class="placeholder">
                             <p id="placeholderText">Раздел в разработке</p>
@@ -315,7 +308,6 @@
 
                 </main>
 
-                <!-- ПРАВАЯ ПАНЕЛЬ -->
                 <aside class="right-panel">
                     <div class="right-panel-header">
                         <h2>Сегодня</h2>
@@ -333,7 +325,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно: событие календаря -->
+    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">Новое событие</h3>
@@ -397,7 +389,7 @@
         </div>
     </div>
 
-    <!-- Модальное окно: клиент -->
+    <!-- МОДАЛЬНОЕ ОКНО: КЛИЕНТ -->
     <div class="modal-overlay" id="clientModalOverlay">
         <div class="modal modal-wide">
             <h3 id="clientModalTitle">Клиент</h3>
@@ -413,6 +405,6 @@
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>
     <script src="../assets/js/profile.js"></script>
-    <script src="../assets/js/payments.js"></script>
+    <script src="../assets/js/reports.js"></script>
 </body>
 </html>

@@ -1,6 +1,8 @@
 // ============================================
-// РАЗДЕЛ «ЗАЯВКИ» (v2 — с отчествами)
+// РАЗДЕЛ «ЗАЯВКИ» (без телефона)
 // ============================================
+// Психолог НЕ видит телефон/email клиента.
+// Общение — только через платформу.
 
 const REQUESTS_KEY = 'psyhelp_requests_v2';
 
@@ -13,11 +15,7 @@ const REQUEST_STATUS_LABELS = {
 function getRequests() {
     const data = localStorage.getItem(REQUESTS_KEY);
     if (data) {
-        try {
-            return JSON.parse(data);
-        } catch (e) {
-            console.error('[requests.js] ошибка парсинга:', e);
-        }
+        try { return JSON.parse(data); } catch (e) { console.error(e); }
     }
 
     const demo = [
@@ -26,7 +24,6 @@ function getRequests() {
             clientFirstName: 'Елена',
             clientMiddleName: 'Александровна',
             clientLastName: 'Иванова',
-            clientPhone: '+7 900 123-45-67',
             topic: 'Тревога, панические атаки',
             desiredDate: getDatePlusDays(1),
             desiredHour: 14,
@@ -38,7 +35,6 @@ function getRequests() {
             clientFirstName: 'Дмитрий',
             clientMiddleName: 'Петрович',
             clientLastName: 'Смирнов',
-            clientPhone: '+7 900 234-56-78',
             topic: 'Отношения в семье',
             desiredDate: getDatePlusDays(2),
             desiredHour: 18,
@@ -50,7 +46,6 @@ function getRequests() {
             clientFirstName: 'Ольга',
             clientMiddleName: 'Сергеевна',
             clientLastName: 'Кузнецова',
-            clientPhone: '+7 900 345-67-89',
             topic: 'Самооценка, карьера',
             desiredDate: getDatePlusDays(3),
             desiredHour: 11,
@@ -72,7 +67,7 @@ function getDatePlusDays(days) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
+    return y + '-' + m + '-' + day;
 }
 
 let currentTab = 'new';
@@ -84,11 +79,11 @@ function renderRequests(tab) {
     if (!listEl) return;
 
     const all = getRequests();
-    const filtered = all.filter(r => r.status === currentTab);
+    const filtered = all.filter(function (r) { return r.status === currentTab; });
 
     updateCounters(all);
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.tab-btn').forEach(function (btn) {
         btn.classList.toggle('active', btn.dataset.tab === currentTab);
     });
 
@@ -98,52 +93,48 @@ function renderRequests(tab) {
             accepted: 'Принятых заявок нет',
             declined: 'Отклонённых заявок нет'
         };
-        listEl.innerHTML = `
-            <div class="requests-empty">
-                <div class="requests-empty-icon">📭</div>
-                <p>${emptyMessages[currentTab]}</p>
-            </div>
-        `;
+        listEl.innerHTML =
+            '<div class="requests-empty">' +
+                '<div class="requests-empty-icon">📭</div>' +
+                '<p>' + emptyMessages[currentTab] + '</p>' +
+            '</div>';
         return;
     }
 
     listEl.innerHTML = '';
-    filtered.forEach(req => {
+    filtered.forEach(function (req) {
         const card = document.createElement('div');
         card.className = 'request-card';
 
         const statusClass = req.status;
         const statusLabel = REQUEST_STATUS_LABELS[req.status] || req.status;
         const dateFormatted = formatRequestDate(req.desiredDate);
-        const fullName = `${req.clientFirstName || 'Клиент'} ${req.clientMiddleName || ''}`.trim();
+        const fullName = req.clientFirstName + ' ' + (req.clientMiddleName || '');
 
         let actionsHtml = '';
         if (req.status === 'new') {
-            actionsHtml = `
-                <button class="btn-request btn-accept" data-action="accept" data-id="${req.id}">Принять</button>
-                <button class="btn-request btn-decline" data-action="decline" data-id="${req.id}">Отклонить</button>
-            `;
+            actionsHtml =
+                '<button class="btn-request btn-accept" data-action="accept" data-id="' + req.id + '">Принять</button>' +
+                '<button class="btn-request btn-decline" data-action="decline" data-id="' + req.id + '">Отклонить</button>';
         }
 
-        card.innerHTML = `
-            <div class="request-info">
-                <div class="request-header">
-                    <span class="request-client">${fullName}</span>
-                    <span class="request-status ${statusClass}">${statusLabel}</span>
-                </div>
-                <div class="request-topic">${req.topic}</div>
-                <div class="request-meta">Желаемое время: ${dateFormatted}, ${String(req.desiredHour).padStart(2, '0')}:00</div>
-            </div>
-            <div class="request-actions">
-                ${actionsHtml}
-            </div>
-        `;
+        // Без телефона — только имя, тема и время
+        card.innerHTML =
+            '<div class="request-info">' +
+                '<div class="request-header">' +
+                    '<span class="request-client">' + fullName + '</span>' +
+                    '<span class="request-status ' + statusClass + '">' + statusLabel + '</span>' +
+                '</div>' +
+                '<div class="request-topic">' + req.topic + '</div>' +
+                '<div class="request-meta">Желаемое время: ' + dateFormatted + ', ' + String(req.desiredHour).padStart(2, '0') + ':00</div>' +
+            '</div>' +
+            '<div class="request-actions">' + actionsHtml + '</div>';
 
         listEl.appendChild(card);
     });
 
-    listEl.querySelectorAll('[data-action]').forEach(btn => {
-        btn.addEventListener('click', () => {
+    listEl.querySelectorAll('[data-action]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
             const action = btn.dataset.action;
             const id = btn.dataset.id;
             if (action === 'accept') acceptRequest(id);
@@ -153,9 +144,9 @@ function renderRequests(tab) {
 }
 
 function updateCounters(all) {
-    const countNew = all.filter(r => r.status === 'new').length;
-    const countAccepted = all.filter(r => r.status === 'accepted').length;
-    const countDeclined = all.filter(r => r.status === 'declined').length;
+    const countNew = all.filter(function (r) { return r.status === 'new'; }).length;
+    const countAccepted = all.filter(function (r) { return r.status === 'accepted'; }).length;
+    const countDeclined = all.filter(function (r) { return r.status === 'declined'; }).length;
 
     const elNew = document.getElementById('countNew');
     const elAccepted = document.getElementById('countAccepted');
@@ -169,14 +160,13 @@ function updateCounters(all) {
 function formatRequestDate(dateKey) {
     if (!dateKey) return '—';
     const parts = dateKey.split('-');
-    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
-                    'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-    return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]}`;
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    return parseInt(parts[2]) + ' ' + months[parseInt(parts[1]) - 1];
 }
 
 function acceptRequest(id) {
     const requests = getRequests();
-    const req = requests.find(r => r.id === id);
+    const req = requests.find(function (r) { return r.id === id; });
     if (!req) return;
 
     req.status = 'accepted';
@@ -184,7 +174,7 @@ function acceptRequest(id) {
 
     if (typeof addEvent === 'function') {
         addEvent({
-            title: 'Сессия: ' + (req.clientFirstName || 'клиент'),
+            title: 'Сессия: ' + req.clientFirstName,
             date: req.desiredDate,
             hour: req.desiredHour,
             category: 'session'
@@ -202,7 +192,7 @@ function acceptRequest(id) {
 
 function declineRequest(id) {
     const requests = getRequests();
-    const req = requests.find(r => r.id === id);
+    const req = requests.find(function (r) { return r.id === id; });
     if (!req) return;
 
     req.status = 'declined';
@@ -210,10 +200,10 @@ function declineRequest(id) {
     renderRequests('declined');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
     const tabs = document.querySelectorAll('.tab-btn');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
+    tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
             renderRequests(tab.dataset.tab);
         });
     });

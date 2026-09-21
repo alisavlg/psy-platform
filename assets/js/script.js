@@ -1,36 +1,15 @@
 // ============================================
-// Логика личного кабинета: переключение разделов
+// Логика личного кабинета
 // ============================================
 
 const sections = {
-    calendar: {
-        title: 'Календарь',
-        isCalendar: true
-    },
-    requests: {
-        title: 'Заявки на запись',
-        isRequests: true
-    },
-    clients: {
-        title: 'Клиенты',
-        isClients: true
-    },
-    room: {
-        title: 'Комната',
-        content: 'Здесь будет встроенный видеочат для проведения сессий.'
-    },
-    profile: {
-        title: 'Личная страница',
-        isProfile: true
-    },
-    payments: {
-        title: 'Оплаты',
-        isPayments: true
-    },
-    settings: {
-        title: 'Настройки',
-        content: 'Здесь вы можете настроить расписание, часовой пояс и уведомления.'
-    }
+    calendar: { title: 'Календарь', isCalendar: true },
+    requests: { title: 'Заявки на запись', isRequests: true },
+    clients:  { title: 'Клиенты', isClients: true },
+    room:     { title: 'Комната', content: 'Здесь будет встроенный видеочат для проведения сессий.' },
+    profile:  { title: 'Личная страница', isProfile: true },
+    reports:  { title: 'Отчёты', isReports: true },
+    settings: { title: 'Настройки', content: 'Здесь вы можете настроить расписание, часовой пояс и уведомления.' }
 };
 
 function getSectionFromURL() {
@@ -50,11 +29,11 @@ function renderSection() {
     }
 
     document.getElementById('pageTitle').textContent = section.title;
-    document.title = `${section.title} | PsyHelp`;
+    document.title = section.title + ' | PsyHelp';
 
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
-        if (item.href.includes(`section=${sectionKey}`)) {
+        if (item.href.includes('section=' + sectionKey)) {
             item.classList.add('active');
         }
     });
@@ -63,20 +42,18 @@ function renderSection() {
     const requestsSection = document.getElementById('requestsSection');
     const clientsSection = document.getElementById('clientsSection');
     const profileSection = document.getElementById('profileSection');
-    const paymentsSection = document.getElementById('paymentsSection');
+    const reportsSection = document.getElementById('reportsSection');
     const placeholderSection = document.getElementById('placeholderSection');
 
     if (!calendarSection || !placeholderSection) return;
 
-    // Скрываем все
     calendarSection.style.display = 'none';
     if (requestsSection) requestsSection.style.display = 'none';
     if (clientsSection) clientsSection.style.display = 'none';
     if (profileSection) profileSection.style.display = 'none';
-    if (paymentsSection) paymentsSection.style.display = 'none';
+    if (reportsSection) reportsSection.style.display = 'none';
     placeholderSection.style.display = 'none';
 
-    // Показываем нужное
     if (section.isCalendar) {
         calendarSection.style.display = 'block';
         if (typeof renderCalendar === 'function') {
@@ -98,10 +75,10 @@ function renderSection() {
             profileSection.style.display = 'block';
             if (typeof renderProfileForm === 'function') renderProfileForm();
         }
-    } else if (section.isPayments) {
-        if (paymentsSection) {
-            paymentsSection.style.display = 'block';
-            if (typeof renderPayments === 'function') renderPayments('month');
+    } else if (section.isReports) {
+        if (reportsSection) {
+            reportsSection.style.display = 'block';
+            if (typeof renderReports === 'function') renderReports('month');
         }
     } else {
         placeholderSection.style.display = 'block';
