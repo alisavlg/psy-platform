@@ -1234,3 +1234,201 @@
         text-align: center;
     }
 }
+/* ============================================
+   РАЗДЕЛ «ОПЛАТЫ»
+   ============================================ */
+
+/* Сводка */
+.payments-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.summary-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 20px 25px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: transform 0.2s;
+}
+
+.summary-card:hover {
+    transform: translateY(-2px);
+}
+
+.summary-label {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.summary-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-heading);
+}
+
+/* Панель фильтров */
+.payments-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.payments-filters {
+    display: flex;
+    gap: 5px;
+    background-color: var(--color-bg-card);
+    padding: 5px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.filter-btn {
+    background: none;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-light);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-family: var(--font-family);
+}
+
+.filter-btn:hover {
+    background-color: #f0f4fa;
+    color: var(--color-primary);
+}
+
+.filter-btn.active {
+    background-color: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.payments-count {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+/* Список платежей */
+.payments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.payment-row {
+    background: var(--color-bg-card);
+    border-radius: 12px;
+    padding: 16px 22px;
+    box-shadow: var(--shadow-card);
+    display: grid;
+    grid-template-columns: 100px 1fr 140px 120px 110px;
+    gap: 15px;
+    align-items: center;
+    transition: transform 0.15s;
+}
+
+.payment-row:hover {
+    transform: translateX(3px);
+}
+
+.payment-date {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.payment-client {
+    font-size: 15px;
+    color: var(--color-heading);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.payment-topic {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.payment-amount {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-heading);
+    text-align: right;
+}
+
+.payment-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 12px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.payment-status.paid {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.payment-status.pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.payment-status.refunded {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.payment-status.cancelled {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.payments-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
+.payments-empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Адаптив */
+@media (max-width: 900px) {
+    .payment-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 15px;
+    }
+
+    .payment-amount {
+        text-align: left;
+    }
+}

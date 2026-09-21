@@ -1,6 +1,8 @@
 // ============================================
-// РАЗДЕЛ «ЗАЯВКИ»
+// РАЗДЕЛ «ЗАЯВКИ» (v2 — с отчествами)
 // ============================================
+
+const REQUESTS_KEY = 'psyhelp_requests_v2';
 
 const REQUEST_STATUS_LABELS = {
     new: 'Новая',
@@ -9,8 +11,14 @@ const REQUEST_STATUS_LABELS = {
 };
 
 function getRequests() {
-    const data = localStorage.getItem('psyhelp_requests');
-    if (data) return JSON.parse(data);
+    const data = localStorage.getItem(REQUESTS_KEY);
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch (e) {
+            console.error('[requests.js] ошибка парсинга:', e);
+        }
+    }
 
     const demo = [
         {
@@ -55,7 +63,7 @@ function getRequests() {
 }
 
 function saveRequests(requests) {
-    localStorage.setItem('psyhelp_requests', JSON.stringify(requests));
+    localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
 }
 
 function getDatePlusDays(days) {
@@ -107,7 +115,7 @@ function renderRequests(tab) {
         const statusClass = req.status;
         const statusLabel = REQUEST_STATUS_LABELS[req.status] || req.status;
         const dateFormatted = formatRequestDate(req.desiredDate);
-        const fullName = `${req.clientFirstName} ${req.clientMiddleName}`;
+        const fullName = `${req.clientFirstName || 'Клиент'} ${req.clientMiddleName || ''}`.trim();
 
         let actionsHtml = '';
         if (req.status === 'new') {
@@ -159,6 +167,7 @@ function updateCounters(all) {
 }
 
 function formatRequestDate(dateKey) {
+    if (!dateKey) return '—';
     const parts = dateKey.split('-');
     const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн',
                     'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
@@ -173,17 +182,15 @@ function acceptRequest(id) {
     req.status = 'accepted';
     saveRequests(requests);
 
-    // Создаём событие в календаре
     if (typeof addEvent === 'function') {
         addEvent({
-            title: 'Сессия: ' + req.clientFirstName,
+            title: 'Сессия: ' + (req.clientFirstName || 'клиент'),
             date: req.desiredDate,
             hour: req.desiredHour,
             category: 'session'
         });
     }
 
-    // Создаём клиента, если его ещё нет
     if (typeof createClientFromRequest === 'function') {
         createClientFromRequest(req);
     }

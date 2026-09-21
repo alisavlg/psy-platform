@@ -94,6 +94,7 @@
 
                 <main class="main-content">
 
+                    
                     <!-- РАЗДЕЛ: Календарь -->
                     <div id="calendarSection">
                         <div class="calendar-toolbar">
@@ -270,7 +271,42 @@
                         </div>
                     </div>
 
-                    <!-- РАЗДЕЛ: Заглушка -->
+                    <!-- РАЗДЕЛ: Оплаты -->
+<div id="paymentsSection" style="display:none;">
+    <!-- Сводка -->
+    <div class="payments-summary" id="paymentsSummary">
+        <div class="summary-card">
+            <span class="summary-label">За месяц</span>
+            <span class="summary-value" id="sumMonth">0 ₽</span>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">За всё время</span>
+            <span class="summary-value" id="sumTotal">0 ₽</span>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">Средний чек</span>
+            <span class="summary-value" id="sumAverage">0 ₽</span>
+        </div>
+        <div class="summary-card">
+            <span class="summary-label">Возвраты</span>
+            <span class="summary-value" id="sumRefunds">0 ₽</span>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="payments-toolbar">
+        <div class="payments-filters">
+            <button class="filter-btn active" data-period="month">За месяц</button>
+            <button class="filter-btn" data-period="week">За неделю</button>
+            <button class="filter-btn" data-period="all">За всё время</button>
+        </div>
+        <div class="payments-count" id="paymentsCount">Всего: 0</div>
+    </div>
+
+    <!-- Список платежей -->
+    <div class="payments-list" id="paymentsList"></div>
+</div>
+                    
                     <div id="placeholderSection" style="display:none;">
                         <div class="placeholder">
                             <p id="placeholderText">Раздел в разработке</p>
@@ -377,5 +413,6 @@
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>
     <script src="../assets/js/profile.js"></script>
+    <script src="../assets/js/payments.js"></script>
 </body>
 </html>

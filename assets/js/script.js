@@ -25,7 +25,7 @@ const sections = {
     },
     payments: {
         title: 'Оплаты',
-        content: 'Здесь будет история платежей и выплат.'
+        isPayments: true
     },
     settings: {
         title: 'Настройки',
@@ -63,6 +63,7 @@ function renderSection() {
     const requestsSection = document.getElementById('requestsSection');
     const clientsSection = document.getElementById('clientsSection');
     const profileSection = document.getElementById('profileSection');
+    const paymentsSection = document.getElementById('paymentsSection');
     const placeholderSection = document.getElementById('placeholderSection');
 
     if (!calendarSection || !placeholderSection) return;
@@ -72,6 +73,7 @@ function renderSection() {
     if (requestsSection) requestsSection.style.display = 'none';
     if (clientsSection) clientsSection.style.display = 'none';
     if (profileSection) profileSection.style.display = 'none';
+    if (paymentsSection) paymentsSection.style.display = 'none';
     placeholderSection.style.display = 'none';
 
     // Показываем нужное
@@ -96,12 +98,16 @@ function renderSection() {
             profileSection.style.display = 'block';
             if (typeof renderProfileForm === 'function') renderProfileForm();
         }
+    } else if (section.isPayments) {
+        if (paymentsSection) {
+            paymentsSection.style.display = 'block';
+            if (typeof renderPayments === 'function') renderPayments('month');
+        }
     } else {
         placeholderSection.style.display = 'block';
         document.getElementById('placeholderText').textContent = section.content;
     }
 
-    // Обновляем панель «Сегодня»
     if (typeof renderTodayPanel === 'function') renderTodayPanel();
 }
 
