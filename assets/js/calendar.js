@@ -2,7 +2,6 @@
 // КАЛЕНДАРЬ-ПЛАНИРОВЩИК (24 часа)
 // ============================================
 
-// Категории событий
 const CATEGORIES = {
     session:  { name: 'Сессия',   color: '#4a90e2' },
     personal: { name: 'Личное',   color: '#2ecc71' },
@@ -11,14 +10,10 @@ const CATEGORIES = {
     study:    { name: 'Учёба',    color: '#9b59b6' }
 };
 
-// Часы календаря — все 24 часа
 const START_HOUR = 0;
 const END_HOUR = 24;
-
-// Час, к которому прокручивать при открытии (если сейчас ночь)
 const DEFAULT_SCROLL_HOUR = 8;
 
-// Текущая отображаемая неделя (начало — понедельник)
 let currentWeekStart = getMonday(new Date());
 
 // ============================================
@@ -59,7 +54,7 @@ function isToday(date) {
 }
 
 // ============================================
-// Хранение событий (localStorage)
+// Хранение событий
 // ============================================
 
 function getEvents() {
@@ -99,10 +94,8 @@ function renderCalendar() {
 
     let html = '';
 
-    // Пустая ячейка в левом верхнем углу (угол шапки)
     html += `<div class="calendar-header corner"></div>`;
 
-    // Шапка с днями недели
     for (let i = 0; i < 7; i++) {
         const day = addDays(currentWeekStart, i);
         const todayClass = isToday(day) ? 'today' : '';
@@ -114,14 +107,12 @@ function renderCalendar() {
         `;
     }
 
-    // Колонка с часами (24 часа)
     html += `<div class="time-column">`;
     for (let h = START_HOUR; h < END_HOUR; h++) {
         html += `<div class="time-slot-label">${String(h).padStart(2, '0')}:00</div>`;
     }
     html += `</div>`;
 
-    // Колонки дней
     for (let i = 0; i < 7; i++) {
         const day = addDays(currentWeekStart, i);
         const dateKey = formatDateKey(day);
@@ -131,7 +122,6 @@ function renderCalendar() {
             html += `<div class="hour-cell" data-date="${dateKey}" data-hour="${h}"></div>`;
         }
 
-        // События этого дня
         const dayEvents = events.filter(e => e.date === dateKey);
         dayEvents.forEach(ev => {
             const cat = CATEGORIES[ev.category] || CATEGORIES.personal;
@@ -151,7 +141,6 @@ function renderCalendar() {
 
     grid.innerHTML = html;
 
-    // Обработчики кликов
     document.querySelectorAll('.hour-cell').forEach(cell => {
         cell.addEventListener('click', (e) => {
             if (e.target.closest('.event')) return;
@@ -168,7 +157,46 @@ function renderCalendar() {
 }
 
 // ============================================
-// Автопрокрутка к текущему часу
+// Отрисовка панели «Сегодня»
+// ============================================
+
+function renderTodayPanel() {
+    const dateEl = document.getElementById('todayDate');
+    const listEl = document.getElementById('todayList');
+    if (!dateEl || !listEl) return;
+
+    const now = new Date();
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    dateEl.textContent = `${now.getDate()} ${months[now.getMonth()]}`;
+
+    const todayKey = formatDateKey(now);
+    const events = getEvents().filter(e => e.date === todayKey);
+
+    if (events.length === 0) {
+        listEl.innerHTML = '<p class="empty-state">Нет записей на сегодня</p>';
+        return;
+    }
+
+    events.sort((a, b) => a.hour - b.hour);
+
+    listEl.innerHTML = '';
+    events.forEach(ev => {
+        const cat = CATEGORIES[ev.category] || CATEGORIES.personal;
+        const div = document.createElement('div');
+        div.className = 'today-event';
+        div.style.borderLeftColor = cat.color;
+        div.innerHTML = `
+            <span class="today-event-time">${String(ev.hour).padStart(2, '0')}:00</span>
+            <span class="today-event-title">${ev.title}</span>
+        `;
+        div.addEventListener('click', () => openModalForEdit(ev.id));
+        listEl.appendChild(div);
+    });
+}
+
+// ============================================
+// Автопрокрутка календаря
 // ============================================
 
 function scrollToCurrentHour() {
@@ -177,10 +205,7 @@ function scrollToCurrentHour() {
 
     const now = new Date();
     const currentHour = now.getHours();
-    // Если сейчас ночь (0–6), прокручиваем к 8 утра. Иначе — к текущему часу минус 1.
     const targetHour = currentHour < 6 ? DEFAULT_SCROLL_HOUR : Math.max(0, currentHour - 1);
-
-    // Каждая ячейка часа — 60px. Отступ = час × 60.
     wrapper.scrollTop = targetHour * 60;
 }
 
@@ -248,6 +273,7 @@ function saveEvent() {
 
     closeModal();
     renderCalendar();
+    renderTodayPanel();
     scrollToCurrentHour();
 }
 
@@ -257,6 +283,7 @@ function removeEvent() {
         deleteEvent(editingEventId);
         closeModal();
         renderCalendar();
+        renderTodayPanel();
     }
 }
 
@@ -285,22 +312,29 @@ function goToToday() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (!document.getElementById('calendarGrid')) return;
+    const prevBtn = document.getElementById('prevWeek');
+    const nextBtn = document.getElementById('nextWeek');
+    const todayBtn = document.getElementById('todayBtn');
+    const addBtn = document.getElementById('addEventBtn');
+    const newEventBtn = document.getElementById('newEventBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const overlay = document.getElementById('modalOverlay');
 
-    renderCalendar();
-    scrollToCurrentHour();
-
-    document.getElementById('prevWeek').addEventListener('click', goToPrevWeek);
-    document.getElementById('nextWeek').addEventListener('click', goToNextWeek);
-    document.getElementById('todayBtn').addEventListener('click', goToToday);
-    document.getElementById('addEventBtn').addEventListener('click', () => {
+    if (prevBtn) prevBtn.addEventListener('click', goToPrevWeek);
+    if (nextBtn) nextBtn.addEventListener('click', goToNextWeek);
+    if (todayBtn) todayBtn.addEventListener('click', goToToday);
+    if (addBtn) addBtn.addEventListener('click', () => {
         openModal(formatDateKey(new Date()), new Date().getHours());
     });
-    document.getElementById('saveBtn').addEventListener('click', saveEvent);
-    document.getElementById('cancelBtn').addEventListener('click', closeModal);
-    document.getElementById('deleteBtn').addEventListener('click', removeEvent);
-
-    document.getElementById('modalOverlay').addEventListener('click', (e) => {
+    if (newEventBtn) newEventBtn.addEventListener('click', () => {
+        openModal(formatDateKey(new Date()), new Date().getHours());
+    });
+    if (saveBtn) saveBtn.addEventListener('click', saveEvent);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    if (deleteBtn) deleteBtn.addEventListener('click', removeEvent);
+    if (overlay) overlay.addEventListener('click', (e) => {
         if (e.target.id === 'modalOverlay') closeModal();
     });
 });

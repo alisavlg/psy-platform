@@ -39,7 +39,6 @@ function getSectionFromURL() {
 }
 
 function renderSection() {
-    // Работаем только внутри dashboard.html
     if (!document.getElementById('pageTitle')) return;
 
     const sectionKey = getSectionFromURL();
@@ -50,11 +49,9 @@ function renderSection() {
         return;
     }
 
-    // Меняем заголовок в топбаре
     document.getElementById('pageTitle').textContent = section.title;
     document.title = `${section.title} | PsyHelp`;
 
-    // Подсвечиваем активный пункт меню
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
         if (item.href.includes(`section=${sectionKey}`)) {
@@ -62,18 +59,15 @@ function renderSection() {
         }
     });
 
-    // Показываем нужный раздел
     const calendarSection = document.getElementById('calendarSection');
     const placeholderSection = document.getElementById('placeholderSection');
 
     if (!calendarSection || !placeholderSection) return;
 
     if (section.isCalendar) {
-        // Календарь
         calendarSection.style.display = 'block';
         placeholderSection.style.display = 'none';
 
-        // Отрисовываем календарь
         if (typeof renderCalendar === 'function') {
             renderCalendar();
             if (typeof scrollToCurrentHour === 'function') {
@@ -81,10 +75,14 @@ function renderSection() {
             }
         }
     } else {
-        // Заглушка
         calendarSection.style.display = 'none';
         placeholderSection.style.display = 'block';
         document.getElementById('placeholderText').textContent = section.content;
+    }
+
+    // Обновляем панель «Сегодня» (независимо от раздела)
+    if (typeof renderTodayPanel === 'function') {
+        renderTodayPanel();
     }
 }
 

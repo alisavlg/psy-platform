@@ -120,7 +120,7 @@
                         </div>
                     </div>
 
-                    <!-- РАЗДЕЛ: Заглушка для остальных разделов -->
+                    <!-- РАЗДЕЛ: Заглушка для остальных -->
                     <div id="placeholderSection" style="display:none;">
                         <div class="placeholder">
                             <p id="placeholderText">Раздел в разработке</p>
@@ -132,12 +132,14 @@
                 <aside class="right-panel">
                     <div class="right-panel-header">
                         <h2>Сегодня</h2>
-                        <span class="date">20 сентября</span>
+                        <span class="date" id="todayDate">—</span>
                     </div>
                     <div class="right-panel-body">
-                        <p class="empty-state">Нет записей на сегодня</p>
+                        <div class="today-list" id="todayList">
+                            <p class="empty-state">Нет записей на сегодня</p>
+                        </div>
                     </div>
-                    <button class="btn-primary">+ Новая запись</button>
+                    <button class="btn-primary" id="newEventBtn">+ Новая запись</button>
                 </aside>
 
             </div>
