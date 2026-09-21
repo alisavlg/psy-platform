@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Регистрация | PsyHelp</title>
+    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+
+        <!-- Левая часть: брендинг -->
+        <div class="auth-brand">
+            <a href="../index.html" class="auth-logo">PsyHelp</a>
+            <h1 class="auth-tagline">Пространство для заботы о себе</h1>
+            <p class="auth-subtext">
+                Найдите своего психолога, ведите планировщик, общайтесь безопасно.
+            </p>
+            <ul class="auth-features">
+                <li>✓ Проверенные специалисты</li>
+                <li>✓ Конфиденциальность</li>
+                <li>✓ Удобный планировщик</li>
+            </ul>
+        </div>
+
+        <!-- Правая часть: форма -->
+        <div class="auth-form-wrapper">
+            <form class="auth-form" id="registerForm" novalidate>
+                <h2>Создать аккаунт</h2>
+                <p class="auth-form-subtitle">Уже есть аккаунт? <a href="login.html">Войти</a></p>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="anna@example.com" required>
+                    <span class="form-error" id="emailError"></span>
+                </div>
+
+                <!-- Пароль -->
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <div class="input-with-icon">
+                        <input type="password" id="password" name="password" placeholder="Латиница, цифры и символы" required>
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Показать пароль">👁</button>
+                    </div>
+                    <p class="form-hint">Только латинские буквы, цифры и символы. Минимум 8 символов.</p>
+                    <div class="password-strength" id="passwordStrength"></div>
+                    <span class="form-error" id="passwordError"></span>
+                </div>
+
+                <!-- Имя -->
+                <div class="form-group">
+                    <label for="firstName">Имя</label>
+                    <input type="text" id="firstName" name="firstName" placeholder="Анна" required>
+                    <span class="form-error" id="firstNameError"></span>
+                </div>
+
+                <!-- Отчество -->
+                <div class="form-group">
+                    <label for="middleName">Отчество</label>
+                    <input type="text" id="middleName" name="middleName" placeholder="Сергеевна" required>
+                    <span class="form-error" id="middleNameError"></span>
+                </div>
+
+                <!-- Фамилия -->
+                <div class="form-group">
+                    <label for="lastName">Фамилия</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Иванова" required>
+                    <span class="form-error" id="lastNameError"></span>
+                </div>
+
+                <!-- Телефон -->
+                <div class="form-group">
+                    <label for="phone">Телефон</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+7 (900) 123-45-67" required>
+                    <span class="form-error" id="phoneError"></span>
+                </div>
+
+                <!-- Часовой пояс -->
+                <div class="form-group">
+                    <label for="timezone">Часовой пояс</label>
+                    <select id="timezone" name="timezone" required>
+                        <option value="">Выберите часовой пояс</option>
+                        <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
+                        <option value="Europe/Moscow" selected>Москва (UTC+3)</option>
+                        <option value="Europe/Samara">Самара (UTC+4)</option>
+                        <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
+                        <option value="Asia/Omsk">Омск (UTC+6)</option>
+                        <option value="Asia/Krasnoyarsk">Красноярск (UTC+7)</option>
+                        <option value="Asia/Irkutsk">Иркутск (UTC+8)</option>
+                        <option value="Asia/Yakutsk">Якутск (UTC+9)</option>
+                        <option value="Asia/Vladivostok">Владивосток (UTC+10)</option>
+                        <option value="Asia/Magadan">Магадан (UTC+11)</option>
+                        <option value="Asia/Kamchatka">Камчатка (UTC+12)</option>
+                    </select>
+                    <span class="form-error" id="timezoneError"></span>
+                </div>
+
+                <!-- Согласия -->
+                <div class="form-group">
+                    <p class="consent-title">Выражаю согласие:</p>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreeTerms" name="agreeTerms">
+                        <span>с <a href="terms.html" target="_blank">пользовательским соглашением</a></span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreePolicy" name="agreePolicy">
+                        <span>с <a href="consent.html" target="_blank">обработкой персональных данных</a></span>
+                    </label>
+                    <span class="form-error" id="agreeError"></span>
+                </div>
+
+                <!-- Кнопка -->
+                <button type="submit" class="btn-submit" id="submitBtn">Зарегистрироваться</button>
+
+                <!-- Сообщение -->
+                <div class="form-message" id="formMessage"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/js/auth.js"></script>
+</body>
+</html>
