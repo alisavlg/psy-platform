@@ -240,6 +240,12 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
+.modal-wide {
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
 .modal h3 {
     margin-bottom: 20px;
     font-size: 20px;
@@ -405,7 +411,6 @@
     background-color: rgba(255,255,255,0.25);
 }
 
-/* Список заявок */
 .requests-list {
     display: flex;
     flex-direction: column;
@@ -523,7 +528,6 @@
     color: #e74c3c;
 }
 
-/* Пустое состояние */
 .requests-empty {
     text-align: center;
     padding: 60px 20px;
@@ -534,6 +538,226 @@
 }
 
 .requests-empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* ============================================
+   РАЗДЕЛ «КЛИЕНТЫ»
+   ============================================ */
+
+.clients-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.clients-search {
+    flex: 1;
+    max-width: 400px;
+}
+
+.clients-search input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.clients-search input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.clients-count {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.clients-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.client-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 20px;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.client-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+}
+
+.client-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.client-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.client-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.client-phone {
+    font-size: 13px;
+    color: var(--color-text-light);
+    margin-bottom: 8px;
+}
+
+.client-stats {
+    display: flex;
+    gap: 15px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.client-stat strong {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+/* Модальное окно клиента */
+.client-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.client-detail-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.client-detail-info h4 {
+    font-size: 20px;
+    color: var(--color-heading);
+    margin-bottom: 5px;
+}
+
+.client-detail-info p {
+    font-size: 14px;
+    color: var(--color-text-light);
+    margin-bottom: 3px;
+}
+
+.client-section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin-bottom: 12px;
+    margin-top: 20px;
+}
+
+.sessions-history {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.session-history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 15px;
+    background: #fafbfd;
+    border-radius: 8px;
+    border-left: 3px solid var(--color-primary);
+    font-size: 14px;
+}
+
+.session-history-date {
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.session-history-topic {
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.client-notes {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: #fff;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+.client-notes:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.clients-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    grid-column: 1 / -1;
+}
+
+.clients-empty-icon {
     font-size: 48px;
     margin-bottom: 15px;
     opacity: 0.5;

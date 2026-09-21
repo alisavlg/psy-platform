@@ -13,7 +13,7 @@ const sections = {
     },
     clients: {
         title: 'Клиенты',
-        content: 'Здесь будет список ваших клиентов и история сессий.'
+        isClients: true
     },
     room: {
         title: 'Комната',
@@ -61,6 +61,7 @@ function renderSection() {
 
     const calendarSection = document.getElementById('calendarSection');
     const requestsSection = document.getElementById('requestsSection');
+    const clientsSection = document.getElementById('clientsSection');
     const placeholderSection = document.getElementById('placeholderSection');
 
     if (!calendarSection || !placeholderSection) return;
@@ -68,6 +69,7 @@ function renderSection() {
     // Скрываем все
     calendarSection.style.display = 'none';
     if (requestsSection) requestsSection.style.display = 'none';
+    if (clientsSection) clientsSection.style.display = 'none';
     placeholderSection.style.display = 'none';
 
     // Показываем нужное
@@ -81,6 +83,11 @@ function renderSection() {
         if (requestsSection) {
             requestsSection.style.display = 'block';
             if (typeof renderRequests === 'function') renderRequests('new');
+        }
+    } else if (section.isClients) {
+        if (clientsSection) {
+            clientsSection.style.display = 'block';
+            if (typeof renderClients === 'function') renderClients();
         }
     } else {
         placeholderSection.style.display = 'block';

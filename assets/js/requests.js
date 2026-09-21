@@ -2,26 +2,23 @@
 // РАЗДЕЛ «ЗАЯВКИ»
 // ============================================
 
-// Категории (совпадают с calendar.js)
 const REQUEST_STATUS_LABELS = {
     new: 'Новая',
     accepted: 'Принята',
     declined: 'Отклонена'
 };
 
-// ============================================
-// Хранение заявок
-// ============================================
-
 function getRequests() {
     const data = localStorage.getItem('psyhelp_requests');
     if (data) return JSON.parse(data);
 
-    // При первом запуске — создаём демо-заявки
     const demo = [
         {
             id: '1',
-            clientName: 'Елена',
+            clientFirstName: 'Елена',
+            clientMiddleName: 'Александровна',
+            clientLastName: 'Иванова',
+            clientPhone: '+7 900 123-45-67',
             topic: 'Тревога, панические атаки',
             desiredDate: getDatePlusDays(1),
             desiredHour: 14,
@@ -30,7 +27,10 @@ function getRequests() {
         },
         {
             id: '2',
-            clientName: 'Дмитрий',
+            clientFirstName: 'Дмитрий',
+            clientMiddleName: 'Петрович',
+            clientLastName: 'Смирнов',
+            clientPhone: '+7 900 234-56-78',
             topic: 'Отношения в семье',
             desiredDate: getDatePlusDays(2),
             desiredHour: 18,
@@ -39,7 +39,10 @@ function getRequests() {
         },
         {
             id: '3',
-            clientName: 'Ольга',
+            clientFirstName: 'Ольга',
+            clientMiddleName: 'Сергеевна',
+            clientLastName: 'Кузнецова',
+            clientPhone: '+7 900 345-67-89',
             topic: 'Самооценка, карьера',
             desiredDate: getDatePlusDays(3),
             desiredHour: 11,
@@ -64,10 +67,6 @@ function getDatePlusDays(days) {
     return `${y}-${m}-${day}`;
 }
 
-// ============================================
-// Отрисовка списка заявок
-// ============================================
-
 let currentTab = 'new';
 
 function renderRequests(tab) {
@@ -79,15 +78,12 @@ function renderRequests(tab) {
     const all = getRequests();
     const filtered = all.filter(r => r.status === currentTab);
 
-    // Обновляем счётчики на вкладках
     updateCounters(all);
 
-    // Обновляем активную вкладку
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === currentTab);
     });
 
-    // Пусто?
     if (filtered.length === 0) {
         const emptyMessages = {
             new: 'Новых заявок нет',
@@ -103,7 +99,6 @@ function renderRequests(tab) {
         return;
     }
 
-    // Рендерим карточки
     listEl.innerHTML = '';
     filtered.forEach(req => {
         const card = document.createElement('div');
@@ -111,8 +106,8 @@ function renderRequests(tab) {
 
         const statusClass = req.status;
         const statusLabel = REQUEST_STATUS_LABELS[req.status] || req.status;
-
         const dateFormatted = formatRequestDate(req.desiredDate);
+        const fullName = `${req.clientFirstName} ${req.clientMiddleName}`;
 
         let actionsHtml = '';
         if (req.status === 'new') {
@@ -125,7 +120,7 @@ function renderRequests(tab) {
         card.innerHTML = `
             <div class="request-info">
                 <div class="request-header">
-                    <span class="request-client">${req.clientName}</span>
+                    <span class="request-client">${fullName}</span>
                     <span class="request-status ${statusClass}">${statusLabel}</span>
                 </div>
                 <div class="request-topic">${req.topic}</div>
@@ -139,7 +134,6 @@ function renderRequests(tab) {
         listEl.appendChild(card);
     });
 
-    // Обработчики кнопок
     listEl.querySelectorAll('[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
             const action = btn.dataset.action;
@@ -171,30 +165,29 @@ function formatRequestDate(dateKey) {
     return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]}`;
 }
 
-// ============================================
-// Действия с заявками
-// ============================================
-
 function acceptRequest(id) {
     const requests = getRequests();
     const req = requests.find(r => r.id === id);
     if (!req) return;
 
-    // 1. Меняем статус
     req.status = 'accepted';
     saveRequests(requests);
 
-    // 2. Создаём событие в календаре
+    // Создаём событие в календаре
     if (typeof addEvent === 'function') {
         addEvent({
-            title: 'Сессия: ' + req.clientName,
+            title: 'Сессия: ' + req.clientFirstName,
             date: req.desiredDate,
             hour: req.desiredHour,
             category: 'session'
         });
     }
 
-    // 3. Перерисовываем
+    // Создаём клиента, если его ещё нет
+    if (typeof createClientFromRequest === 'function') {
+        createClientFromRequest(req);
+    }
+
     renderRequests('accepted');
     if (typeof renderCalendar === 'function') renderCalendar();
     if (typeof renderTodayPanel === 'function') renderTodayPanel();
@@ -209,10 +202,6 @@ function declineRequest(id) {
     saveRequests(requests);
     renderRequests('declined');
 }
-
-// ============================================
-// Инициализация вкладок
-// ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.tab-btn');
