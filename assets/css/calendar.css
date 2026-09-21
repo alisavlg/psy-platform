@@ -342,3 +342,199 @@
         overflow-x: auto;
     }
 }
+
+/* ============================================
+   РАЗДЕЛ «ЗАЯВКИ»
+   ============================================ */
+
+.requests-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.requests-tabs {
+    display: flex;
+    gap: 5px;
+    background-color: var(--color-bg-card);
+    padding: 5px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-card);
+}
+
+.tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-light);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+    font-family: var(--font-family);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.tab-btn:hover {
+    background-color: #f0f4fa;
+    color: var(--color-primary);
+}
+
+.tab-btn.active {
+    background-color: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+.tab-count {
+    display: inline-block;
+    background-color: rgba(0,0,0,0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tab-btn.active .tab-count {
+    background-color: rgba(255,255,255,0.25);
+}
+
+/* Список заявок */
+.requests-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.request-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 20px 25px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    transition: transform 0.2s;
+}
+
+.request-card:hover {
+    transform: translateY(-2px);
+}
+
+.request-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.request-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.request-client {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--color-heading);
+}
+
+.request-status {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.request-status.new {
+    background-color: #eaf4ff;
+    color: #4a90e2;
+}
+
+.request-status.accepted {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.request-status.declined {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.request-topic {
+    font-size: 15px;
+    color: var(--color-text);
+    margin-bottom: 6px;
+}
+
+.request-meta {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.request-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.btn-request {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    font-family: var(--font-family);
+    white-space: nowrap;
+}
+
+.btn-request:active {
+    transform: scale(0.97);
+}
+
+.btn-accept {
+    background-color: #2ecc71;
+    color: #fff;
+}
+
+.btn-accept:hover {
+    background-color: #27ae60;
+}
+
+.btn-decline {
+    background-color: #f0f0f0;
+    color: var(--color-text);
+}
+
+.btn-decline:hover {
+    background-color: #e0e0e0;
+    color: #e74c3c;
+}
+
+/* Пустое состояние */
+.requests-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
+.requests-empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
