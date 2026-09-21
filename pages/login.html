@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход | PsyHelp</title>
+    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="../assets/css/auth.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+
+        <!-- Левая часть: брендинг -->
+        <div class="auth-brand">
+            <a href="../index.html" class="auth-logo">PsyHelp</a>
+            <h1 class="auth-tagline">С возвращением</h1>
+            <p class="auth-subtext">
+                Рады видеть вас снова. Войдите, чтобы продолжить работу.
+            </p>
+            <ul class="auth-features">
+                <li>✓ Ваши сессии и заметки</li>
+                <li>✓ Планировщик</li>
+                <li>✓ Безопасное общение</li>
+            </ul>
+        </div>
+
+        <!-- Правая часть: форма -->
+        <div class="auth-form-wrapper">
+            <form class="auth-form" id="loginForm" novalidate>
+                <h2>Войти в аккаунт</h2>
+                <p class="auth-form-subtitle">Ещё нет аккаунта? <a href="register.html">Зарегистрироваться</a></p>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="anna@example.com" required>
+                    <span class="form-error" id="emailError"></span>
+                </div>
+
+                <!-- Пароль -->
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <div class="input-with-icon">
+                        <input type="password" id="password" name="password" placeholder="Ваш пароль" required>
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Показать пароль">👁</button>
+                    </div>
+                    <span class="form-error" id="passwordError"></span>
+                </div>
+
+                <!-- Забыли пароль -->
+                <div class="form-group">
+                    <a href="forgot-password.html" class="forgot-link">Забыли пароль?</a>
+                </div>
+
+                <!-- Кнопка -->
+                <button type="submit" class="btn-submit" id="submitBtn">Войти</button>
+
+                <!-- Сообщение -->
+                <div class="form-message" id="formMessage"></div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../assets/js/login.js"></script>
+</body>
+</html>

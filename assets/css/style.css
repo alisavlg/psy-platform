@@ -29,10 +29,16 @@ body {
     font-size: 24px;
     font-weight: bold;
     color: var(--color-primary);
+    text-decoration: none;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    gap: 15px;
 }
 
 .nav a {
-    margin-left: 20px;
     text-decoration: none;
     color: var(--color-text-light);
     font-weight: 500;
@@ -41,6 +47,22 @@ body {
 
 .nav a:hover {
     color: var(--color-primary);
+}
+
+/* Кнопка «Регистрация» в шапке */
+.nav-btn {
+    background-color: var(--color-primary);
+    color: #fff !important;
+    padding: 10px 22px;
+    border-radius: 50px;
+    font-weight: 600;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.nav-btn:hover {
+    background-color: var(--color-primary-hover);
+    color: #fff !important;
+    transform: translateY(-1px);
 }
 
 /* Профиль */

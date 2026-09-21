@@ -329,4 +329,14 @@ body {
     .auth-features {
         display: none;
     }
+
+    /* Ссылка «Забыли пароль?» */
+.forgot-link {
+    font-size: 14px;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
 }
