@@ -146,48 +146,59 @@
                     <!-- РАЗДЕЛ: Личная страница -->
                     <div id="profileSection" style="display:none;">
                         <div class="profile-edit-container">
-                            <div class="profile-edit-header">
-                                <h2>Публичный профиль</h2>
-                                <p>Эта информация видна клиентам на главной странице</p>
+
+                            <!-- Блок ФИО (read-only) -->
+                            <div class="profile-fio-block">
+                                <div class="profile-fio-header">
+                                    <h3>Персональные данные</h3>
+                                    <span class="verify-badge" id="verifyBadge">✓ Проверен</span>
+                                </div>
+                                <div class="profile-fio-row">
+                                    <div class="profile-fio-item">
+                                        <span class="profile-fio-label">Имя</span>
+                                        <span class="profile-fio-value" id="fioFirstName">—</span>
+                                    </div>
+                                    <div class="profile-fio-item">
+                                        <span class="profile-fio-label">Отчество</span>
+                                        <span class="profile-fio-value" id="fioMiddleName">—</span>
+                                    </div>
+                                </div>
+                                <div class="profile-fio-row">
+                                    <div class="profile-fio-item full">
+                                        <span class="profile-fio-label">Фамилия (не показывается публично)</span>
+                                        <span class="profile-fio-value" id="fioLastName">—</span>
+                                    </div>
+                                </div>
+                                <p class="profile-fio-hint">
+                                    ФИО подтверждается модератором на основании документов. Для изменения обратитесь в поддержку.
+                                </p>
                             </div>
 
+                            <!-- Разделитель -->
+                            <div class="profile-divider">
+                                <span>Редактируемая информация</span>
+                            </div>
+
+                            <!-- Форма редактирования -->
                             <form class="profile-edit-form" id="profileForm" novalidate>
-                                <!-- Фото -->
                                 <div class="profile-edit-photo-block">
                                     <div class="profile-edit-photo" id="profilePhotoPreview">Фото</div>
                                     <button type="button" class="btn-photo">Загрузить фото</button>
                                     <p class="form-hint">JPG или PNG, до 5 МБ</p>
                                 </div>
 
-                                <!-- Имя -->
-                                <div class="form-group">
-                                    <label for="profileFirstName">Имя</label>
-                                    <input type="text" id="profileFirstName" placeholder="Анна" required>
-                                    <span class="form-error" id="profileFirstNameError"></span>
-                                </div>
-
-                                <!-- Отчество -->
-                                <div class="form-group">
-                                    <label for="profileMiddleName">Отчество</label>
-                                    <input type="text" id="profileMiddleName" placeholder="Сергеевна" required>
-                                    <span class="form-error" id="profileMiddleNameError"></span>
-                                </div>
-
-                                <!-- Специализация -->
                                 <div class="form-group">
                                     <label for="profileSpecialty">Специализация</label>
                                     <input type="text" id="profileSpecialty" placeholder="Тревога, отношения, самооценка" required>
                                     <span class="form-error" id="profileSpecialtyError"></span>
                                 </div>
 
-                                <!-- Описание -->
                                 <div class="form-group">
                                     <label for="profileDescription">Описание</label>
                                     <textarea id="profileDescription" rows="5" placeholder="Расскажите о своём подходе..." required></textarea>
                                     <span class="form-error" id="profileDescriptionError"></span>
                                 </div>
 
-                                <!-- Стаж и цена -->
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="profileExperience">Стаж (лет)</label>
@@ -201,7 +212,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Кнопка -->
                                 <div class="profile-edit-actions">
                                     <button type="submit" class="btn-save-profile" id="saveProfileBtn">Сохранить изменения</button>
                                     <a href="../index.html" target="_blank" class="btn-preview">Посмотреть на сайте ↗</a>
@@ -209,6 +219,54 @@
 
                                 <div class="form-message" id="profileMessage"></div>
                             </form>
+
+                            <!-- Блок «Безопасность» -->
+                            <div class="security-block">
+                                <h3>Безопасность</h3>
+
+                                <!-- Статус пароля -->
+                                <div class="password-status" id="passwordStatus">
+                                    <span class="password-status-icon" id="passwordStatusIcon">✓</span>
+                                    <div class="password-status-text">
+                                        <strong id="passwordStatusTitle">Пароль в порядке</strong>
+                                        <span id="passwordStatusDesc">Пароль был установлен недавно.</span>
+                                        <div class="password-age-bar">
+                                            <div class="password-age-fill" id="passwordAgeFill" style="width: 0%;"></div>
+                                        </div>
+                                        <div class="password-age-text" id="passwordAgeText"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Кнопка -->
+                                <button type="button" class="btn-change-password" id="changePasswordBtn">Сменить пароль</button>
+
+                                <!-- Форма смены пароля -->
+                                <div class="change-password-form" id="changePasswordForm">
+                                    <div class="form-group">
+                                        <label for="currentPassword">Текущий пароль</label>
+                                        <input type="password" id="currentPassword" placeholder="Введите текущий пароль">
+                                        <span class="form-error" id="currentPasswordError"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newPassword">Новый пароль</label>
+                                        <input type="password" id="newPassword" placeholder="Латиница, цифры, символы">
+                                        <span class="form-error" id="newPasswordError"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="newPassword2">Повторите новый пароль</label>
+                                        <input type="password" id="newPassword2" placeholder="Ещё раз">
+                                        <span class="form-error" id="newPassword2Error"></span>
+                                    </div>
+
+                                    <div class="change-password-actions">
+                                        <button type="button" class="btn-confirm-password" id="confirmPasswordBtn">Сменить</button>
+                                        <button type="button" class="btn-cancel-password" id="cancelPasswordBtn">Отмена</button>
+                                    </div>
+
+                                    <div class="change-password-message" id="changePasswordMessage"></div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
@@ -221,6 +279,7 @@
 
                 </main>
 
+                <!-- ПРАВАЯ ПАНЕЛЬ -->
                 <aside class="right-panel">
                     <div class="right-panel-header">
                         <h2>Сегодня</h2>

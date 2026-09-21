@@ -337,7 +337,6 @@
     background: #c0392b;
 }
 
-/* Адаптив */
 @media (max-width: 900px) {
     .calendar-toolbar {
         flex-direction: column;
@@ -655,7 +654,6 @@
     font-weight: 600;
 }
 
-/* Модальное окно клиента */
 .client-detail-header {
     display: flex;
     align-items: center;
@@ -761,4 +759,478 @@
     font-size: 48px;
     margin-bottom: 15px;
     opacity: 0.5;
+}
+
+/* ============================================
+   РАЗДЕЛ «ЛИЧНАЯ СТРАНИЦА»
+   ============================================ */
+
+.profile-edit-container {
+    max-width: 700px;
+    margin: 0 auto;
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 40px;
+    box-shadow: var(--shadow-card);
+}
+
+/* Блок ФИО (read-only) */
+.profile-fio-block {
+    background: #fafbfd;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 20px 25px;
+    margin-bottom: 30px;
+}
+
+.profile-fio-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Заголовок — мелкий, как label формы */
+.profile-fio-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.verify-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+}
+
+.verify-badge.verified {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.verify-badge.pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.profile-fio-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.profile-fio-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.profile-fio-item.full {
+    grid-column: 1 / -1;
+}
+
+/* Метка — мелкая, НЕ заглавными */
+.profile-fio-label {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+/* Значение — как поля формы */
+.profile-fio-value {
+    font-size: 15px;
+    color: var(--color-text);
+    font-weight: 400;
+    text-transform: none;
+}
+
+.profile-fio-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 10px;
+    padding-top: 12px;
+    border-top: 1px solid var(--color-border);
+    line-height: 1.4;
+    text-transform: none;
+}
+
+/* Разделитель — мелкий */
+.profile-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    color: var(--color-text-light);
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.profile-divider::before,
+.profile-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--color-border);
+}
+
+/* Форма */
+.profile-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.profile-edit-photo-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.profile-edit-photo {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background-color: #e0e7ef;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background-size: cover;
+    background-position: center;
+}
+
+.btn-photo {
+    background: none;
+    border: 1px solid var(--color-border);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.btn-photo:hover {
+    background-color: #f0f4fa;
+}
+
+.profile-edit-form .form-group {
+    margin-bottom: 0;
+}
+
+.profile-edit-form textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: #fff;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.5;
+}
+
+.profile-edit-form textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.profile-edit-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+    align-items: center;
+}
+
+.btn-save-profile {
+    flex: 1;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-save-profile:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-preview {
+    padding: 14px 20px;
+    border-radius: 10px;
+    background: #f0f0f0;
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.btn-preview:hover {
+    background: #e0e0e0;
+}
+
+.profile-edit-container .form-message {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 10px;
+    font-size: 15px;
+    text-align: center;
+    display: none;
+}
+
+.profile-edit-container .form-message.success {
+    background: #d4edda;
+    color: #155724;
+    display: block;
+}
+
+/* ============================================
+   БЛОК «БЕЗОПАСНОСТЬ»
+   ============================================ */
+
+.security-block {
+    margin-top: 30px;
+    padding-top: 25px;
+    border-top: 1px solid var(--color-border);
+}
+
+.security-block h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 15px;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.password-status {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 15px 18px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.password-status.ok {
+    background: #d4edda;
+    color: #155724;
+}
+
+.password-status.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.password-status.expired {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.password-status-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.password-status-text strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 15px;
+}
+
+.password-age-bar {
+    height: 6px;
+    background: rgba(0,0,0,0.08);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+
+.password-age-fill {
+    height: 100%;
+    background: #2ecc71;
+    transition: width 0.3s, background-color 0.3s;
+}
+
+.password-age-fill.warning {
+    background: #f39c12;
+}
+
+.password-age-fill.expired {
+    background: #e74c3c;
+}
+
+.password-age-text {
+    font-size: 12px;
+    opacity: 0.8;
+}
+
+.btn-change-password {
+    width: 100%;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.btn-change-password:hover {
+    background: var(--color-primary-hover);
+}
+
+.change-password-form {
+    display: none;
+    margin-top: 15px;
+    padding: 20px;
+    background: #fafbfd;
+    border-radius: 10px;
+    border: 1px solid var(--color-border);
+}
+
+.change-password-form.active {
+    display: block;
+}
+
+.change-password-form .form-group {
+    margin-bottom: 15px;
+}
+
+.change-password-form input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: #fff;
+}
+
+.change-password-form input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.change-password-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.btn-confirm-password {
+    flex: 1;
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+}
+
+.btn-confirm-password:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-cancel-password {
+    flex: 1;
+    background: #f0f0f0;
+    color: var(--color-text);
+    border: none;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+}
+
+.btn-cancel-password:hover {
+    background: #e0e0e0;
+}
+
+.change-password-message {
+    margin-top: 12px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    display: none;
+}
+
+.change-password-message.success {
+    background: #d4edda;
+    color: #155724;
+    display: block;
+}
+
+.change-password-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    display: block;
+}
+
+@media (max-width: 600px) {
+    .form-row,
+    .profile-fio-row {
+        grid-template-columns: 1fr;
+    }
+
+    .profile-edit-container {
+        padding: 25px 20px;
+    }
+
+    .profile-edit-actions {
+        flex-direction: column;
+    }
+
+    .btn-save-profile,
+    .btn-preview {
+        width: 100%;
+        text-align: center;
+    }
 }
