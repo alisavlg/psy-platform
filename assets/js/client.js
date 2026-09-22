@@ -2,6 +2,8 @@
 // Кабинет клиента
 // ============================================
 
+console.log('[client.js] loaded');
+
 window.CURRENT_USER = window.CURRENT_USER || 'client';
 
 const clientSections = {
@@ -218,8 +220,9 @@ function renderCatalog() {
                 '<button class="psy-card-btn">Записаться</button>' +
             '</div>';
 
+        // Кнопка ведёт на страницу профиля психолога
         card.querySelector('.psy-card-btn').addEventListener('click', function () {
-            alert('Бронирование появится в следующей задаче (#16)');
+            window.location.href = 'psychologist.html?id=' + psy.id;
         });
 
         listEl.appendChild(card);

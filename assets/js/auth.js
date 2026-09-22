@@ -1,5 +1,5 @@
 // ============================================
-// Регистрация: валидация, генератор пароля
+// Регистрация: валидация, генератор пароля, код пользователя
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -31,15 +31,10 @@ document.addEventListener('DOMContentLoaded', function () {
     // === 2. Индикатор надёжности ===
     var strengthBar = document.getElementById('passwordStrength');
 
-    if (passwordInput && strengthBar) {
-        passwordInput.addEventListener('input', function () {
-            updateStrength(passwordInput.value);
-        });
-    }
-
     function updateStrength(val) {
+        if (!strengthBar) return;
         strengthBar.classList.remove('weak', 'medium', 'strong');
-        if (val.length === 0) return;
+        if (!val) return;
 
         var hasLatin = /[a-zA-Z]/.test(val);
         var hasDigits = /\d/.test(val);
@@ -47,18 +42,14 @@ document.addEventListener('DOMContentLoaded', function () {
         var hasCyrillic = /[а-яА-ЯёЁ]/.test(val);
         var isLong = val.length >= 8;
 
-        if (hasCyrillic) {
-            strengthBar.classList.add('weak');
-            return;
-        }
+        if (hasCyrillic) { strengthBar.classList.add('weak'); return; }
+        if (isLong && hasLatin && hasDigits && hasSymbols) strengthBar.classList.add('strong');
+        else if (isLong && hasLatin && hasDigits) strengthBar.classList.add('medium');
+        else strengthBar.classList.add('weak');
+    }
 
-        if (isLong && hasLatin && hasDigits && hasSymbols) {
-            strengthBar.classList.add('strong');
-        } else if (isLong && hasLatin && hasDigits) {
-            strengthBar.classList.add('medium');
-        } else {
-            strengthBar.classList.add('weak');
-        }
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function () { updateStrength(passwordInput.value); });
     }
 
     // === 3. Генератор пароля ===
@@ -79,7 +70,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function generateStrongPassword() {
-        // Исключаем похожие символы (l/1, o/0, I/O)
         var lower = 'abcdefghijkmnpqrstuvwxyz';
         var upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
         var digits = '23456789';
@@ -87,20 +77,37 @@ document.addEventListener('DOMContentLoaded', function () {
         var all = lower + upper + digits + symbols;
 
         var pwd = '';
-        // Гарантируем по одному символу каждого типа
         pwd += lower.charAt(Math.floor(Math.random() * lower.length));
         pwd += upper.charAt(Math.floor(Math.random() * upper.length));
         pwd += digits.charAt(Math.floor(Math.random() * digits.length));
         pwd += symbols.charAt(Math.floor(Math.random() * symbols.length));
-        // Добиваем до 14 символов
         for (var i = 4; i < 14; i++) {
             pwd += all.charAt(Math.floor(Math.random() * all.length));
         }
-        // Перемешиваем
         return pwd.split('').sort(function () { return Math.random() - 0.5; }).join('');
     }
 
-    // === 4. Вспомогательные функции ===
+    // === 4. Генератор кода пользователя ===
+    // Формат: 2 буквы + 4 цифры, например AK-4821
+    // Буквы без путаницы: без O, I, L, Z, S, B, G
+    function generateUserCode() {
+        var letters = 'ACDEFHJKMNPRTUVWXY';
+        var digits = '23456789';
+        var code = '';
+        code += letters.charAt(Math.floor(Math.random() * letters.length));
+        code += letters.charAt(Math.floor(Math.random() * letters.length));
+        code += '-';
+        for (var i = 0; i < 4; i++) {
+            code += digits.charAt(Math.floor(Math.random() * digits.length));
+        }
+        return code;
+    }
+
+    function generateUserId() {
+        return 'u-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+    }
+
+    // === 5. Вспомогательные функции ===
     function showError(fieldId, message) {
         var errorEl = document.getElementById(fieldId + 'Error');
         var inputEl = document.getElementById(fieldId);
@@ -130,69 +137,52 @@ document.addEventListener('DOMContentLoaded', function () {
         return /^(\+7|8)\d{10}$/.test(cleaned);
     }
 
-    // === 5. Валидация ===
+    // === 6. Валидация ===
     function validateForm() {
         var isValid = true;
 
         var email = document.getElementById('email').value.trim();
-        if (!email) {
-            showError('email', 'Введите email'); isValid = false;
-        } else if (!validateEmail(email)) {
-            showError('email', 'Неверный формат email'); isValid = false;
-        } else clearError('email');
+        if (!email) { showError('email', 'Введите email'); isValid = false; }
+        else if (!validateEmail(email)) { showError('email', 'Неверный формат email'); isValid = false; }
+        else clearError('email');
 
         var password = passwordInput.value;
-        if (!password) {
-            showError('password', 'Введите пароль'); isValid = false;
-        } else if (/[а-яА-ЯёЁ]/.test(password)) {
-            showError('password', 'Пароль должен содержать только латинские буквы, цифры и символы'); isValid = false;
-        } else if (password.length < 8) {
-            showError('password', 'Пароль должен быть минимум 8 символов'); isValid = false;
-        } else if (!/[a-zA-Z]/.test(password)) {
-            showError('password', 'Пароль должен содержать хотя бы одну латинскую букву'); isValid = false;
-        } else if (!/\d/.test(password)) {
-            showError('password', 'Пароль должен содержать хотя бы одну цифру'); isValid = false;
-        } else clearError('password');
+        if (!password) { showError('password', 'Введите пароль'); isValid = false; }
+        else if (/[а-яА-ЯёЁ]/.test(password)) { showError('password', 'Только латинские буквы, цифры и символы'); isValid = false; }
+        else if (password.length < 8) { showError('password', 'Минимум 8 символов'); isValid = false; }
+        else if (!/[a-zA-Z]/.test(password)) { showError('password', 'Хотя бы одна латинская буква'); isValid = false; }
+        else if (!/\d/.test(password)) { showError('password', 'Хотя бы одна цифра'); isValid = false; }
+        else clearError('password');
 
-        // Повтор пароля
         var password2 = passwordInput2.value;
-        if (!password2) {
-            showError('password2', 'Повторите пароль'); isValid = false;
-        } else if (password2 !== password) {
-            showError('password2', 'Пароли не совпадают'); isValid = false;
-        } else clearError('password2');
+        if (!password2) { showError('password2', 'Повторите пароль'); isValid = false; }
+        else if (password2 !== password) { showError('password2', 'Пароли не совпадают'); isValid = false; }
+        else clearError('password2');
 
         var firstName = document.getElementById('firstName').value.trim();
-        if (!firstName || firstName.length < 2) {
-            showError('firstName', 'Введите имя (минимум 2 символа)'); isValid = false;
-        } else clearError('firstName');
+        if (!firstName || firstName.length < 2) { showError('firstName', 'Введите имя (минимум 2 символа)'); isValid = false; }
+        else clearError('firstName');
 
         var middleName = document.getElementById('middleName').value.trim();
-        if (!middleName || middleName.length < 2) {
-            showError('middleName', 'Введите отчество (минимум 2 символа)'); isValid = false;
-        } else clearError('middleName');
+        if (!middleName || middleName.length < 2) { showError('middleName', 'Введите отчество (минимум 2 символа)'); isValid = false; }
+        else clearError('middleName');
 
         var lastName = document.getElementById('lastName').value.trim();
-        if (!lastName || lastName.length < 2) {
-            showError('lastName', 'Введите фамилию (минимум 2 символа)'); isValid = false;
-        } else clearError('lastName');
+        if (!lastName || lastName.length < 2) { showError('lastName', 'Введите фамилию (минимум 2 символа)'); isValid = false; }
+        else clearError('lastName');
 
         var phone = document.getElementById('phone').value.trim();
-        if (!phone) {
-            showError('phone', 'Введите телефон'); isValid = false;
-        } else if (!validatePhone(phone)) {
-            showError('phone', 'Неверный формат телефона'); isValid = false;
-        } else clearError('phone');
+        if (!phone) { showError('phone', 'Введите телефон'); isValid = false; }
+        else if (!validatePhone(phone)) { showError('phone', 'Неверный формат телефона'); isValid = false; }
+        else clearError('phone');
 
         var timezone = document.getElementById('timezone').value;
-        if (!timezone) {
-            showError('timezone', 'Выберите часовой пояс'); isValid = false;
-        } else clearError('timezone');
+        if (!timezone) { showError('timezone', 'Выберите часовой пояс'); isValid = false; }
+        else clearError('timezone');
 
         var agreeTerms = document.getElementById('agreeTerms').checked;
         var agreePolicy = document.getElementById('agreePolicy').checked;
         var agreeError = document.getElementById('agreeError');
-
         if (!agreeTerms || !agreePolicy) {
             if (agreeError) agreeError.textContent = 'Необходимо согласиться со всеми условиями';
             isValid = false;
@@ -203,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return isValid;
     }
 
-    // === 6. Отправка ===
+    // === 7. Отправка ===
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         if (!validateForm()) return;
@@ -214,7 +204,13 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Отправляем...';
 
+        // Генерируем уникальный код и id
+        var userCode = generateUserCode();
+        var userId = generateUserId();
+
         var userData = {
+            id: userId,
+            code: userCode,
             firstName: document.getElementById('firstName').value.trim(),
             middleName: document.getElementById('middleName').value.trim(),
             lastName: document.getElementById('lastName').value.trim(),
@@ -223,19 +219,25 @@ document.addEventListener('DOMContentLoaded', function () {
             timezone: document.getElementById('timezone').value,
             isVerified: false,
             registeredAt: Date.now(),
-            passwordChangedAt: Date.now()  // для счётчика смены пароля
+            passwordChangedAt: Date.now()
         };
         localStorage.setItem('psyhelp_user', JSON.stringify(userData));
 
+        console.log('Регистрация, код пользователя:', userCode);
+
         setTimeout(function () {
             messageEl.className = 'form-message success';
-            messageEl.textContent = '✓ Регистрация успешна! Проверьте email и телефон для подтверждения.';
+            messageEl.innerHTML =
+                '✓ Регистрация успешна!<br>' +
+                '<span style="font-size: 14px; opacity: 0.85;">' +
+                    'Ваш код: <strong>' + userCode + '</strong>. Сохраните его.' +
+                '</span>';
             submitBtn.disabled = false;
             submitBtn.textContent = 'Зарегистрироваться';
 
             setTimeout(function () {
                 window.location.href = 'dashboard.html?section=profile';
-            }, 2500);
+            }, 3500);
         }, 1500);
     });
 });
