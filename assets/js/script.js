@@ -4,12 +4,13 @@
 
 const sections = {
     calendar: { title: 'Календарь', isCalendar: true },
+    schedule: { title: 'Расписание', isSchedule: true },
     requests: { title: 'Заявки на запись', isRequests: true },
     clients:  { title: 'Клиенты', isClients: true },
     room:     { title: 'Комната', content: 'Здесь будет встроенный видеочат для проведения сессий.' },
     profile:  { title: 'Личная страница', isProfile: true },
     reports:  { title: 'Отчёты', isReports: true },
-    settings: { title: 'Настройки', content: 'Здесь вы можете настроить расписание, часовой пояс и уведомления.' }
+    settings: { title: 'Настройки', content: 'Здесь вы можете настроить часовой пояс и уведомления.' }
 };
 
 function getSectionFromURL() {
@@ -31,14 +32,15 @@ function renderSection() {
     document.getElementById('pageTitle').textContent = section.title;
     document.title = section.title + ' | PsyHelp';
 
-    document.querySelectorAll('.nav-item').forEach(item => {
+    document.querySelectorAll('.nav-item').forEach(function (item) {
         item.classList.remove('active');
-        if (item.href.includes('section=' + sectionKey)) {
+        if (item.href.indexOf('section=' + sectionKey) !== -1) {
             item.classList.add('active');
         }
     });
 
     const calendarSection = document.getElementById('calendarSection');
+    const scheduleSection = document.getElementById('scheduleSection');
     const requestsSection = document.getElementById('requestsSection');
     const clientsSection = document.getElementById('clientsSection');
     const profileSection = document.getElementById('profileSection');
@@ -48,6 +50,7 @@ function renderSection() {
     if (!calendarSection || !placeholderSection) return;
 
     calendarSection.style.display = 'none';
+    if (scheduleSection) scheduleSection.style.display = 'none';
     if (requestsSection) requestsSection.style.display = 'none';
     if (clientsSection) clientsSection.style.display = 'none';
     if (profileSection) profileSection.style.display = 'none';
@@ -59,6 +62,11 @@ function renderSection() {
         if (typeof renderCalendar === 'function') {
             renderCalendar();
             if (typeof scrollToCurrentHour === 'function') scrollToCurrentHour();
+        }
+    } else if (section.isSchedule) {
+        if (scheduleSection) {
+            scheduleSection.style.display = 'block';
+            if (typeof renderSchedule === 'function') renderSchedule();
         }
     } else if (section.isRequests) {
         if (requestsSection) {

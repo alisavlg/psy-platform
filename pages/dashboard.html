@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/calendar.css">
+    <link rel="stylesheet" href="../assets/css/schedule.css">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -23,6 +24,14 @@
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     Календарь
+                </a>
+
+                <a href="dashboard.html?section=schedule" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    Расписание
                 </a>
 
                 <a href="dashboard.html?section=requests" class="nav-item">
@@ -118,6 +127,45 @@
                         </div>
                     </div>
 
+                    <!-- РАСПИСАНИЕ -->
+                    <div id="scheduleSection" style="display:none;">
+                        <div class="schedule-toolbar">
+                            <div class="schedule-quick-actions">
+                                <button class="btn-quick" id="fillWeekdaysBtn">Будни 10–19</button>
+                                <button class="btn-quick" id="fillWeekendBtn">Выходные 11–16</button>
+                                <button class="btn-quick danger" id="clearSlotsBtn">Очистить всё</button>
+                            </div>
+                            <div class="schedule-stats">
+                                <span>Свободных слотов: <strong id="scheduleCount">0</strong></span>
+                                <span>Часов в неделю: <strong id="scheduleHours">0</strong></span>
+                            </div>
+                        </div>
+
+                        <div class="schedule-legend">
+                            <div class="schedule-legend-item">
+                                <div class="schedule-legend-box free"></div>
+                                <span>Свободно для записи</span>
+                            </div>
+                            <div class="schedule-legend-item">
+                                <div class="schedule-legend-box busy"></div>
+                                <span>Не рабочее время</span>
+                            </div>
+                            <div class="schedule-legend-item">
+                                <div class="schedule-legend-box session"></div>
+                                <span>Занято сессией</span>
+                            </div>
+                        </div>
+
+                        <div class="schedule-wrapper">
+                            <div class="schedule-grid" id="scheduleGrid"></div>
+                        </div>
+
+                        <div class="schedule-info">
+                            💡 <strong>Как это работает:</strong> кликайте по клеткам, чтобы отметить часы,
+                            когда вы готовы принимать клиентов. Эти слоты будут видны клиентам в вашем профиле для записи.
+                        </div>
+                    </div>
+
                     <!-- ЗАЯВКИ -->
                     <div id="requestsSection" style="display:none;">
                         <div class="requests-toolbar">
@@ -134,7 +182,7 @@
                     <div id="clientsSection" style="display:none;">
                         <div class="clients-toolbar">
                             <div class="clients-search">
-                                <input type="text" id="clientsSearch" placeholder="Поиск по имени или телефону...">
+                                <input type="text" id="clientsSearch" placeholder="Поиск по имени...">
                             </div>
                             <div class="clients-count" id="clientsCount">Всего: 0</div>
                         </div>
@@ -402,6 +450,7 @@
 
     <script src="../assets/js/script.js"></script>
     <script src="../assets/js/calendar.js"></script>
+    <script src="../assets/js/slots.js"></script>
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>
     <script src="../assets/js/profile.js"></script>

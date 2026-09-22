@@ -1,0 +1,205 @@
+/* ============================================
+   РАЗДЕЛ «РАСПИСАНИЕ»
+   ============================================ */
+
+.schedule-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.schedule-quick-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-quick {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-quick:hover {
+    background: #f0f4fa;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-quick.danger:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.schedule-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
+.schedule-stats strong {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+/* Легенда */
+.schedule-legend {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--color-text-light);
+}
+
+.schedule-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.schedule-legend-box {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.schedule-legend-box.free {
+    background: #4a90e2;
+}
+
+.schedule-legend-box.busy {
+    background: #d4dbe5;
+}
+
+.schedule-legend-box.session {
+    background: #2ecc71;
+}
+
+/* Сетка расписания */
+.schedule-wrapper {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 60px repeat(7, 1fr);
+    min-width: 700px;
+    position: relative;
+}
+
+.schedule-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--color-text-light);
+    border-bottom: 1px solid var(--color-border);
+    background: #fafbfd;
+}
+
+.schedule-header.corner {
+    z-index: 11;
+}
+
+.schedule-header.today {
+    color: var(--color-primary);
+    background: #eaf4ff;
+}
+
+.schedule-time-cell {
+    padding: 6px 8px;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    text-align: right;
+    border-bottom: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+    background: #fafbfd;
+    height: 44px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.schedule-slot {
+    height: 44px;
+    border: none;
+    border-bottom: 1px solid var(--color-border);
+    border-right: 1px solid var(--color-border);
+    background: #fff;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.1s;
+    font-family: var(--font-family);
+    font-size: 11px;
+    color: #fff;
+    font-weight: 600;
+    position: relative;
+}
+
+.schedule-slot:last-child {
+    border-right: none;
+}
+
+.schedule-slot:hover {
+    background: #eaf4ff;
+}
+
+.schedule-slot.free {
+    background: #4a90e2;
+}
+
+.schedule-slot.free:hover {
+    background: #357abd;
+}
+
+.schedule-slot.session {
+    background: #2ecc71;
+    cursor: not-allowed;
+}
+
+/* Информационная панель */
+.schedule-info {
+    background: #eaf4ff;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #357abd;
+    line-height: 1.5;
+}
+
+.schedule-info strong {
+    color: #222;
+}
+
+@media (max-width: 900px) {
+    .schedule-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .schedule-wrapper {
+        overflow-x: auto;
+    }
+}
