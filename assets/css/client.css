@@ -1,0 +1,263 @@
+/* ============================================
+   КАБИНЕТ КЛИЕНТА
+   ============================================ */
+
+.main-content .messenger-layout {
+    width: 100%;
+}
+
+/* ============================================
+   КАТАЛОГ ПСИХОЛОГОВ
+   ============================================ */
+
+.catalog-toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+}
+
+.catalog-search {
+    flex: 1;
+    min-width: 250px;
+}
+
+.catalog-search input {
+    width: 100%;
+    padding: 12px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.catalog-search input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.catalog-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.catalog-filters select {
+    padding: 12px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: var(--color-bg-card);
+    cursor: pointer;
+    min-width: 170px;
+}
+
+.catalog-filters select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.catalog-count {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-bottom: 18px;
+    font-weight: 500;
+}
+
+.catalog-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+}
+
+/* Карточка психолога */
+.psy-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 24px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    gap: 18px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.psy-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
+}
+
+.psy-card-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 22px;
+    flex-shrink: 0;
+    letter-spacing: 0.5px;
+}
+
+.psy-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.psy-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.psy-card-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-heading);
+    margin: 0;
+}
+
+.psy-card-badge {
+    background: #d4edda;
+    color: #155724;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.psy-card-specialty {
+    font-size: 13px;
+    color: var(--color-primary);
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.psy-card-description {
+    font-size: 13px;
+    color: var(--color-text-light);
+    margin-bottom: 12px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.psy-card-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.psy-card-stat {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.psy-card-stat strong {
+    color: var(--color-heading);
+    font-weight: 600;
+}
+
+.psy-card-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.psy-card-stars {
+    color: #f5a623;
+    font-size: 15px;
+    letter-spacing: 1px;
+}
+
+.psy-card-reviews {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+.psy-card-btn {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.psy-card-btn:hover {
+    background: var(--color-primary-hover);
+}
+
+/* Пустое состояние */
+.catalog-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-text-muted);
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
+.catalog-empty-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+/* Адаптив */
+@media (max-width: 700px) {
+    .psy-card {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    .psy-card-header,
+    .psy-card-meta,
+    .psy-card-rating {
+        justify-content: center;
+    }
+}
+/* ============================================
+   КЛИЕНТ: убираем правую панель полностью
+   ============================================ */
+
+.client-layout .content-row {
+    display: block;
+}
+
+/* Планировщик занимает всю ширину — прокрутка по горизонтали */
+.main-content .calendar-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: calc(100vh - 280px);
+}
+
+.main-content .calendar-grid {
+    min-width: 900px;
+}
+
+/* Убедимся, что plannerSection не сжат */
+#plannerSection {
+    width: 100%;
+}

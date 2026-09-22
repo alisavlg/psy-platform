@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кабинет клиента | PsyHelp</title>
+    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/calendar.css">
+    <link rel="stylesheet" href="../assets/css/messenger.css">
+    <link rel="stylesheet" href="../assets/css/client.css">
+</head>
+<body>
+    <div class="dashboard-layout">
+
+        <aside class="sidebar">
+            <div class="logo">PsyHelp</div>
+            <nav class="sidebar-nav">
+
+                <a href="client.html?section=catalog" class="nav-item">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Найти психолога
+                </a>
+
+                <a href="client.html?section=sessions" class="nav-item">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Мои сессии
+                </a>
+
+                <a href="client.html?section=messages" class="nav-item">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Сообщения
+                </a>
+
+                <a href="client.html?section=planner" class="nav-item">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    Планировщик
+                </a>
+
+                <a href="client.html?section=profile" class="nav-item">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Профиль
+                </a>
+
+            </nav>
+        </aside>
+
+        <div class="main-wrapper">
+
+            <header class="topbar">
+                <h1 class="page-title" id="pageTitle">Найти психолога</h1>
+                <div class="topbar-actions">
+                    <button class="icon-btn" aria-label="Уведомления">🔔</button>
+                    <div class="user-avatar">К</div>
+                </div>
+            </header>
+
+            <div class="content-row">
+
+                <main class="main-content">
+
+                    <!-- КАТАЛОГ ПСИХОЛОГОВ -->
+                    <div id="catalogSection">
+                        <div class="catalog-toolbar">
+                            <div class="catalog-search">
+                                <input type="text" id="catalogSearch" placeholder="Поиск по имени или специализации...">
+                            </div>
+                            <div class="catalog-filters">
+                                <select id="filterSpecialty">
+                                    <option value="">Все специализации</option>
+                                    <option value="Тревога">Тревога</option>
+                                    <option value="Отношения">Отношения</option>
+                                    <option value="Самооценка">Самооценка</option>
+                                    <option value="Депрессия">Депрессия</option>
+                                    <option value="Детская психология">Детская психология</option>
+                                    <option value="Семейная терапия">Семейная терапия</option>
+                                </select>
+                                <select id="filterPrice">
+                                    <option value="">Любая цена</option>
+                                    <option value="1500">до 1 500 ₽</option>
+                                    <option value="3000">до 3 000 ₽</option>
+                                    <option value="5000">до 5 000 ₽</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="catalog-count" id="catalogCount">Найдено: 0</div>
+                        <div class="catalog-list" id="catalogList"></div>
+                    </div>
+
+                    <!-- МОИ СЕССИИ -->
+                    <div id="sessionsSection" style="display:none;">
+                        <div class="placeholder">
+                            <p>Список сессий — скоро здесь</p>
+                        </div>
+                    </div>
+
+                    <!-- СООБЩЕНИЯ -->
+                    <div id="messagesSection" style="display:none;">
+                        <div class="messenger-hint">
+                            🔒 Все коммуникации — только внутри платформы. Контакты участников скрыты.
+                        </div>
+                        <div class="messenger-layout" id="messengerLayout">
+                            <div class="chats-panel">
+                                <div class="chats-header">
+                                    <h3>Чаты</h3>
+                                </div>
+                                <div class="chats-list" id="chatsList"></div>
+                            </div>
+                            <div class="chat-window" id="chatWindow"></div>
+                        </div>
+                    </div>
+
+                    <!-- ПЛАНИРОВЩИК -->
+                    <div id="plannerSection" style="display:none;">
+                        <div class="calendar-toolbar">
+                            <div class="calendar-nav">
+                                <button class="btn-nav" id="prevWeek">←</button>
+                                <span class="calendar-period" id="calendarPeriod">Сентябрь 2026</span>
+                                <button class="btn-nav" id="nextWeek">→</button>
+                                <button class="btn-today" id="todayBtn">Сегодня</button>
+                            </div>
+                            <div class="calendar-actions">
+                                <div class="category-legend">
+                                    <span class="legend-item"><span class="legend-dot" style="background:#4a90e2"></span>Сессия</span>
+                                    <span class="legend-item"><span class="legend-dot" style="background:#2ecc71"></span>Личное</span>
+                                    <span class="legend-item"><span class="legend-dot" style="background:#f39c12"></span>Работа</span>
+                                    <span class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span>Здоровье</span>
+                                    <span class="legend-item"><span class="legend-dot" style="background:#9b59b6"></span>Учёба</span>
+                                </div>
+                                <button class="btn-add-event" id="addEventBtn">+ Событие</button>
+                            </div>
+                        </div>
+                        <div class="calendar-wrapper">
+                            <div class="calendar-grid" id="calendarGrid"></div>
+                        </div>
+                    </div>
+
+                    <!-- ПРОФИЛЬ -->
+                    <div id="profileSection" style="display:none;">
+                        <div class="placeholder">
+                            <p>Профиль клиента — скоро здесь</p>
+                        </div>
+                    </div>
+
+                    <!-- ЗАГЛУШКА -->
+                    <div id="placeholderSection" style="display:none;">
+                        <div class="placeholder">
+                            <p id="placeholderText">Раздел в разработке</p>
+                        </div>
+                    </div>
+
+                </main>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h3 id="modalTitle">Новое событие</h3>
+
+            <div class="form-group">
+                <label for="eventTitle">Название</label>
+                <input type="text" id="eventTitle" placeholder="Например: Сессия с психологом">
+            </div>
+
+            <div class="form-group">
+                <label for="eventDate">Дата</label>
+                <input type="date" id="eventDate">
+            </div>
+
+            <div class="form-group">
+                <label for="eventHour">Время</label>
+                <select id="eventHour">
+                    <option value="0">00:00</option>
+                    <option value="1">01:00</option>
+                    <option value="2">02:00</option>
+                    <option value="3">03:00</option>
+                    <option value="4">04:00</option>
+                    <option value="5">05:00</option>
+                    <option value="6">06:00</option>
+                    <option value="7">07:00</option>
+                    <option value="8">08:00</option>
+                    <option value="9">09:00</option>
+                    <option value="10">10:00</option>
+                    <option value="11">11:00</option>
+                    <option value="12">12:00</option>
+                    <option value="13">13:00</option>
+                    <option value="14">14:00</option>
+                    <option value="15">15:00</option>
+                    <option value="16">16:00</option>
+                    <option value="17">17:00</option>
+                    <option value="18">18:00</option>
+                    <option value="19">19:00</option>
+                    <option value="20">20:00</option>
+                    <option value="21">21:00</option>
+                    <option value="22">22:00</option>
+                    <option value="23">23:00</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="eventCategory">Категория</label>
+                <select id="eventCategory">
+                    <option value="session">Сессия</option>
+                    <option value="personal">Личное</option>
+                    <option value="work">Работа</option>
+                    <option value="health">Здоровье</option>
+                    <option value="study">Учёба</option>
+                </select>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn-save" id="saveBtn">Сохранить</button>
+                <button class="btn-cancel" id="cancelBtn">Отмена</button>
+            </div>
+            <button class="btn-delete" id="deleteBtn" style="display:none;">Удалить</button>
+        </div>
+    </div>
+
+    <script>window.CURRENT_USER = 'client';</script>
+    <script src="../assets/js/calendar.js"></script>
+    <script src="../assets/js/messenger.js"></script>
+    <script src="../assets/js/client.js"></script>
+</body>
+</html>

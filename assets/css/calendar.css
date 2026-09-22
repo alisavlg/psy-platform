@@ -104,15 +104,15 @@
     background: var(--color-bg-card);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
-    overflow: hidden;
     max-height: var(--calendar-visible-height, 600px);
+    overflow-x: auto;
     overflow-y: auto;
 }
 
 .calendar-grid {
     display: grid;
     grid-template-columns: 60px repeat(7, 1fr);
-    min-width: 800px;
+    min-width: 900px;
     position: relative;
 }
 
@@ -760,6 +760,38 @@
     opacity: 0.5;
 }
 
+/* Подсказка о конфиденциальности */
+.client-chat-hint {
+    background: #eaf4ff;
+    color: #357abd;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.btn-chat {
+    flex: 1;
+    background: #f0f4fa;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.btn-chat:hover {
+    background: #e8f0fe;
+}
+
 /* ============================================
    ЛИЧНАЯ СТРАНИЦА
    ============================================ */
@@ -1011,7 +1043,7 @@
 }
 
 /* ============================================
-   БЕЗОПАСНОСТЬ (смена пароля)
+   БЕЗОПАСНОСТЬ
    ============================================ */
 
 .security-block {
@@ -1245,7 +1277,6 @@
     color: var(--color-heading);
 }
 
-/* График */
 .reports-chart-card {
     background: var(--color-bg-card);
     border-radius: var(--radius-card);
@@ -1307,7 +1338,6 @@
     font-weight: 500;
 }
 
-/* Фильтры */
 .payments-toolbar {
     display: flex;
     justify-content: space-between;
@@ -1356,7 +1386,6 @@
     font-weight: 500;
 }
 
-/* Список платежей */
 .payments-list {
     display: flex;
     flex-direction: column;
@@ -1456,7 +1485,6 @@
     opacity: 0.5;
 }
 
-/* Адаптив */
 @media (max-width: 900px) {
     .payment-row {
         grid-template-columns: 1fr;
@@ -1487,38 +1515,4 @@
     .reports-chart {
         height: 150px;
     }
-}
-/* ============================================
-   ПРАВИЛО КОНФИДЕНЦИАЛЬНОСТИ — подсказка в модалке
-   ============================================ */
-
-.client-chat-hint {
-    background: #eaf4ff;
-    color: #357abd;
-    font-size: 13px;
-    font-weight: 500;
-    padding: 12px 15px;
-    border-radius: 8px;
-    margin-top: 15px;
-    margin-bottom: 15px;
-    text-align: center;
-    line-height: 1.4;
-}
-
-.btn-chat {
-    flex: 1;
-    background: #f0f4fa;
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: var(--font-family);
-    transition: background-color 0.2s;
-}
-
-.btn-chat:hover {
-    background: #e8f0fe;
 }

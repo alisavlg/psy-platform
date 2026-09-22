@@ -1,6 +1,8 @@
 // ============================================
-// КАЛЕНДАРЬ-ПЛАНИРОВЩИК (24 часа)
+// КАЛЕНДАРЬ-ПЛАНИРОВЩИК
 // ============================================
+
+console.log('[calendar.js] loaded');
 
 const CATEGORIES = {
     session:  { name: 'Сессия',   color: '#4a90e2' },
@@ -39,13 +41,13 @@ function formatDateKey(date) {
     const y = date.getFullYear();
     const m = String(date.getMonth() + 1).padStart(2, '0');
     const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return y + '-' + m + '-' + d;
 }
 
 function formatPeriod(start) {
     const months = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
                     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-    return `${months[start.getMonth()]} ${start.getFullYear()}`;
+    return months[start.getMonth()] + ' ' + start.getFullYear();
 }
 
 function isToday(date) {
@@ -54,16 +56,29 @@ function isToday(date) {
 }
 
 // ============================================
-// Хранение событий
+// Хранение событий (user-scoped + защита)
 // ============================================
 
+function getEventsKey() {
+    return 'psyhelp_events_' + (window.CURRENT_USER || 'anonymous');
+}
+
 function getEvents() {
-    const data = localStorage.getItem('psyhelp_events');
-    return data ? JSON.parse(data) : [];
+    const key = getEventsKey();
+    const data = localStorage.getItem(key);
+    if (!data) return [];
+    try {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        console.error('[calendar] ошибка парсинга событий:', e);
+        return [];
+    }
 }
 
 function saveEvents(events) {
-    localStorage.setItem('psyhelp_events', JSON.stringify(events));
+    if (!Array.isArray(events)) events = [];
+    localStorage.setItem(getEventsKey(), JSON.stringify(events));
 }
 
 function addEvent(event) {
@@ -74,7 +89,7 @@ function addEvent(event) {
 }
 
 function deleteEvent(id) {
-    const events = getEvents().filter(e => e.id !== id);
+    const events = getEvents().filter(function (e) { return e.id !== id; });
     saveEvents(events);
 }
 
@@ -85,113 +100,73 @@ function deleteEvent(id) {
 function renderCalendar() {
     const grid = document.getElementById('calendarGrid');
     const periodEl = document.getElementById('calendarPeriod');
-    if (!grid) return;
+    if (!grid) {
+        console.log('[calendar] calendarGrid не найден — рендер пропущен');
+        return;
+    }
 
-    const events = getEvents();
+    const events = getEvents() || [];
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
-    periodEl.textContent = formatPeriod(currentWeekStart);
+    if (periodEl) periodEl.textContent = formatPeriod(currentWeekStart);
 
     let html = '';
 
-    html += `<div class="calendar-header corner"></div>`;
+    html += '<div class="calendar-header corner"></div>';
 
     for (let i = 0; i < 7; i++) {
         const day = addDays(currentWeekStart, i);
         const todayClass = isToday(day) ? 'today' : '';
-        html += `
-            <div class="calendar-header ${todayClass}">
-                ${days[i]}
-                <span class="day-number">${day.getDate()}</span>
-            </div>
-        `;
+        html +=
+            '<div class="calendar-header ' + todayClass + '">' +
+                days[i] +
+                '<span class="day-number">' + day.getDate() + '</span>' +
+            '</div>';
     }
 
-    html += `<div class="time-column">`;
+    html += '<div class="time-column">';
     for (let h = START_HOUR; h < END_HOUR; h++) {
-        html += `<div class="time-slot-label">${String(h).padStart(2, '0')}:00</div>`;
+        html += '<div class="time-slot-label">' + String(h).padStart(2, '0') + ':00</div>';
     }
-    html += `</div>`;
+    html += '</div>';
 
     for (let i = 0; i < 7; i++) {
         const day = addDays(currentWeekStart, i);
         const dateKey = formatDateKey(day);
-        html += `<div class="day-column" data-date="${dateKey}">`;
+        html += '<div class="day-column" data-date="' + dateKey + '">';
 
         for (let h = START_HOUR; h < END_HOUR; h++) {
-            html += `<div class="hour-cell" data-date="${dateKey}" data-hour="${h}"></div>`;
+            html += '<div class="hour-cell" data-date="' + dateKey + '" data-hour="' + h + '"></div>';
         }
 
-        const dayEvents = events.filter(e => e.date === dateKey);
-        dayEvents.forEach(ev => {
+        const dayEvents = events.filter(function (e) { return e.date === dateKey; });
+        dayEvents.forEach(function (ev) {
             const cat = CATEGORIES[ev.category] || CATEGORIES.personal;
             const top = (ev.hour - START_HOUR) * 60;
-            html += `
-                <div class="event"
-                     style="top: ${top}px; background: ${cat.color};"
-                     data-id="${ev.id}">
-                    <span class="event-title">${ev.title}</span>
-                    <span class="event-time">${String(ev.hour).padStart(2, '0')}:00</span>
-                </div>
-            `;
+            html +=
+                '<div class="event" style="top: ' + top + 'px; background: ' + cat.color + ';" data-id="' + ev.id + '">' +
+                    '<span class="event-title">' + ev.title + '</span>' +
+                    '<span class="event-time">' + String(ev.hour).padStart(2, '0') + ':00</span>' +
+                '</div>';
         });
 
-        html += `</div>`;
+        html += '</div>';
     }
 
     grid.innerHTML = html;
 
-    document.querySelectorAll('.hour-cell').forEach(cell => {
-        cell.addEventListener('click', (e) => {
+    document.querySelectorAll('.hour-cell').forEach(function (cell) {
+        cell.addEventListener('click', function (e) {
             if (e.target.closest('.event')) return;
             openModal(cell.dataset.date, parseInt(cell.dataset.hour));
         });
     });
 
-    document.querySelectorAll('.event').forEach(ev => {
-        ev.addEventListener('click', (e) => {
+    document.querySelectorAll('.event').forEach(function (ev) {
+        ev.addEventListener('click', function (e) {
             e.stopPropagation();
             openModalForEdit(ev.dataset.id);
         });
-    });
-}
-
-// ============================================
-// Отрисовка панели «Сегодня»
-// ============================================
-
-function renderTodayPanel() {
-    const dateEl = document.getElementById('todayDate');
-    const listEl = document.getElementById('todayList');
-    if (!dateEl || !listEl) return;
-
-    const now = new Date();
-    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-                    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-    dateEl.textContent = `${now.getDate()} ${months[now.getMonth()]}`;
-
-    const todayKey = formatDateKey(now);
-    const events = getEvents().filter(e => e.date === todayKey);
-
-    if (events.length === 0) {
-        listEl.innerHTML = '<p class="empty-state">Нет записей на сегодня</p>';
-        return;
-    }
-
-    events.sort((a, b) => a.hour - b.hour);
-
-    listEl.innerHTML = '';
-    events.forEach(ev => {
-        const cat = CATEGORIES[ev.category] || CATEGORIES.personal;
-        const div = document.createElement('div');
-        div.className = 'today-event';
-        div.style.borderLeftColor = cat.color;
-        div.innerHTML = `
-            <span class="today-event-time">${String(ev.hour).padStart(2, '0')}:00</span>
-            <span class="today-event-title">${ev.title}</span>
-        `;
-        div.addEventListener('click', () => openModalForEdit(ev.id));
-        listEl.appendChild(div);
     });
 }
 
@@ -228,7 +203,7 @@ function openModal(date, hour) {
 
 function openModalForEdit(id) {
     const events = getEvents();
-    const ev = events.find(e => e.id === id);
+    const ev = events.find(function (e) { return e.id === id; });
     if (!ev) return;
 
     editingEventId = id;
@@ -242,7 +217,8 @@ function openModalForEdit(id) {
 }
 
 function closeModal() {
-    document.getElementById('modalOverlay').classList.remove('active');
+    const overlay = document.getElementById('modalOverlay');
+    if (overlay) overlay.classList.remove('active');
     editingEventId = null;
 }
 
@@ -259,7 +235,7 @@ function saveEvent() {
 
     if (editingEventId) {
         const events = getEvents();
-        const ev = events.find(e => e.id === editingEventId);
+        const ev = events.find(function (e) { return e.id === editingEventId; });
         if (ev) {
             ev.title = title;
             ev.date = date;
@@ -268,13 +244,15 @@ function saveEvent() {
             saveEvents(events);
         }
     } else {
-        addEvent({ title, date, hour, category });
+        addEvent({ title: title, date: date, hour: hour, category: category });
     }
 
     closeModal();
     renderCalendar();
-    renderTodayPanel();
     scrollToCurrentHour();
+
+    // Если есть пользовательская панель «Сегодня» — обновить
+    if (typeof renderTodayPanel === 'function') renderTodayPanel();
 }
 
 function removeEvent() {
@@ -283,12 +261,12 @@ function removeEvent() {
         deleteEvent(editingEventId);
         closeModal();
         renderCalendar();
-        renderTodayPanel();
+        if (typeof renderTodayPanel === 'function') renderTodayPanel();
     }
 }
 
 // ============================================
-// Навигация по неделям
+// Навигация
 // ============================================
 
 function goToPrevWeek() {
@@ -311,12 +289,11 @@ function goToToday() {
 // Инициализация
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function () {
     const prevBtn = document.getElementById('prevWeek');
     const nextBtn = document.getElementById('nextWeek');
     const todayBtn = document.getElementById('todayBtn');
     const addBtn = document.getElementById('addEventBtn');
-    const newEventBtn = document.getElementById('newEventBtn');
     const saveBtn = document.getElementById('saveBtn');
     const cancelBtn = document.getElementById('cancelBtn');
     const deleteBtn = document.getElementById('deleteBtn');
@@ -325,16 +302,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (prevBtn) prevBtn.addEventListener('click', goToPrevWeek);
     if (nextBtn) nextBtn.addEventListener('click', goToNextWeek);
     if (todayBtn) todayBtn.addEventListener('click', goToToday);
-    if (addBtn) addBtn.addEventListener('click', () => {
-        openModal(formatDateKey(new Date()), new Date().getHours());
-    });
-    if (newEventBtn) newEventBtn.addEventListener('click', () => {
+    if (addBtn) addBtn.addEventListener('click', function () {
         openModal(formatDateKey(new Date()), new Date().getHours());
     });
     if (saveBtn) saveBtn.addEventListener('click', saveEvent);
     if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
     if (deleteBtn) deleteBtn.addEventListener('click', removeEvent);
-    if (overlay) overlay.addEventListener('click', (e) => {
+    if (overlay) overlay.addEventListener('click', function (e) {
         if (e.target.id === 'modalOverlay') closeModal();
     });
 });

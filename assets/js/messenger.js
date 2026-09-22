@@ -1,10 +1,12 @@
 // ============================================
 // РАЗДЕЛ «СООБЩЕНИЯ» — личные чаты
 // ============================================
+// Правило: у каждого пользователя — свои чаты.
+// Ключ localStorage привязан к CURRENT_USER.
 
 console.log('[messenger.js] loaded');
 
-const MESSAGES_KEY = 'psyhelp_messages_v2';
+const MESSAGES_KEY = 'psyhelp_messages_' + (window.CURRENT_USER || 'anonymous');
 
 function getChats() {
     const data = localStorage.getItem(MESSAGES_KEY);
@@ -12,43 +14,74 @@ function getChats() {
         try { return JSON.parse(data); } catch (e) { console.error(e); }
     }
 
+    // Демо-данные создаются ТОЛЬКО при первом входе.
+    // У психолога — свои, у клиента — свои.
     const now = Date.now();
-    const demo = [
-        {
-            id: 'chat-1',
-            participantName: 'Дмитрий Петрович',
-            participantRole: 'Клиент',
-            unread: 0,
-            messages: [
-                { id: 'm1', from: 'them', text: 'Здравствуйте! Хотел бы записаться на сессию на следующей неделе.', time: now - 3600000 * 24 * 2 },
-                { id: 'm2', from: 'me', text: 'Здравствуйте! Конечно. У меня есть свободные слоты во вторник и четверг.', time: now - 3600000 * 24 * 2 + 600000 },
-                { id: 'm3', from: 'them', text: 'Отлично, давайте во вторник в 14:00.', time: now - 3600000 * 24 },
-                { id: 'm4', from: 'me', text: 'Договорились. Добавлю в расписание.', time: now - 3600000 * 20 }
-            ]
-        },
-        {
-            id: 'chat-2',
-            participantName: 'Елена Александровна',
-            participantRole: 'Клиент',
-            unread: 1,
-            messages: [
-                { id: 'm1', from: 'me', text: 'Здравствуйте, Елена! Как ваши дела после последней сессии?', time: now - 3600000 * 30 },
-                { id: 'm2', from: 'them', text: 'Здравствуйте! Стало значительно легче. Спасибо вам большое.', time: now - 3600000 * 28 },
-                { id: 'm3', from: 'them', text: 'Можно записаться на следующую неделю?', time: now - 3600000 * 5 }
-            ]
-        },
-        {
-            id: 'chat-3',
-            participantName: 'Иван Сергеевич',
-            participantRole: 'Психолог',
-            unread: 0,
-            messages: [
-                { id: 'm1', from: 'me', text: 'Иван, добрый день. Хотел бы записаться к вам на супервизию.', time: now - 3600000 * 72 },
-                { id: 'm2', from: 'them', text: 'Добрый! Да, конечно. Есть окно в пятницу в 16:00.', time: now - 3600000 * 70 },
-                { id: 'm3', from: 'me', text: 'Отлично, подходит.', time: now - 3600000 * 68 }
-            ]
-        }
-    ];
+    let demo;
+
+    if (window.CURRENT_USER === 'psychologist') {
+        demo = [
+            {
+                id: 'chat-1',
+                participantName: 'Дмитрий Петрович',
+                participantRole: 'Клиент',
+                unread: 0,
+                messages: [
+                    { id: 'm1', from: 'them', text: 'Здравствуйте! Хотел бы записаться на сессию на следующей неделе.', time: now - 3600000 * 24 * 2 },
+                    { id: 'm2', from: 'me', text: 'Здравствуйте! Конечно. У меня есть свободные слоты во вторник и четверг.', time: now - 3600000 * 24 * 2 + 600000 },
+                    { id: 'm3', from: 'them', text: 'Отлично, давайте во вторник в 14:00.', time: now - 3600000 * 24 },
+                    { id: 'm4', from: 'me', text: 'Договорились. Добавлю в расписание.', time: now - 3600000 * 20 }
+                ]
+            },
+            {
+                id: 'chat-2',
+                participantName: 'Елена Александровна',
+                participantRole: 'Клиент',
+                unread: 1,
+                messages: [
+                    { id: 'm1', from: 'me', text: 'Здравствуйте, Елена! Как ваши дела после последней сессии?', time: now - 3600000 * 30 },
+                    { id: 'm2', from: 'them', text: 'Здравствуйте! Стало значительно легче. Спасибо вам большое.', time: now - 3600000 * 28 },
+                    { id: 'm3', from: 'them', text: 'Можно записаться на следующую неделю?', time: now - 3600000 * 5 }
+                ]
+            },
+            {
+                id: 'chat-3',
+                participantName: 'Иван Сергеевич',
+                participantRole: 'Психолог',
+                unread: 0,
+                messages: [
+                    { id: 'm1', from: 'me', text: 'Иван, добрый день. Хотел бы записаться к вам на супервизию.', time: now - 3600000 * 72 },
+                    { id: 'm2', from: 'them', text: 'Добрый! Да, конечно. Есть окно в пятницу в 16:00.', time: now - 3600000 * 70 },
+                    { id: 'm3', from: 'me', text: 'Отлично, подходит.', time: now - 3600000 * 68 }
+                ]
+            }
+        ];
+    } else {
+        // Клиент видит чаты со своими психологами
+        demo = [
+            {
+                id: 'chat-1',
+                participantName: 'Анна Сергеевна',
+                participantRole: 'Психолог',
+                unread: 0,
+                messages: [
+                    { id: 'm1', from: 'me', text: 'Здравствуйте! Хотела бы записаться к вам на консультацию.', time: now - 3600000 * 24 * 2 },
+                    { id: 'm2', from: 'them', text: 'Здравствуйте! Рада вас слышать. У меня есть окно в среду в 15:00.', time: now - 3600000 * 24 * 2 + 600000 },
+                    { id: 'm3', from: 'me', text: 'Отлично, подходит.', time: now - 3600000 * 24 }
+                ]
+            },
+            {
+                id: 'chat-2',
+                participantName: 'Иван Сергеевич',
+                participantRole: 'Психолог',
+                unread: 1,
+                messages: [
+                    { id: 'm1', from: 'them', text: 'Как ваши успехи на этой неделе?', time: now - 3600000 * 5 }
+                ]
+            }
+        ];
+    }
+
     saveChats(demo);
     return demo;
 }
@@ -63,17 +96,11 @@ function renderMessenger() {
     console.log('[messenger] renderMessenger, currentChatId =', currentChatId);
 
     const layoutEl = document.getElementById('messengerLayout');
-    if (!layoutEl) {
-        console.error('[messenger] messengerLayout not found');
-        return;
-    }
+    if (!layoutEl) return;
 
     const chats = getChats();
     const listEl = document.getElementById('chatsList');
-    if (!listEl) {
-        console.error('[messenger] chatsList not found');
-        return;
-    }
+    if (!listEl) return;
 
     chats.sort(function (a, b) {
         const aLast = a.messages.length > 0 ? a.messages[a.messages.length - 1].time : 0;
@@ -100,7 +127,6 @@ function renderMessenger() {
             '<div class="chat-item-time">' + timeStr + '</div>';
 
         item.addEventListener('click', function () {
-            console.log('[messenger] click on chat', chat.id);
             openChat(chat.id);
         });
 
@@ -109,24 +135,16 @@ function renderMessenger() {
 
     if (currentChatId) {
         const activeChat = chats.find(function (c) { return c.id === currentChatId; });
-        if (activeChat) {
-            renderChatWindow(activeChat);
-        } else {
-            renderEmptyChat();
-        }
+        if (activeChat) renderChatWindow(activeChat);
+        else renderEmptyChat();
     } else {
         renderEmptyChat();
     }
 }
 
 function renderChatWindow(chat) {
-    console.log('[messenger] renderChatWindow', chat.id);
-
     const windowEl = document.getElementById('chatWindow');
-    if (!windowEl) {
-        console.error('[messenger] chatWindow not found');
-        return;
-    }
+    if (!windowEl) return;
 
     const initials = getInitials(chat.participantName);
 
@@ -182,23 +200,13 @@ function renderEmptyChat() {
 }
 
 function openChat(chatId) {
-    console.log('[messenger] openChat called:', chatId);
     currentChatId = chatId;
-
     const chats = getChats();
-    console.log('[messenger] chats found:', chats.length);
-
     const chat = chats.find(function (c) { return c.id === chatId; });
-    console.log('[messenger] chat found:', !!chat);
-
-    if (!chat) {
-        console.error('[messenger] ЧАТ НЕ НАЙДЕН! id:', chatId, 'Доступные id:', chats.map(function (c) { return c.id; }));
-        return;
-    }
+    if (!chat) return;
 
     chat.unread = 0;
     saveChats(chats);
-
     renderMessenger();
 
     const input = document.getElementById('chatInput');

@@ -1,11 +1,14 @@
 // ============================================
-// Логика личного кабинета
+// Логика личного кабинета психолога
 // ============================================
+
+// Fallback для страницы психолога
+window.CURRENT_USER = window.CURRENT_USER || 'psychologist';
 
 const sections = {
     calendar: { title: 'Календарь', isCalendar: true },
     schedule: { title: 'Расписание', isSchedule: true },
-    messages: { title: 'Сообщения', isMessages: true, hideRightPanel: true },
+    messages: { title: 'Сообщения', isMessages: true },
     requests: { title: 'Заявки на запись', isRequests: true },
     clients:  { title: 'Клиенты', isClients: true },
     room:     { title: 'Комната', content: 'Здесь будет встроенный видеочат для проведения сессий.' },
@@ -39,16 +42,6 @@ function renderSection() {
             item.classList.add('active');
         }
     });
-
-    // Скрываем/показываем правую панель «Сегодня»
-    const rightPanel = document.querySelector('.right-panel');
-    if (rightPanel) {
-        if (section.hideRightPanel) {
-            rightPanel.style.display = 'none';
-        } else {
-            rightPanel.style.display = 'flex';
-        }
-    }
 
     const ids = ['calendarSection', 'scheduleSection', 'messagesSection', 'requestsSection',
                  'clientsSection', 'profileSection', 'reportsSection', 'placeholderSection'];
@@ -101,8 +94,6 @@ function renderSection() {
         elements.placeholderSection.style.display = 'block';
         document.getElementById('placeholderText').textContent = section.content;
     }
-
-    if (typeof renderTodayPanel === 'function' && !section.hideRightPanel) renderTodayPanel();
 }
 
 document.addEventListener('DOMContentLoaded', renderSection);
