@@ -34,7 +34,6 @@ function getPsychologistById(id) {
     return getPsychologists().find(function (p) { return p.id === id; });
 }
 
-// Читаем free-события психолога и превращаем в {isoDay-hour: true}
 function getSlotsFor(psyId) {
     const key = 'psyhelp_events_' + psyId;
     const data = localStorage.getItem(key);
@@ -58,7 +57,6 @@ function getSlotsFor(psyId) {
     return freeSlots;
 }
 
-// Оставлено для совместимости
 function saveSlotsFor(psyId, slots) {
     // Не используется
 }
@@ -85,7 +83,6 @@ function getUserCode() {
     return 'CL-0000';
 }
 
-// Инициалы с большой буквы
 function getShortName(firstName, middleName) {
     const f = (firstName || '').charAt(0).toUpperCase();
     const m = (middleName || '').charAt(0).toUpperCase();
@@ -93,19 +90,28 @@ function getShortName(firstName, middleName) {
     return m ? f + '.' + m + '.' : f + '.';
 }
 
-// Инициалы из данных текущего пользователя (клиента)
-function getShortNameFromBooking() {
+function capitalizeWords(str) {
+    if (!str) return '';
+    return str.split(' ')
+        .filter(function (w) { return w.length > 0; })
+        .map(function (w) {
+            return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        })
+        .join(' ');
+}
+
+function getPrefilledClientName() {
     const user = localStorage.getItem('psyhelp_user');
     if (user) {
         try {
             const u = JSON.parse(user);
-            const f = (u.firstName || '').charAt(0).toUpperCase();
-            const m = (u.middleName || '').charAt(0).toUpperCase();
-            if (!f) return 'Клиент';
-            return m ? f + '.' + m + '.' : f + '.';
+            const firstName = (u.firstName || '').trim();
+            const middleName = (u.middleName || '').trim();
+            if (firstName && middleName) return capitalizeWords(firstName + ' ' + middleName);
+            if (firstName) return capitalizeWords(firstName);
         } catch (e) {}
     }
-    return 'Клиент';
+    return '';
 }
 
 // ============================================
@@ -254,6 +260,8 @@ function openBookingModal(slot) {
     const overlay = document.getElementById('bookingModalOverlay');
     const summaryEl = document.getElementById('bookingSummary');
     const topicEl = document.getElementById('bookingTopic');
+    const nameEl = document.getElementById('bookingClientName');
+    const errEl = document.getElementById('bookingClientNameError');
 
     if (!overlay) return;
 
@@ -267,6 +275,9 @@ function openBookingModal(slot) {
         'Стоимость: <strong>' + currentPsy.price.toLocaleString('ru-RU') + ' ₽</strong>';
 
     topicEl.value = '';
+    if (nameEl) nameEl.value = getPrefilledClientName();
+    if (errEl) errEl.textContent = '';
+
     overlay.classList.add('active');
 }
 
@@ -281,12 +292,49 @@ function confirmBooking() {
     const bookedDate = new Date(currentSlot.date);
     const bookedHour = currentSlot.hour;
     const bookedIsoDay = currentSlot.isoDay;
+    const bookedDateStr = formatDateKey(bookedDate);
+
+    // === Проверка: слот ещё свободен? ===
+    const psyEventsKeyCheck = 'psyhelp_events_' + currentPsy.id;
+    let existingEvents = [];
+    try {
+        const d = localStorage.getItem(psyEventsKeyCheck);
+        existingEvents = d ? JSON.parse(d) : [];
+        if (!Array.isArray(existingEvents)) existingEvents = [];
+    } catch (e) { existingEvents = []; }
+
+    const slotTaken = existingEvents.some(function (e) {
+        return e.category === 'session'
+            && e.date === bookedDateStr
+            && e.hour === bookedHour;
+    });
+
+    if (slotTaken) {
+        alert('Этот слот уже занят. Выберите другой.');
+        closeBookingModal();
+        renderSlots();
+        return;
+    }
+
+    // Имя и отчество из поля
+    const nameEl = document.getElementById('bookingClientName');
+    const clientFullName = nameEl ? capitalizeWords(nameEl.value.trim()) : '';
+    const errEl = document.getElementById('bookingClientNameError');
+
+    if (!clientFullName) {
+        if (errEl) errEl.textContent = 'Введите имя и отчество';
+        return;
+    } else if (errEl) {
+        errEl.textContent = '';
+    }
 
     const topic = document.getElementById('bookingTopic').value.trim() || 'Консультация';
 
     const clientId = getUserId();
     const clientCode = getUserCode();
-    const clientShort = getShortNameFromBooking();
+
+    const nameParts = clientFullName.split(' ');
+    const shortName = getShortName(nameParts[0] || '', nameParts[1] || '');
 
     const booking = {
         id: 's-' + Date.now(),
@@ -294,7 +342,8 @@ function confirmBooking() {
         psychologistName: currentPsy.firstName + ' ' + currentPsy.middleName,
         clientId: clientId,
         clientCode: clientCode,
-        date: formatDateKey(bookedDate),
+        clientName: clientFullName,
+        date: bookedDateStr,
         hour: bookedHour,
         topic: topic,
         price: currentPsy.price,
@@ -313,6 +362,8 @@ function confirmBooking() {
         id: booking.id,
         clientId: clientId,
         clientCode: clientCode,
+        clientName: clientFullName,
+        psychologistId: currentPsy.id,
         date: booking.date,
         hour: booking.hour,
         topic: topic,
@@ -322,34 +373,25 @@ function confirmBooking() {
     });
     savePsySessions(psySessions);
 
-    // 3. Обновляем календарь психолога: убираем free, добавляем session
-    const psyEventsKey = 'psyhelp_events_' + currentPsy.id;
-    let psyEvents = [];
-    try {
-        const d = localStorage.getItem(psyEventsKey);
-        psyEvents = d ? JSON.parse(d) : [];
-        if (!Array.isArray(psyEvents)) psyEvents = [];
-    } catch (e) { psyEvents = []; }
-
-    // Убираем free на этот слот
-    psyEvents = psyEvents.filter(function (e) {
+    // 3. Обновляем календарь психолога
+    existingEvents = existingEvents.filter(function (e) {
         if (e.category !== 'free') return true;
-        return !(e.date === booking.date && e.hour === bookedHour);
+        return !(e.date === bookedDateStr && e.hour === bookedHour);
     });
 
-    // Добавляем session
-    psyEvents.push({
+    existingEvents.push({
         id: 'sess-' + booking.id,
-        title: 'Сессия: ' + clientShort,
-        date: booking.date,
+        title: 'Сессия: ' + shortName,
+        date: bookedDateStr,
         hour: bookedHour,
         category: 'session',
         clientId: clientId,
         clientCode: clientCode,
+        clientName: clientFullName,
         sessionId: booking.id
     });
 
-    localStorage.setItem(psyEventsKey, JSON.stringify(psyEvents));
+    localStorage.setItem(psyEventsKeyCheck, JSON.stringify(existingEvents));
 
     // 4. Событие в календарь клиента
     addEventForClient({

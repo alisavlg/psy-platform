@@ -1,18 +1,11 @@
 // ============================================
 // КАЛЕНДАРЬ — единый планировщик психолога
 // ============================================
-// Категории:
-// - free      → свободный слот (виден клиентам)
-// - session   → сессия с клиентом (создаётся при бронировании)
-// - personal  → личное
-// - work      → работа
-// - health    → здоровье
-// - study     → учёба
 
 console.log('[calendar.js] loaded');
 
 const CATEGORIES = {
-    free:     { name: 'Свободно', color: '#4a90e2', dashed: true },
+    free:     { name: 'Свободно', color: '#4a90e2' },
     session:  { name: 'Сессия',   color: '#357abd' },
     personal: { name: 'Личное',   color: '#2ecc71' },
     work:     { name: 'Работа',   color: '#f39c12' },
@@ -26,12 +19,7 @@ const DEFAULT_SCROLL_HOUR = 8;
 
 let currentWeekStart = getMonday(new Date());
 
-// ============================================
-// Текущий владелец календаря
-// ============================================
-
 function getCurrentPsychologistId() {
-    // В demo — фиксировано psy-1
     return 'psy-1';
 }
 
@@ -47,10 +35,6 @@ function getCurrentPsychologistName() {
     }
     return 'Анна Сергеевна';
 }
-
-// ============================================
-// Работа с датами
-// ============================================
 
 function getMonday(date) {
     const d = new Date(date);
@@ -104,7 +88,6 @@ function getEvents() {
         const parsed = JSON.parse(data);
         return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
-        console.error('[calendar] ошибка парсинга:', e);
         return [];
     }
 }
@@ -127,7 +110,58 @@ function deleteEvent(id) {
 }
 
 // ============================================
-// Миграция старых слотов (psyhelp_slots_* → events)
+// Автоочистка старых сессий
+// ============================================
+
+function cleanupOldSessions() {
+    if (window.CURRENT_USER !== 'psychologist' && window.CURRENT_USER !== 'client') return;
+
+    const events = getEvents();
+    if (events.length === 0) return;
+
+    const sessionsKey = window.CURRENT_USER === 'psychologist'
+        ? 'psyhelp_sessions_psychologist'
+        : 'psyhelp_sessions_client';
+
+    let sessions = [];
+    try {
+        const d = localStorage.getItem(sessionsKey);
+        sessions = d ? JSON.parse(d) : [];
+        if (!Array.isArray(sessions)) sessions = [];
+    } catch (e) { sessions = []; }
+
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - 2 * 3600 * 1000);
+
+    const cleaned = events.filter(function (e) {
+        if (e.category !== 'session') return true;
+
+        const session = sessions.find(function (s) {
+            return s.date === e.date && s.hour === e.hour;
+        });
+
+        if (!session) return false;
+        if (session.status === 'cancelled') return false;
+        if (session.status === 'completed') return false;
+
+        const parts = e.date.split('-');
+        const eventDate = new Date(
+            parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
+            e.hour, 0, 0
+        );
+        if (eventDate < twoHoursAgo) return false;
+
+        return true;
+    });
+
+    if (cleaned.length !== events.length) {
+        saveEvents(cleaned);
+        console.log('[calendar] автоочистка:', events.length - cleaned.length, 'событий удалено');
+    }
+}
+
+// ============================================
+// Миграция старых слотов
 // ============================================
 
 function migrateOldSlots() {
@@ -137,8 +171,6 @@ function migrateOldSlots() {
     const oldKey = 'psyhelp_slots_' + psyId;
     const oldData = localStorage.getItem(oldKey);
     if (!oldData) return;
-
-    // Помечаем миграцию как выполненную
     if (localStorage.getItem('psyhelp_migration_done_' + psyId)) return;
 
     let oldSlots = {};
@@ -148,12 +180,10 @@ function migrateOldSlots() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    // Создаём события free на 4 недели вперёд
     for (let week = 0; week < 4; week++) {
         for (let i = 0; i < 7; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + week * 7 + i);
-
             const jsDay = date.getDay();
             const isoDay = jsDay === 0 ? 7 : jsDay;
 
@@ -174,7 +204,6 @@ function migrateOldSlots() {
 
     saveEvents(events);
     localStorage.setItem('psyhelp_migration_done_' + psyId, '1');
-    console.log('[calendar] миграция слотов выполнена');
 }
 
 // ============================================
@@ -186,7 +215,9 @@ function renderCalendar() {
     const periodEl = document.getElementById('calendarPeriod');
     if (!grid) return;
 
-    // Имя владельца
+    // Автоочистка перед рендером
+    cleanupOldSessions();
+
     const ownerEl = document.getElementById('calendarOwnerName');
     if (ownerEl && window.CURRENT_USER === 'psychologist') {
         ownerEl.textContent = getCurrentPsychologistName();
@@ -198,7 +229,6 @@ function renderCalendar() {
     if (periodEl) periodEl.textContent = formatPeriod(currentWeekStart);
 
     let html = '';
-
     html += '<div class="calendar-header corner"></div>';
 
     for (let i = 0; i < 7; i++) {
@@ -252,7 +282,6 @@ function renderCalendar() {
 
     grid.innerHTML = html;
 
-    // Клик по пустой ячейке
     document.querySelectorAll('.hour-cell').forEach(function (cell) {
         cell.addEventListener('click', function (e) {
             if (e.target.closest('.event')) return;
@@ -260,7 +289,6 @@ function renderCalendar() {
         });
     });
 
-    // Клик по событию
     document.querySelectorAll('.event').forEach(function (ev) {
         ev.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -288,7 +316,7 @@ function updateFreeSlotsCount() {
 }
 
 // ============================================
-// Сессия — детали
+// Детали сессии — ПОЛНОЕ имя клиента
 // ============================================
 
 function openSessionDetails(event) {
@@ -296,10 +324,13 @@ function openSessionDetails(event) {
     const content = document.getElementById('clientModalContent');
     if (!overlay || !content) return;
 
+    const clientFullName = event.clientName || 'Клиент';
+    const clientCode = event.clientCode || '—';
+
     content.innerHTML =
         '<div class="session-detail">' +
-            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(event.title) + '</strong></div>' +
-            '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(event.clientCode || '—') + '</strong></div>' +
+            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(clientFullName) + '</strong></div>' +
+            '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(clientCode) + '</strong></div>' +
             '<div class="session-detail-row"><span>Дата:</span> <strong>' + event.date + '</strong></div>' +
             '<div class="session-detail-row"><span>Время:</span> <strong>' + String(event.hour).padStart(2, '0') + ':00</strong></div>' +
             '<div class="session-detail-note">Для связи используйте раздел «Сообщения». Обмен личными контактами запрещён.</div>' +
@@ -330,6 +361,12 @@ function openModalForEdit(id) {
     const ev = events.find(function (e) { return e.id === id; });
     if (!ev) return;
 
+    // Сессию редактировать нельзя — открываем детали
+    if (ev.category === 'session') {
+        openSessionDetails(ev);
+        return;
+    }
+
     editingEventId = id;
     document.getElementById('modalTitle').textContent = 'Редактировать';
     document.getElementById('eventTitle').value = ev.title;
@@ -352,7 +389,12 @@ function saveEvent() {
     const date = document.getElementById('eventDate').value;
     const hour = parseInt(document.getElementById('eventHour').value);
 
-    // Для свободного слота — автоназвание
+    // Запрет ручного создания сессии
+    if (category === 'session') {
+        alert('Сессии создаются автоматически при бронировании клиентом.\n\nЧтобы принять клиента — отметьте свободный слот в календаре.');
+        return;
+    }
+
     if (category === 'free') {
         title = title || 'Свободно';
     }
@@ -366,6 +408,12 @@ function saveEvent() {
         const events = getEvents();
         const ev = events.find(function (e) { return e.id === editingEventId; });
         if (ev) {
+            // Запрет редактирования сессии
+            if (ev.category === 'session') {
+                alert('Сессии нельзя редактировать вручную — они связаны с клиентом и оплатой.');
+                closeModal();
+                return;
+            }
             ev.title = title;
             ev.date = date;
             ev.hour = hour;
@@ -464,10 +512,6 @@ function clearFreeSlots() {
     renderCalendar();
 }
 
-// ============================================
-// Навигация
-// ============================================
-
 function goToPrevWeek() {
     currentWeekStart = addDays(currentWeekStart, -7);
     renderCalendar();
@@ -492,10 +536,6 @@ function scrollToCurrentHour() {
     wrapper.scrollTop = targetHour * 60;
 }
 
-// ============================================
-// Утилиты
-// ============================================
-
 function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
@@ -507,7 +547,6 @@ function escapeHtml(text) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Миграция старых слотов (один раз)
     migrateOldSlots();
 
     const prevBtn = document.getElementById('prevWeek');

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/calendar.css">
     <link rel="stylesheet" href="../assets/css/messenger.css">
+    <link rel="stylesheet" href="../assets/css/sessions.css">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -24,6 +25,15 @@
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     Календарь
+                </a>
+
+                <a href="dashboard.html?section=sessions" class="nav-item">
+                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                        <polyline points="16 11 18 13 22 9"></polyline>
+                    </svg>
+                    Сессии
                 </a>
 
                 <a href="dashboard.html?section=messages" class="nav-item">
@@ -101,7 +111,7 @@
 
                 <main class="main-content">
 
-                    <!-- КАЛЕНДАРЬ (единый) -->
+                    <!-- КАЛЕНДАРЬ -->
                     <div id="calendarSection">
                         <div class="calendar-owner">
                             Календарь: <strong id="calendarOwnerName">—</strong>
@@ -143,7 +153,27 @@
                         <div class="calendar-info">
                             💡 <strong>Подсказка:</strong> кликните по пустой ячейке и выберите <b>«Свободный слот»</b> —
                             он станет виден клиентам для записи. Личные дела отмечайте другими категориями.
+                            <br>
+                            <b>Сессии</b> создаются автоматически при бронировании клиентом.
                         </div>
+                    </div>
+
+                    <!-- СЕССИИ ПСИХОЛОГА -->
+                    <div id="sessionsSection" style="display:none;">
+                        <div class="sessions-header-row">
+                            <div class="sessions-tabs">
+                                <button class="psy-session-tab active" data-tab="upcoming">
+                                    Предстоящие <span class="session-tab-count" id="psyCountUpcoming">0</span>
+                                </button>
+                                <button class="psy-session-tab" data-tab="past">
+                                    История <span class="session-tab-count" id="psyCountPast">0</span>
+                                </button>
+                            </div>
+                            <button class="btn-clear-history" id="clearHistoryBtn" title="Удалить отменённые и завершённые сессии">
+                                Очистить историю
+                            </button>
+                        </div>
+                        <div class="sessions-list" id="psySessionsList"></div>
                     </div>
 
                     <!-- СООБЩЕНИЯ -->
@@ -356,14 +386,14 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ / СЛОТ -->
+    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">Новое событие</h3>
 
             <div class="form-group">
                 <label for="eventTitle">Название</label>
-                <input type="text" id="eventTitle" placeholder="Например: Сессия с клиентом">
+                <input type="text" id="eventTitle" placeholder="Например: Обед, супервизия, тренировка">
             </div>
 
             <div class="form-group">
@@ -405,7 +435,6 @@
                 <label for="eventCategory">Категория</label>
                 <select id="eventCategory">
                     <option value="free">🔵 Свободный слот (виден клиентам)</option>
-                    <option value="session">🟦 Сессия (для клиента)</option>
                     <option value="personal">🟢 Личное</option>
                     <option value="work">🟠 Работа</option>
                     <option value="health">🔴 Здоровье</option>
@@ -421,7 +450,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: КЛИЕНТ (для сессии) -->
+    <!-- МОДАЛЬНОЕ ОКНО: КЛИЕНТ (сессия) -->
     <div class="modal-overlay" id="clientModalOverlay">
         <div class="modal modal-wide">
             <h3 id="clientModalTitle">Сессия</h3>
@@ -435,6 +464,7 @@
     <script>window.CURRENT_USER = 'psychologist';</script>
     <script src="../assets/js/script.js"></script>
     <script src="../assets/js/calendar.js"></script>
+    <script src="../assets/js/psychologist-sessions.js"></script>
     <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>

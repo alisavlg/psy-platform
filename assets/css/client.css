@@ -564,3 +564,29 @@
         gap: 12px;
     }
 }
+/* Кнопка «Проведена» */
+.session-btn-complete {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.session-btn-complete:hover:not(:disabled) {
+    background: #27ae60;
+}
+
+.session-btn-complete:disabled {
+    background: #e0e7ef;
+    color: #8899aa;
+    cursor: not-allowed;
+}
+
+/* Кнопка «Написать в чат» */
+.session-btn-chat {
+    background: #f0f4fa;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.session-btn-chat:hover {
+    background: #e8f0fe;
+}
