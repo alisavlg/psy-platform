@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/calendar.css">
     <link rel="stylesheet" href="../assets/css/schedule.css">
+    <link rel="stylesheet" href="../assets/css/messenger.css">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -32,6 +33,13 @@
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
                     Расписание
+                </a>
+
+                <a href="dashboard.html?section=messages" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    Сообщения
                 </a>
 
                 <a href="dashboard.html?section=requests" class="nav-item">
@@ -163,6 +171,22 @@
                         <div class="schedule-info">
                             💡 <strong>Как это работает:</strong> кликайте по клеткам, чтобы отметить часы,
                             когда вы готовы принимать клиентов. Эти слоты будут видны клиентам в вашем профиле для записи.
+                        </div>
+                    </div>
+
+                    <!-- СООБЩЕНИЯ -->
+                    <div id="messagesSection" style="display:none;">
+                        <div class="messenger-hint">
+                            🔒 Все коммуникации — только внутри платформы. Контакты участников скрыты.
+                        </div>
+                        <div class="messenger-layout" id="messengerLayout">
+                            <div class="chats-panel">
+                                <div class="chats-header">
+                                    <h3>Чаты</h3>
+                                </div>
+                                <div class="chats-list" id="chatsList"></div>
+                            </div>
+                            <div class="chat-window" id="chatWindow"></div>
                         </div>
                     </div>
 
@@ -451,6 +475,7 @@
     <script src="../assets/js/script.js"></script>
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/slots.js"></script>
+    <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>
     <script src="../assets/js/profile.js"></script>
