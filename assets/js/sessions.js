@@ -1,0 +1,378 @@
+// ============================================
+// РАЗДЕЛ «МОИ СЕССИИ» — кабинет клиента
+// ============================================
+
+console.log('[sessions.js] loaded');
+
+const SESSIONS_CLIENT_KEY = 'psyhelp_sessions_client';
+const SESSIONS_PSY_KEY = 'psyhelp_sessions_psychologist';
+
+const STATUS_LABELS = {
+    confirmed: 'Подтверждена',
+    completed: 'Проведена',
+    cancelled: 'Отменена',
+    rescheduled: 'Перенесена'
+};
+
+let sessionsTab = 'upcoming';
+
+// ============================================
+// Получение
+// ============================================
+
+function getClientSessions() {
+    const data = localStorage.getItem(SESSIONS_CLIENT_KEY);
+    if (!data) return [];
+    try {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+
+function saveClientSessions(list) {
+    localStorage.setItem(SESSIONS_CLIENT_KEY, JSON.stringify(list));
+}
+
+function getPsySessions() {
+    const data = localStorage.getItem(SESSIONS_PSY_KEY);
+    if (!data) return [];
+    try {
+        const parsed = JSON.parse(data);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) { return []; }
+}
+
+function savePsySessions(list) {
+    localStorage.setItem(SESSIONS_PSY_KEY, JSON.stringify(list));
+}
+
+// ============================================
+// Разделение
+// ============================================
+
+function getSessionDateTime(session) {
+    const parts = session.date.split('-');
+    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]), session.hour, 0, 0);
+}
+
+function isUpcoming(session) {
+    const dt = getSessionDateTime(session);
+    return dt > new Date() && session.status === 'confirmed';
+}
+
+function isPast(session) {
+    return !isUpcoming(session);
+}
+
+// ============================================
+// Отрисовка
+// ============================================
+
+function renderSessions(tab) {
+    if (tab) sessionsTab = tab;
+
+    const listEl = document.getElementById('sessionsList');
+    if (!listEl) return;
+
+    document.querySelectorAll('.session-tab-btn').forEach(function (btn) {
+        btn.classList.toggle('active', btn.dataset.tab === sessionsTab);
+    });
+
+    const all = getClientSessions();
+
+    all.sort(function (a, b) {
+        return getSessionDateTime(a).getTime() - getSessionDateTime(b).getTime();
+    });
+
+    let filtered;
+    if (sessionsTab === 'upcoming') {
+        filtered = all.filter(isUpcoming);
+    } else {
+        filtered = all.filter(isPast).reverse();
+    }
+
+    const countUpcoming = all.filter(isUpcoming).length;
+    const countPast = all.filter(isPast).length;
+    const elUpcoming = document.getElementById('countUpcoming');
+    const elPast = document.getElementById('countPast');
+    if (elUpcoming) elUpcoming.textContent = countUpcoming;
+    if (elPast) elPast.textContent = countPast;
+
+    if (filtered.length === 0) {
+        listEl.innerHTML =
+            '<div class="sessions-empty">' +
+                '<div class="sessions-empty-icon">📅</div>' +
+                '<p>' + (sessionsTab === 'upcoming' ? 'Нет предстоящих сессий' : 'История пуста') + '</p>' +
+                (sessionsTab === 'upcoming' ? '<a href="client.html?section=catalog" class="sessions-empty-link">Найти психолога</a>' : '') +
+            '</div>';
+        return;
+    }
+
+    listEl.innerHTML = '';
+    filtered.forEach(function (session) {
+        const card = document.createElement('div');
+        card.className = 'session-item';
+
+        const dt = getSessionDateTime(session);
+        const dateFormatted = formatHumanDate(dt);
+        const timeFormatted = String(session.hour).padStart(2, '0') + ':00';
+        const statusLabel = STATUS_LABELS[session.status] || session.status;
+        const statusClass = session.status;
+
+        let actionsHtml = '';
+
+        if (sessionsTab === 'upcoming') {
+            const now = new Date();
+            const diffMinutes = (dt.getTime() - now.getTime()) / 60000;
+            const canJoin = diffMinutes <= 5 && diffMinutes >= -60;
+
+            actionsHtml +=
+                '<button class="session-btn session-btn-join" ' +
+                        (canJoin ? '' : 'disabled') + ' ' +
+                        'data-action="join" data-id="' + session.id + '">' +
+                    (canJoin ? 'Войти в комнату' : 'Комната откроется за 5 мин') +
+                '</button>' +
+                '<button class="session-btn session-btn-cancel" data-action="cancel" data-id="' + session.id + '">Отменить</button>' +
+                '<a class="session-btn session-btn-profile" href="psychologist.html?id=' + session.psychologistId + '">Профиль</a>';
+        }
+
+        card.innerHTML =
+            '<div class="session-card-header">' +
+                '<div class="session-card-psy">' +
+                    '<div class="session-card-avatar">' + getInitials(session.psychologistName) + '</div>' +
+                    '<div>' +
+                        '<div class="session-card-psy-name">' + escapeHtml(session.psychologistName) + '</div>' +
+                        '<div class="session-card-psy-role">Психолог</div>' +
+                    '</div>' +
+                '</div>' +
+                '<span class="session-status ' + statusClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+
+            '<div class="session-card-body">' +
+                '<div class="session-card-info">' +
+                    '<span class="session-info-label">Дата и время</span>' +
+                    '<span class="session-info-value">' + dateFormatted + ', ' + timeFormatted + '</span>' +
+                '</div>' +
+                '<div class="session-card-info">' +
+                    '<span class="session-info-label">Тема</span>' +
+                    '<span class="session-info-value">' + escapeHtml(session.topic) + '</span>' +
+                '</div>' +
+                '<div class="session-card-info">' +
+                    '<span class="session-info-label">Стоимость</span>' +
+                    '<span class="session-info-value">' + session.price.toLocaleString('ru-RU') + ' ₽</span>' +
+                '</div>' +
+            '</div>' +
+
+            (actionsHtml ? '<div class="session-card-actions">' + actionsHtml + '</div>' : '');
+
+        card.querySelectorAll('[data-action]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const action = btn.dataset.action;
+                const id = btn.dataset.id;
+                if (action === 'join') joinSession(id);
+                if (action === 'cancel') openCancelModal(id);
+            });
+        });
+
+        listEl.appendChild(card);
+    });
+}
+
+// ============================================
+// Войти в комнату (заглушка)
+// ============================================
+
+function joinSession(id) {
+    alert('🎥 Видеочат появится в следующих обновлениях.\n\nСкоро вы сможете проводить сессии прямо на платформе.');
+}
+
+// ============================================
+// Отмена сессии
+// ============================================
+
+let cancellingId = null;
+
+function openCancelModal(id) {
+    const sessions = getClientSessions();
+    const session = sessions.find(function (s) { return s.id === id; });
+    if (!session) return;
+
+    cancellingId = id;
+
+    const dt = getSessionDateTime(session);
+    const hoursLeft = (dt.getTime() - Date.now()) / 3600000;
+
+    let refundPercent = 0;
+    let refundText = '';
+
+    if (hoursLeft >= 24) {
+        refundPercent = 100;
+        refundText = 'Возврат 100% — сессия отменяется заранее.';
+    } else if (hoursLeft >= 12) {
+        refundPercent = 50;
+        refundText = 'Возврат 50% — до сессии меньше 24 часов.';
+    } else {
+        refundPercent = 0;
+        refundText = 'Возврат не производится — до сессии меньше 12 часов.';
+    }
+
+    const refundSum = Math.round(session.price * refundPercent / 100);
+
+    const overlay = document.getElementById('cancelModalOverlay');
+    const summaryEl = document.getElementById('cancelSummary');
+    const reasonEl = document.getElementById('cancelReason');
+
+    if (!overlay || !summaryEl) return;
+
+    const dateFormatted = formatHumanDate(dt);
+    const timeFormatted = String(session.hour).padStart(2, '0') + ':00';
+
+    summaryEl.innerHTML =
+        '<div class="cancel-row">' +
+            '<span>Сессия с</span>' +
+            '<strong>' + escapeHtml(session.psychologistName) + '</strong>' +
+        '</div>' +
+        '<div class="cancel-row">' +
+            '<span>Дата и время</span>' +
+            '<strong>' + dateFormatted + ', ' + timeFormatted + '</strong>' +
+        '</div>' +
+        '<div class="cancel-row">' +
+            '<span>Стоимость</span>' +
+            '<strong>' + session.price.toLocaleString('ru-RU') + ' ₽</strong>' +
+        '</div>' +
+        '<div class="cancel-divider"></div>' +
+        '<div class="cancel-refund ' + (refundPercent === 100 ? 'full' : (refundPercent === 50 ? 'half' : 'none')) + '">' +
+            refundText +
+            (refundSum > 0 ? '<br><strong>К возврату: ' + refundSum.toLocaleString('ru-RU') + ' ₽</strong>' : '') +
+        '</div>';
+
+    if (reasonEl) reasonEl.value = '';
+    overlay.classList.add('active');
+}
+
+function closeCancelModal() {
+    const overlay = document.getElementById('cancelModalOverlay');
+    if (overlay) overlay.classList.remove('active');
+    cancellingId = null;
+}
+
+function confirmCancel() {
+    if (!cancellingId) return;
+
+    const reason = document.getElementById('cancelReason').value.trim();
+
+    const clientSessions = getClientSessions();
+    const clientSession = clientSessions.find(function (s) { return s.id === cancellingId; });
+    if (clientSession) {
+        clientSession.status = 'cancelled';
+        clientSession.cancelReason = reason;
+        clientSession.cancelledAt = Date.now();
+        saveClientSessions(clientSessions);
+    }
+
+    const psySessions = getPsySessions();
+    const psySession = psySessions.find(function (s) { return s.id === cancellingId; });
+    if (psySession) {
+        psySession.status = 'cancelled';
+        psySession.cancelReason = reason;
+        psySession.cancelledAt = Date.now();
+        savePsySessions(psySessions);
+    }
+
+    // Возвращаем слот в расписание психолога
+    if (clientSession && clientSession.psychologistId) {
+        const slotsKey = 'psyhelp_slots_' + clientSession.psychologistId;
+        const slotsData = localStorage.getItem(slotsKey);
+        let slots = {};
+        try {
+            slots = slotsData ? JSON.parse(slotsData) : {};
+            if (!slots || typeof slots !== 'object') slots = {};
+        } catch (e) { slots = {}; }
+
+        const parts = clientSession.date.split('-');
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const jsDay = d.getDay();
+        const isoDay = jsDay === 0 ? 7 : jsDay;
+        const slotKey = isoDay + '-' + clientSession.hour;
+        slots[slotKey] = true;
+        localStorage.setItem(slotsKey, JSON.stringify(slots));
+    }
+
+    // Удаляем событие из календаря клиента
+    removeEventFromClientCalendar(clientSession);
+
+    closeCancelModal();
+
+    setTimeout(function () {
+        renderSessions();
+    }, 50);
+
+    alert('Сессия отменена.');
+}
+
+function removeEventFromClientCalendar(session) {
+    if (!session) return;
+    const key = 'psyhelp_events_client';
+    const data = localStorage.getItem(key);
+    if (!data) return;
+    try {
+        let events = JSON.parse(data);
+        if (!Array.isArray(events)) return;
+        events = events.filter(function (e) {
+            return !(e.date === session.date && e.hour === session.hour && e.category === 'session');
+        });
+        localStorage.setItem(key, JSON.stringify(events));
+    } catch (e) {}
+}
+
+// ============================================
+// Утилиты
+// ============================================
+
+function formatHumanDate(date) {
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    return date.getDate() + ' ' + months[date.getMonth()] + ' ' + date.getFullYear();
+}
+
+function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ')
+        .filter(function (w) { return w.length > 0; })
+        .map(function (w) { return w[0]; })
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================
+// Инициализация
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    renderSessions();
+
+    document.querySelectorAll('.session-tab-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            renderSessions(btn.dataset.tab);
+        });
+    });
+
+    const confirmBtn = document.getElementById('confirmCancelBtn');
+    if (confirmBtn) confirmBtn.addEventListener('click', confirmCancel);
+
+    const cancelBtn = document.getElementById('cancelCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeCancelModal);
+
+    const overlay = document.getElementById('cancelModalOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', function (e) {
+            if (e.target.id === 'cancelModalOverlay') closeCancelModal();
+        });
+    }
+});

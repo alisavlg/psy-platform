@@ -105,10 +105,16 @@
 
                     <!-- МОИ СЕССИИ -->
                     <div id="sessionsSection" style="display:none;">
-                        <div class="placeholder">
-                            <p>Список сессий — скоро здесь</p>
-                        </div>
-                    </div>
+    <div class="sessions-tabs">
+        <button class="session-tab-btn active" data-tab="upcoming">
+            Предстоящие <span class="session-tab-count" id="countUpcoming">0</span>
+        </button>
+        <button class="session-tab-btn" data-tab="past">
+            История <span class="session-tab-count" id="countPast">0</span>
+        </button>
+    </div>
+    <div class="sessions-list" id="sessionsList"></div>
+</div>
 
                     <!-- СООБЩЕНИЯ -->
                     <div id="messagesSection" style="display:none;">
@@ -235,9 +241,30 @@
         </div>
     </div>
 
+    <!-- МОДАЛЬНОЕ ОКНО ОТМЕНЫ -->
+<div class="modal-overlay" id="cancelModalOverlay">
+    <div class="modal">
+        <h3>Отмена сессии</h3>
+        <div id="cancelSummary"></div>
+
+        <div class="form-group">
+            <label for="cancelReason">Причина (необязательно)</label>
+            <input type="text" id="cancelReason" placeholder="Например: заболел">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-save" id="confirmCancelBtn" style="background:#e74c3c;">Отменить сессию</button>
+            <button class="btn-cancel" id="cancelCancelBtn">Оставить</button>
+        </div>
+    </div>
+</div>
+
     <script>window.CURRENT_USER = 'client';</script>
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/messenger.js"></script>
+    <script src="../assets/js/sessions.js"></script>
     <script src="../assets/js/client.js"></script>
+
+    
 </body>
 </html>

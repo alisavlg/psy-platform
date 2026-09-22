@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/calendar.css">
-    <link rel="stylesheet" href="../assets/css/schedule.css">
     <link rel="stylesheet" href="../assets/css/messenger.css">
 </head>
 <body>
@@ -25,14 +24,6 @@
                         <line x1="3" y1="10" x2="21" y2="10"></line>
                     </svg>
                     Календарь
-                </a>
-
-                <a href="dashboard.html?section=schedule" class="nav-item">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    Расписание
                 </a>
 
                 <a href="dashboard.html?section=messages" class="nav-item">
@@ -110,8 +101,12 @@
 
                 <main class="main-content">
 
-                    <!-- КАЛЕНДАРЬ -->
+                    <!-- КАЛЕНДАРЬ (единый) -->
                     <div id="calendarSection">
+                        <div class="calendar-owner">
+                            Календарь: <strong id="calendarOwnerName">—</strong>
+                        </div>
+
                         <div class="calendar-toolbar">
                             <div class="calendar-nav">
                                 <button class="btn-nav" id="prevWeek">←</button>
@@ -121,7 +116,8 @@
                             </div>
                             <div class="calendar-actions">
                                 <div class="category-legend">
-                                    <span class="legend-item"><span class="legend-dot" style="background:#4a90e2"></span>Сессия</span>
+                                    <span class="legend-item"><span class="legend-dot" style="background:#4a90e2"></span>Свободно</span>
+                                    <span class="legend-item"><span class="legend-dot" style="background:#357abd"></span>Сессия</span>
                                     <span class="legend-item"><span class="legend-dot" style="background:#2ecc71"></span>Личное</span>
                                     <span class="legend-item"><span class="legend-dot" style="background:#f39c12"></span>Работа</span>
                                     <span class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span>Здоровье</span>
@@ -130,47 +126,23 @@
                                 <button class="btn-add-event" id="addEventBtn">+ Событие</button>
                             </div>
                         </div>
+
+                        <div class="calendar-quick-actions">
+                            <button class="btn-quick" id="fillWeekdaysBtn">Заполнить будни 10–19</button>
+                            <button class="btn-quick" id="fillWeekendBtn">Заполнить выходные 11–16</button>
+                            <button class="btn-quick danger" id="clearFreeSlotsBtn">Убрать все слоты</button>
+                            <span class="calendar-stats">
+                                Свободных слотов: <strong id="freeSlotsCount">0</strong>
+                            </span>
+                        </div>
+
                         <div class="calendar-wrapper">
                             <div class="calendar-grid" id="calendarGrid"></div>
                         </div>
-                    </div>
 
-                    <!-- РАСПИСАНИЕ -->
-                    <div id="scheduleSection" style="display:none;">
-                        <div class="schedule-toolbar">
-                            <div class="schedule-quick-actions">
-                                <button class="btn-quick" id="fillWeekdaysBtn">Будни 10–19</button>
-                                <button class="btn-quick" id="fillWeekendBtn">Выходные 11–16</button>
-                                <button class="btn-quick danger" id="clearSlotsBtn">Очистить всё</button>
-                            </div>
-                            <div class="schedule-stats">
-                                <span>Свободных слотов: <strong id="scheduleCount">0</strong></span>
-                                <span>Часов в неделю: <strong id="scheduleHours">0</strong></span>
-                            </div>
-                        </div>
-
-                        <div class="schedule-legend">
-                            <div class="schedule-legend-item">
-                                <div class="schedule-legend-box free"></div>
-                                <span>Свободно для записи</span>
-                            </div>
-                            <div class="schedule-legend-item">
-                                <div class="schedule-legend-box busy"></div>
-                                <span>Не рабочее время</span>
-                            </div>
-                            <div class="schedule-legend-item">
-                                <div class="schedule-legend-box session"></div>
-                                <span>Занято сессией</span>
-                            </div>
-                        </div>
-
-                        <div class="schedule-wrapper">
-                            <div class="schedule-grid" id="scheduleGrid"></div>
-                        </div>
-
-                        <div class="schedule-info">
-                            💡 <strong>Как это работает:</strong> кликайте по клеткам, чтобы отметить часы,
-                            когда вы готовы принимать клиентов. Эти слоты будут видны клиентам в вашем профиле для записи.
+                        <div class="calendar-info">
+                            💡 <strong>Подсказка:</strong> кликните по пустой ячейке и выберите <b>«Свободный слот»</b> —
+                            он станет виден клиентам для записи. Личные дела отмечайте другими категориями.
                         </div>
                     </div>
 
@@ -380,13 +352,11 @@
 
                 </main>
 
-                
-
             </div>
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ -->
+    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ / СЛОТ -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">Новое событие</h3>
@@ -434,11 +404,12 @@
             <div class="form-group">
                 <label for="eventCategory">Категория</label>
                 <select id="eventCategory">
-                    <option value="session">Сессия</option>
-                    <option value="personal">Личное</option>
-                    <option value="work">Работа</option>
-                    <option value="health">Здоровье</option>
-                    <option value="study">Учёба</option>
+                    <option value="free">🔵 Свободный слот (виден клиентам)</option>
+                    <option value="session">🟦 Сессия (для клиента)</option>
+                    <option value="personal">🟢 Личное</option>
+                    <option value="work">🟠 Работа</option>
+                    <option value="health">🔴 Здоровье</option>
+                    <option value="study">🟣 Учёба</option>
                 </select>
             </div>
 
@@ -450,10 +421,10 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: КЛИЕНТ -->
+    <!-- МОДАЛЬНОЕ ОКНО: КЛИЕНТ (для сессии) -->
     <div class="modal-overlay" id="clientModalOverlay">
         <div class="modal modal-wide">
-            <h3 id="clientModalTitle">Клиент</h3>
+            <h3 id="clientModalTitle">Сессия</h3>
             <div id="clientModalContent"></div>
             <div class="modal-actions">
                 <button class="btn-cancel" id="clientCancelBtn">Закрыть</button>
@@ -461,17 +432,9 @@
         </div>
     </div>
 
-    <script>
-    window.CURRENT_USER = 'psychologist';
-</script>
-
-    <script>
-    window.CURRENT_USER = 'psychologist';
-</script>
-
+    <script>window.CURRENT_USER = 'psychologist';</script>
     <script src="../assets/js/script.js"></script>
     <script src="../assets/js/calendar.js"></script>
-    <script src="../assets/js/slots.js"></script>
     <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/requests.js"></script>
     <script src="../assets/js/clients.js"></script>

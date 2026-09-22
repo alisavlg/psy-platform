@@ -54,17 +54,15 @@ function renderClientSection() {
         renderCatalog();
     } else if (section.isSessions) {
         elements.sessionsSection.style.display = 'block';
+        if (typeof renderSessions === 'function') renderSessions();
     } else if (section.isMessages) {
         elements.messagesSection.style.display = 'block';
         if (typeof renderMessenger === 'function') renderMessenger();
     } else if (section.isPlanner) {
         elements.plannerSection.style.display = 'block';
-        console.log('[client] rendering planner');
         if (typeof renderCalendar === 'function') {
             renderCalendar();
             if (typeof scrollToCurrentHour === 'function') scrollToCurrentHour();
-        } else {
-            console.error('[client] renderCalendar не найдена — calendar.js не подключён?');
         }
     } else if (section.isProfile) {
         elements.profileSection.style.display = 'block';
@@ -220,7 +218,6 @@ function renderCatalog() {
                 '<button class="psy-card-btn">Записаться</button>' +
             '</div>';
 
-        // Кнопка ведёт на страницу профиля психолога
         card.querySelector('.psy-card-btn').addEventListener('click', function () {
             window.location.href = 'psychologist.html?id=' + psy.id;
         });

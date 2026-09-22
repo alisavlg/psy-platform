@@ -1,11 +1,19 @@
 // ============================================
-// КАЛЕНДАРЬ-ПЛАНИРОВЩИК
+// КАЛЕНДАРЬ — единый планировщик психолога
 // ============================================
+// Категории:
+// - free      → свободный слот (виден клиентам)
+// - session   → сессия с клиентом (создаётся при бронировании)
+// - personal  → личное
+// - work      → работа
+// - health    → здоровье
+// - study     → учёба
 
 console.log('[calendar.js] loaded');
 
 const CATEGORIES = {
-    session:  { name: 'Сессия',   color: '#4a90e2' },
+    free:     { name: 'Свободно', color: '#4a90e2', dashed: true },
+    session:  { name: 'Сессия',   color: '#357abd' },
     personal: { name: 'Личное',   color: '#2ecc71' },
     work:     { name: 'Работа',   color: '#f39c12' },
     health:   { name: 'Здоровье', color: '#e74c3c' },
@@ -17,6 +25,28 @@ const END_HOUR = 24;
 const DEFAULT_SCROLL_HOUR = 8;
 
 let currentWeekStart = getMonday(new Date());
+
+// ============================================
+// Текущий владелец календаря
+// ============================================
+
+function getCurrentPsychologistId() {
+    // В demo — фиксировано psy-1
+    return 'psy-1';
+}
+
+function getCurrentPsychologistName() {
+    const user = localStorage.getItem('psyhelp_user');
+    if (user) {
+        try {
+            const u = JSON.parse(user);
+            if (u.firstName) {
+                return u.firstName + ' ' + (u.middleName || '');
+            }
+        } catch (e) {}
+    }
+    return 'Анна Сергеевна';
+}
 
 // ============================================
 // Работа с датами
@@ -56,10 +86,13 @@ function isToday(date) {
 }
 
 // ============================================
-// Хранение событий (user-scoped + защита)
+// Хранение событий
 // ============================================
 
 function getEventsKey() {
+    if (window.CURRENT_USER === 'psychologist') {
+        return 'psyhelp_events_' + getCurrentPsychologistId();
+    }
     return 'psyhelp_events_' + (window.CURRENT_USER || 'anonymous');
 }
 
@@ -71,7 +104,7 @@ function getEvents() {
         const parsed = JSON.parse(data);
         return Array.isArray(parsed) ? parsed : [];
     } catch (e) {
-        console.error('[calendar] ошибка парсинга событий:', e);
+        console.error('[calendar] ошибка парсинга:', e);
         return [];
     }
 }
@@ -94,18 +127,72 @@ function deleteEvent(id) {
 }
 
 // ============================================
+// Миграция старых слотов (psyhelp_slots_* → events)
+// ============================================
+
+function migrateOldSlots() {
+    if (window.CURRENT_USER !== 'psychologist') return;
+
+    const psyId = getCurrentPsychologistId();
+    const oldKey = 'psyhelp_slots_' + psyId;
+    const oldData = localStorage.getItem(oldKey);
+    if (!oldData) return;
+
+    // Помечаем миграцию как выполненную
+    if (localStorage.getItem('psyhelp_migration_done_' + psyId)) return;
+
+    let oldSlots = {};
+    try { oldSlots = JSON.parse(oldData) || {}; } catch (e) { return; }
+
+    const events = getEvents();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Создаём события free на 4 недели вперёд
+    for (let week = 0; week < 4; week++) {
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + week * 7 + i);
+
+            const jsDay = date.getDay();
+            const isoDay = jsDay === 0 ? 7 : jsDay;
+
+            for (let h = 8; h < 22; h++) {
+                const slotKey = isoDay + '-' + h;
+                if (oldSlots[slotKey]) {
+                    events.push({
+                        id: 'mig-' + week + '-' + i + '-' + h,
+                        title: 'Свободно',
+                        date: formatDateKey(date),
+                        hour: h,
+                        category: 'free'
+                    });
+                }
+            }
+        }
+    }
+
+    saveEvents(events);
+    localStorage.setItem('psyhelp_migration_done_' + psyId, '1');
+    console.log('[calendar] миграция слотов выполнена');
+}
+
+// ============================================
 // Отрисовка календаря
 // ============================================
 
 function renderCalendar() {
     const grid = document.getElementById('calendarGrid');
     const periodEl = document.getElementById('calendarPeriod');
-    if (!grid) {
-        console.log('[calendar] calendarGrid не найден — рендер пропущен');
-        return;
+    if (!grid) return;
+
+    // Имя владельца
+    const ownerEl = document.getElementById('calendarOwnerName');
+    if (ownerEl && window.CURRENT_USER === 'psychologist') {
+        ownerEl.textContent = getCurrentPsychologistName();
     }
 
-    const events = getEvents() || [];
+    const events = getEvents();
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 
     if (periodEl) periodEl.textContent = formatPeriod(currentWeekStart);
@@ -143,9 +230,19 @@ function renderCalendar() {
         dayEvents.forEach(function (ev) {
             const cat = CATEGORIES[ev.category] || CATEGORIES.personal;
             const top = (ev.hour - START_HOUR) * 60;
+            const isFree = ev.category === 'free';
+            const isSession = ev.category === 'session';
+
+            let cls = 'event';
+            if (isFree) cls += ' event-free';
+            if (isSession) cls += ' event-session';
+
             html +=
-                '<div class="event" style="top: ' + top + 'px; background: ' + cat.color + ';" data-id="' + ev.id + '">' +
-                    '<span class="event-title">' + ev.title + '</span>' +
+                '<div class="' + cls + '" ' +
+                     'style="top: ' + top + 'px; background: ' + (isFree ? 'rgba(74,144,226,0.15)' : cat.color) + '; ' +
+                     (isFree ? 'border: 2px dashed #4a90e2; color: #357abd;' : '') + '" ' +
+                     'data-id="' + ev.id + '">' +
+                    '<span class="event-title">' + escapeHtml(ev.title) + '</span>' +
                     '<span class="event-time">' + String(ev.hour).padStart(2, '0') + ':00</span>' +
                 '</div>';
         });
@@ -155,6 +252,7 @@ function renderCalendar() {
 
     grid.innerHTML = html;
 
+    // Клик по пустой ячейке
     document.querySelectorAll('.hour-cell').forEach(function (cell) {
         cell.addEventListener('click', function (e) {
             if (e.target.closest('.event')) return;
@@ -162,30 +260,56 @@ function renderCalendar() {
         });
     });
 
+    // Клик по событию
     document.querySelectorAll('.event').forEach(function (ev) {
         ev.addEventListener('click', function (e) {
             e.stopPropagation();
-            openModalForEdit(ev.dataset.id);
+            const id = ev.dataset.id;
+            const events = getEvents();
+            const event = events.find(function (x) { return x.id === id; });
+            if (!event) return;
+
+            if (event.category === 'session') {
+                openSessionDetails(event);
+                return;
+            }
+            openModalForEdit(id);
         });
     });
+
+    updateFreeSlotsCount();
+}
+
+function updateFreeSlotsCount() {
+    const events = getEvents();
+    const count = events.filter(function (e) { return e.category === 'free'; }).length;
+    const el = document.getElementById('freeSlotsCount');
+    if (el) el.textContent = count;
 }
 
 // ============================================
-// Автопрокрутка календаря
+// Сессия — детали
 // ============================================
 
-function scrollToCurrentHour() {
-    const wrapper = document.querySelector('.calendar-wrapper');
-    if (!wrapper) return;
+function openSessionDetails(event) {
+    const overlay = document.getElementById('clientModalOverlay');
+    const content = document.getElementById('clientModalContent');
+    if (!overlay || !content) return;
 
-    const now = new Date();
-    const currentHour = now.getHours();
-    const targetHour = currentHour < 6 ? DEFAULT_SCROLL_HOUR : Math.max(0, currentHour - 1);
-    wrapper.scrollTop = targetHour * 60;
+    content.innerHTML =
+        '<div class="session-detail">' +
+            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(event.title) + '</strong></div>' +
+            '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(event.clientCode || '—') + '</strong></div>' +
+            '<div class="session-detail-row"><span>Дата:</span> <strong>' + event.date + '</strong></div>' +
+            '<div class="session-detail-row"><span>Время:</span> <strong>' + String(event.hour).padStart(2, '0') + ':00</strong></div>' +
+            '<div class="session-detail-note">Для связи используйте раздел «Сообщения». Обмен личными контактами запрещён.</div>' +
+        '</div>';
+
+    overlay.classList.add('active');
 }
 
 // ============================================
-// Модальное окно
+// Модальное окно создания / редактирования
 // ============================================
 
 let editingEventId = null;
@@ -196,7 +320,7 @@ function openModal(date, hour) {
     document.getElementById('eventTitle').value = '';
     document.getElementById('eventDate').value = date;
     document.getElementById('eventHour').value = hour;
-    document.getElementById('eventCategory').value = 'personal';
+    document.getElementById('eventCategory').value = 'free';
     document.getElementById('deleteBtn').style.display = 'none';
     document.getElementById('modalOverlay').classList.add('active');
 }
@@ -207,7 +331,7 @@ function openModalForEdit(id) {
     if (!ev) return;
 
     editingEventId = id;
-    document.getElementById('modalTitle').textContent = 'Редактировать событие';
+    document.getElementById('modalTitle').textContent = 'Редактировать';
     document.getElementById('eventTitle').value = ev.title;
     document.getElementById('eventDate').value = ev.date;
     document.getElementById('eventHour').value = ev.hour;
@@ -223,10 +347,15 @@ function closeModal() {
 }
 
 function saveEvent() {
-    const title = document.getElementById('eventTitle').value.trim();
+    const category = document.getElementById('eventCategory').value;
+    let title = document.getElementById('eventTitle').value.trim();
     const date = document.getElementById('eventDate').value;
     const hour = parseInt(document.getElementById('eventHour').value);
-    const category = document.getElementById('eventCategory').value;
+
+    // Для свободного слота — автоназвание
+    if (category === 'free') {
+        title = title || 'Свободно';
+    }
 
     if (!title) {
         alert('Введите название события');
@@ -249,10 +378,6 @@ function saveEvent() {
 
     closeModal();
     renderCalendar();
-    scrollToCurrentHour();
-
-    // Если есть пользовательская панель «Сегодня» — обновить
-    if (typeof renderTodayPanel === 'function') renderTodayPanel();
 }
 
 function removeEvent() {
@@ -261,8 +386,82 @@ function removeEvent() {
         deleteEvent(editingEventId);
         closeModal();
         renderCalendar();
-        if (typeof renderTodayPanel === 'function') renderTodayPanel();
     }
+}
+
+// ============================================
+// Быстрые действия
+// ============================================
+
+function fillWeekdays() {
+    const events = getEvents();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let week = 0; week < 4; week++) {
+        for (let i = 0; i < 5; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + week * 7 + i);
+            const dateKey = formatDateKey(date);
+
+            for (let h = 10; h < 19; h++) {
+                const exists = events.some(function (e) {
+                    return e.date === dateKey && e.hour === h;
+                });
+                if (!exists) {
+                    events.push({
+                        id: 'fill-' + week + '-' + i + '-' + h,
+                        title: 'Свободно',
+                        date: dateKey,
+                        hour: h,
+                        category: 'free'
+                    });
+                }
+            }
+        }
+    }
+
+    saveEvents(events);
+    renderCalendar();
+}
+
+function fillWeekend() {
+    const events = getEvents();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let week = 0; week < 4; week++) {
+        for (let i = 5; i < 7; i++) {
+            const date = new Date(today);
+            date.setDate(today.getDate() + week * 7 + i);
+            const dateKey = formatDateKey(date);
+
+            for (let h = 11; h < 16; h++) {
+                const exists = events.some(function (e) {
+                    return e.date === dateKey && e.hour === h;
+                });
+                if (!exists) {
+                    events.push({
+                        id: 'fill-' + week + '-' + i + '-' + h,
+                        title: 'Свободно',
+                        date: dateKey,
+                        hour: h,
+                        category: 'free'
+                    });
+                }
+            }
+        }
+    }
+
+    saveEvents(events);
+    renderCalendar();
+}
+
+function clearFreeSlots() {
+    if (!confirm('Убрать все свободные слоты? Клиенты не смогут записаться.')) return;
+    const events = getEvents().filter(function (e) { return e.category !== 'free'; });
+    saveEvents(events);
+    renderCalendar();
 }
 
 // ============================================
@@ -285,11 +484,32 @@ function goToToday() {
     scrollToCurrentHour();
 }
 
+function scrollToCurrentHour() {
+    const wrapper = document.querySelector('.calendar-wrapper');
+    if (!wrapper) return;
+    const currentHour = new Date().getHours();
+    const targetHour = currentHour < 6 ? DEFAULT_SCROLL_HOUR : Math.max(0, currentHour - 1);
+    wrapper.scrollTop = targetHour * 60;
+}
+
+// ============================================
+// Утилиты
+// ============================================
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // ============================================
 // Инициализация
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Миграция старых слотов (один раз)
+    migrateOldSlots();
+
     const prevBtn = document.getElementById('prevWeek');
     const nextBtn = document.getElementById('nextWeek');
     const todayBtn = document.getElementById('todayBtn');
@@ -298,6 +518,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const cancelBtn = document.getElementById('cancelBtn');
     const deleteBtn = document.getElementById('deleteBtn');
     const overlay = document.getElementById('modalOverlay');
+    const fillWeekdaysBtn = document.getElementById('fillWeekdaysBtn');
+    const fillWeekendBtn = document.getElementById('fillWeekendBtn');
+    const clearFreeSlotsBtn = document.getElementById('clearFreeSlotsBtn');
 
     if (prevBtn) prevBtn.addEventListener('click', goToPrevWeek);
     if (nextBtn) nextBtn.addEventListener('click', goToNextWeek);
@@ -310,5 +533,18 @@ document.addEventListener('DOMContentLoaded', function () {
     if (deleteBtn) deleteBtn.addEventListener('click', removeEvent);
     if (overlay) overlay.addEventListener('click', function (e) {
         if (e.target.id === 'modalOverlay') closeModal();
+    });
+
+    if (fillWeekdaysBtn) fillWeekdaysBtn.addEventListener('click', fillWeekdays);
+    if (fillWeekendBtn) fillWeekendBtn.addEventListener('click', fillWeekend);
+    if (clearFreeSlotsBtn) clearFreeSlotsBtn.addEventListener('click', clearFreeSlots);
+
+    const clientCancelBtn = document.getElementById('clientCancelBtn');
+    const clientOverlay = document.getElementById('clientModalOverlay');
+    if (clientCancelBtn) clientCancelBtn.addEventListener('click', function () {
+        clientOverlay.classList.remove('active');
+    });
+    if (clientOverlay) clientOverlay.addEventListener('click', function (e) {
+        if (e.target.id === 'clientModalOverlay') clientOverlay.classList.remove('active');
     });
 });

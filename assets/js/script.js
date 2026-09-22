@@ -2,12 +2,10 @@
 // Логика личного кабинета психолога
 // ============================================
 
-// Fallback для страницы психолога
 window.CURRENT_USER = window.CURRENT_USER || 'psychologist';
 
 const sections = {
     calendar: { title: 'Календарь', isCalendar: true },
-    schedule: { title: 'Расписание', isSchedule: true },
     messages: { title: 'Сообщения', isMessages: true },
     requests: { title: 'Заявки на запись', isRequests: true },
     clients:  { title: 'Клиенты', isClients: true },
@@ -43,7 +41,7 @@ function renderSection() {
         }
     });
 
-    const ids = ['calendarSection', 'scheduleSection', 'messagesSection', 'requestsSection',
+    const ids = ['calendarSection', 'messagesSection', 'requestsSection',
                  'clientsSection', 'profileSection', 'reportsSection', 'placeholderSection'];
 
     const elements = {};
@@ -59,11 +57,6 @@ function renderSection() {
         if (typeof renderCalendar === 'function') {
             renderCalendar();
             if (typeof scrollToCurrentHour === 'function') scrollToCurrentHour();
-        }
-    } else if (section.isSchedule) {
-        if (elements.scheduleSection) {
-            elements.scheduleSection.style.display = 'block';
-            if (typeof renderSchedule === 'function') renderSchedule();
         }
     } else if (section.isMessages) {
         if (elements.messagesSection) {

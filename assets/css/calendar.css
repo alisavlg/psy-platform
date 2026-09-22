@@ -1516,3 +1516,155 @@
         height: 150px;
     }
 }
+
+/* Сессия в календаре — кликабельна, ведёт в профиль психолога */
+.event.event-clickable {
+    cursor: pointer;
+    position: relative;
+}
+
+.event.event-clickable::after {
+    content: '↗';
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 10px;
+    opacity: 0.85;
+}
+
+.event.event-clickable:hover {
+    filter: brightness(1.1);
+}
+
+/* ============================================
+   ЕДИНЫЙ КАЛЕНДАРЬ — дополнения
+   ============================================ */
+
+/* Владелец календаря */
+.calendar-owner {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background: #fafbfd;
+    border-left: 3px solid var(--color-primary);
+    border-radius: 6px;
+}
+
+.calendar-owner strong {
+    color: var(--color-heading);
+    font-weight: 700;
+}
+
+/* Быстрые действия */
+.calendar-quick-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-quick {
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.btn-quick:hover {
+    background: #f0f4fa;
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-quick.danger:hover {
+    border-color: #e74c3c;
+    color: #e74c3c;
+}
+
+.calendar-stats {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-left: auto;
+}
+
+.calendar-stats strong {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+/* Подсказка внизу */
+.calendar-info {
+    background: #eaf4ff;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #357abd;
+    line-height: 1.5;
+}
+
+.calendar-info strong {
+    color: #222;
+}
+
+/* Свободный слот — пунктирный */
+.event.event-free {
+    font-weight: 600;
+}
+
+.event.event-free .event-title {
+    font-weight: 600;
+}
+
+.event.event-free:hover {
+    background: rgba(74, 144, 226, 0.25) !important;
+}
+
+/* Сессия — сплошной, насыщенный */
+.event.event-session {
+    cursor: pointer;
+}
+
+.event.event-session:hover {
+    filter: brightness(1.1);
+}
+
+/* Детали сессии в модалке */
+.session-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.session-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--color-text-light);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.session-detail-row strong {
+    color: var(--color-heading);
+    font-weight: 600;
+}
+
+.session-detail-note {
+    margin-top: 15px;
+    padding: 12px 15px;
+    background: #eaf4ff;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #357abd;
+    line-height: 1.5;
+}
