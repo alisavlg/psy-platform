@@ -126,12 +126,14 @@ function renderSessions(tab) {
             const diffMinutes = (dt.getTime() - now.getTime()) / 60000;
             const canJoin = diffMinutes <= 5 && diffMinutes >= -60;
 
+            // Кнопка «Войти в комнату» — с ролью клиента
             actionsHtml +=
-                '<button class="session-btn session-btn-join" ' +
-                        (canJoin ? '' : 'disabled') + ' ' +
-                        'data-action="join" data-id="' + session.id + '">' +
+                '<a class="session-btn session-btn-join" ' +
+                    (canJoin ? '' : 'style="pointer-events:none;opacity:0.5;"') + ' ' +
+                    'href="room.html?session=' + session.id + '&role=client" ' +
+                    'target="_blank">' +
                     (canJoin ? 'Войти в комнату' : 'Комната откроется за 5 мин') +
-                '</button>' +
+                '</a>' +
                 '<button class="session-btn session-btn-cancel" data-action="cancel" data-id="' + session.id + '">Отменить</button>' +
                 '<a class="session-btn session-btn-profile" href="psychologist.html?id=' + session.psychologistId + '">Профиль</a>';
         }
@@ -179,11 +181,11 @@ function renderSessions(tab) {
 }
 
 // ============================================
-// Войти в комнату (заглушка)
+// Войти в комнату (fallback)
 // ============================================
 
 function joinSession(id) {
-    alert('🎥 Видеочат появится в следующих обновлениях.\n\nСкоро вы сможете проводить сессии прямо на платформе.');
+    window.open('room.html?session=' + id + '&role=client', '_blank');
 }
 
 // ============================================
@@ -298,7 +300,6 @@ function confirmCancel() {
         localStorage.setItem(slotsKey, JSON.stringify(slots));
     }
 
-    // Удаляем событие из календаря клиента
     removeEventFromClientCalendar(clientSession);
 
     closeCancelModal();

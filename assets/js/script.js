@@ -13,7 +13,7 @@ const sections = {
     room:     { title: 'Комната', isRoom: true },
     profile:  { title: 'Личная страница', isProfile: true },
     reports:  { title: 'Отчёты', isReports: true },
-    settings: { title: 'Настройки', content: 'Здесь вы можете настроить часовой пояс и уведомления.' }
+    settings: { title: 'Настройки', isSettings: true }
 };
 
 function getSectionFromURL() {
@@ -43,7 +43,8 @@ function renderSection() {
     });
 
     const ids = ['calendarSection', 'sessionsSection', 'messagesSection', 'requestsSection',
-                 'clientsSection', 'profileSection', 'reportsSection', 'placeholderSection'];
+                 'clientsSection', 'profileSection', 'reportsSection', 'settingsSection',
+                 'placeholderSection'];
 
     const elements = {};
     ids.forEach(function (id) {
@@ -80,7 +81,6 @@ function renderSection() {
             if (typeof renderClients === 'function') renderClients();
         }
     } else if (section.isRoom) {
-        // Ищем ближайшую предстоящую сессию и открываем комнату
         let psySessions = [];
         try {
             const d = localStorage.getItem('psyhelp_sessions_psychologist');
@@ -97,7 +97,7 @@ function renderSection() {
             });
 
         if (upcoming.length > 0) {
-            window.location.href = 'room.html?session=' + upcoming[0].id;
+            window.location.href = 'room.html?session=' + upcoming[0].id + '&role=psychologist';
         } else {
             elements.placeholderSection.style.display = 'block';
             document.getElementById('placeholderText').textContent =
@@ -112,6 +112,11 @@ function renderSection() {
         if (elements.reportsSection) {
             elements.reportsSection.style.display = 'block';
             if (typeof renderReports === 'function') renderReports('month');
+        }
+    } else if (section.isSettings) {
+        if (elements.settingsSection) {
+            elements.settingsSection.style.display = 'block';
+            if (typeof renderSettingsForm === 'function') renderSettingsForm();
         }
     } else {
         elements.placeholderSection.style.display = 'block';

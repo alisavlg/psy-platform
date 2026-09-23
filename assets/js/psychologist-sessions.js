@@ -129,11 +129,11 @@ function renderPsySessions(tab) {
             const canComplete = diffMinutes >= 0;
             const canJoin = diffMinutes <= 5 && diffMinutes >= -120;
 
-            // Кнопка «Войти в комнату»
+            // Кнопка «Войти в комнату» — с ролью психолога
             actionsHtml +=
                 '<a class="session-btn session-btn-join" ' +
                     (canJoin ? '' : 'style="pointer-events:none;opacity:0.5;"') + ' ' +
-                    'href="room.html?session=' + session.id + '" ' +
+                    'href="room.html?session=' + session.id + '&role=psychologist" ' +
                     'target="_blank">' +
                     (canJoin ? 'Войти в комнату' : 'Комната откроется за 5 мин') +
                 '</a>';
@@ -215,9 +215,7 @@ function completeSession(id) {
         saveClientSessionsList(clientSessions);
     }
 
-    // Убираем событие из календаря психолога
     removeSessionEventFromCalendar('psyhelp_events_psy-1', psySession);
-    // Убираем из календаря клиента
     removeSessionEventFromCalendar('psyhelp_events_client', psySession);
 
     renderPsySessions();
@@ -265,7 +263,6 @@ function clearOldHistory() {
         return s.status !== 'cancelled' && s.status !== 'completed';
     });
 
-    // Удаляем события из календарей
     ['psyhelp_events_psy-1', 'psyhelp_events_client'].forEach(function (key) {
         let events = [];
         try {

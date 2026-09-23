@@ -4,7 +4,18 @@
 
 console.log('[room.js] loaded');
 
-window.CURRENT_USER = window.CURRENT_USER || 'client';
+// ============================================
+// Определяем роль из URL
+// ============================================
+
+function getRoleFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const role = params.get('role');
+    if (role === 'psychologist' || role === 'client') return role;
+    return 'client'; // fallback
+}
+
+window.CURRENT_USER = getRoleFromURL();
 
 let micOn = true;
 let camOn = true;
@@ -21,7 +32,6 @@ function getSessionIdFromURL() {
 }
 
 function findSessionById(id) {
-    // Ищем у клиента
     let data = localStorage.getItem('psyhelp_sessions_client');
     if (data) {
         try {
@@ -30,7 +40,6 @@ function findSessionById(id) {
             if (s) return s;
         } catch (e) {}
     }
-    // У психолога
     data = localStorage.getItem('psyhelp_sessions_psychologist');
     if (data) {
         try {
@@ -96,17 +105,14 @@ function initRoom() {
     document.getElementById('remoteRole').textContent = remote.role;
     document.getElementById('remoteAvatar').textContent = getInitials(remote.name);
 
-    // Статус
     setTimeout(function () {
         document.getElementById('roomStatusDot').classList.add('connected');
         document.getElementById('roomStatus').textContent = 'Подключено';
     }, 1500);
 
-    // Таймер
     sessionStartTime = Date.now();
     startTimer();
 
-    // Заголовок
     document.title = 'Сессия с ' + remote.name + ' | PsyHelp';
 }
 
@@ -154,7 +160,7 @@ function leaveRoom() {
 
     if (timerInterval) clearInterval(timerInterval);
 
-    // Возврат в кабинет
+    // Возврат в кабинет по роли
     if (window.CURRENT_USER === 'psychologist') {
         window.location.href = 'dashboard.html?section=sessions';
     } else {
