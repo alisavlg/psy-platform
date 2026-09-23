@@ -41,7 +41,7 @@ function renderClientSection() {
     });
 
     const ids = ['catalogSection', 'sessionsSection', 'messagesSection',
-                 'plannerSection', 'profileSection', 'placeholderSection'];
+                 'plannerSection', 'profileSection'];
 
     const elements = {};
     ids.forEach(function (id) {
@@ -66,6 +66,7 @@ function renderClientSection() {
         }
     } else if (section.isProfile) {
         elements.profileSection.style.display = 'block';
+        if (typeof renderClientProfile === 'function') renderClientProfile();
     }
 }
 

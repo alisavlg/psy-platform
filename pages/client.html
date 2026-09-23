@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="../assets/css/dashboard.css">
     <link rel="stylesheet" href="../assets/css/calendar.css">
     <link rel="stylesheet" href="../assets/css/messenger.css">
+    <link rel="stylesheet" href="../assets/css/sessions.css">
+    <link rel="stylesheet" href="../assets/css/profile-client.css">
     <link rel="stylesheet" href="../assets/css/client.css">
 </head>
 <body>
@@ -75,7 +77,7 @@
 
                 <main class="main-content">
 
-                    <!-- КАТАЛОГ ПСИХОЛОГОВ -->
+                    <!-- КАТАЛОГ -->
                     <div id="catalogSection">
                         <div class="catalog-toolbar">
                             <div class="catalog-search">
@@ -105,16 +107,16 @@
 
                     <!-- МОИ СЕССИИ -->
                     <div id="sessionsSection" style="display:none;">
-    <div class="sessions-tabs">
-        <button class="session-tab-btn active" data-tab="upcoming">
-            Предстоящие <span class="session-tab-count" id="countUpcoming">0</span>
-        </button>
-        <button class="session-tab-btn" data-tab="past">
-            История <span class="session-tab-count" id="countPast">0</span>
-        </button>
-    </div>
-    <div class="sessions-list" id="sessionsList"></div>
-</div>
+                        <div class="sessions-tabs">
+                            <button class="session-tab-btn active" data-tab="upcoming">
+                                Предстоящие <span class="session-tab-count" id="countUpcoming">0</span>
+                            </button>
+                            <button class="session-tab-btn" data-tab="past">
+                                История <span class="session-tab-count" id="countPast">0</span>
+                            </button>
+                        </div>
+                        <div class="sessions-list" id="sessionsList"></div>
+                    </div>
 
                     <!-- СООБЩЕНИЯ -->
                     <div id="messagesSection" style="display:none;">
@@ -157,17 +159,138 @@
                         </div>
                     </div>
 
-                    <!-- ПРОФИЛЬ -->
+                    <!-- ПРОФИЛЬ КЛИЕНТА -->
                     <div id="profileSection" style="display:none;">
-                        <div class="placeholder">
-                            <p>Профиль клиента — скоро здесь</p>
-                        </div>
-                    </div>
+                        <div class="profile-edit-container">
 
-                    <!-- ЗАГЛУШКА -->
-                    <div id="placeholderSection" style="display:none;">
-                        <div class="placeholder">
-                            <p id="placeholderText">Раздел в разработке</p>
+                            <!-- Блок ФИО (read-only) -->
+                            <div class="profile-fio-block">
+                                <div class="profile-fio-header">
+                                    <h3>Персональные данные</h3>
+                                    <span class="verify-badge pending" id="clientVerifyBadge">⏳ Ожидает проверки</span>
+                                </div>
+
+                                <div class="profile-fio-row">
+                                    <div class="profile-fio-item">
+                                        <span class="profile-fio-label">Имя</span>
+                                        <span class="profile-fio-value" id="clientFioFirstName">—</span>
+                                    </div>
+                                    <div class="profile-fio-item">
+                                        <span class="profile-fio-label">Отчество</span>
+                                        <span class="profile-fio-value" id="clientFioMiddleName">—</span>
+                                    </div>
+                                </div>
+                                <div class="profile-fio-row">
+                                    <div class="profile-fio-item full">
+                                        <span class="profile-fio-label">Фамилия (не показывается публично)</span>
+                                        <span class="profile-fio-value" id="clientFioLastName">—</span>
+                                    </div>
+                                </div>
+                                <p class="profile-fio-hint">
+                                    ФИО указано при регистрации. Для изменения обратитесь в поддержку.
+                                </p>
+                            </div>
+
+                            <!-- Код пользователя -->
+                            <div class="profile-code-block">
+                                <div class="profile-code-label">Ваш код на платформе</div>
+                                <div class="profile-code-row">
+                                    <span class="profile-code-value" id="clientUserCode">—</span>
+                                    <button type="button" class="btn-copy-code" id="copyCodeBtn" title="Скопировать код">
+                                        📋 Скопировать
+                                    </button>
+                                </div>
+                                <p class="profile-code-hint">
+                                    Сообщите код психологу при необходимости. По коду вас можно найти на платформе.
+                                </p>
+                            </div>
+
+                            <div class="profile-divider">
+                                <span>Контактные данные</span>
+                            </div>
+
+                            <form class="profile-edit-form" id="clientProfileForm" novalidate>
+                                <div class="form-group">
+                                    <label for="clientEmail">Email</label>
+                                    <input type="email" id="clientEmail" placeholder="anna@example.com">
+                                    <span class="form-error" id="clientEmailError"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="clientPhone">Телефон</label>
+                                    <input type="tel" id="clientPhone" placeholder="+7 (900) 123-45-67">
+                                    <span class="form-error" id="clientPhoneError"></span>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="clientTimezone">Часовой пояс</label>
+                                    <select id="clientTimezone">
+                                        <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
+                                        <option value="Europe/Moscow">Москва (UTC+3)</option>
+                                        <option value="Europe/Samara">Самара (UTC+4)</option>
+                                        <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
+                                        <option value="Asia/Omsk">Омск (UTC+6)</option>
+                                        <option value="Asia/Krasnoyarsk">Красноярск (UTC+7)</option>
+                                        <option value="Asia/Irkutsk">Иркутск (UTC+8)</option>
+                                        <option value="Asia/Yakutsk">Якутск (UTC+9)</option>
+                                        <option value="Asia/Vladivostok">Владивосток (UTC+10)</option>
+                                        <option value="Asia/Magadan">Магадан (UTC+11)</option>
+                                        <option value="Asia/Kamchatka">Камчатка (UTC+12)</option>
+                                    </select>
+                                    <p class="form-hint">Влияет на отображение времени сессий в вашем кабинете.</p>
+                                </div>
+
+                                <div class="profile-edit-actions">
+                                    <button type="submit" class="btn-save-profile" id="saveClientProfileBtn">Сохранить изменения</button>
+                                </div>
+
+                                <div class="form-message" id="clientProfileMessage"></div>
+                            </form>
+
+                            <!-- Безопасность -->
+                            <div class="security-block">
+                                <h3>Безопасность</h3>
+
+                                <div class="password-status" id="clientPasswordStatus">
+                                    <span class="password-status-icon" id="clientPasswordStatusIcon">✓</span>
+                                    <div class="password-status-text">
+                                        <strong id="clientPasswordStatusTitle">Пароль в порядке</strong>
+                                        <span id="clientPasswordStatusDesc">Пароль был установлен недавно.</span>
+                                        <div class="password-age-bar">
+                                            <div class="password-age-fill" id="clientPasswordAgeFill" style="width: 0%;"></div>
+                                        </div>
+                                        <div class="password-age-text" id="clientPasswordAgeText"></div>
+                                    </div>
+                                </div>
+
+                                <button type="button" class="btn-change-password" id="clientChangePasswordBtn">Сменить пароль</button>
+
+                                <div class="change-password-form" id="clientChangePasswordForm">
+                                    <div class="form-group">
+                                        <label for="clientCurrentPassword">Текущий пароль</label>
+                                        <input type="password" id="clientCurrentPassword" placeholder="Введите текущий пароль">
+                                        <span class="form-error" id="clientCurrentPasswordError"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="clientNewPassword">Новый пароль</label>
+                                        <input type="password" id="clientNewPassword" placeholder="Латиница, цифры, символы">
+                                        <span class="form-error" id="clientNewPasswordError"></span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="clientNewPassword2">Повторите новый пароль</label>
+                                        <input type="password" id="clientNewPassword2" placeholder="Ещё раз">
+                                        <span class="form-error" id="clientNewPassword2Error"></span>
+                                    </div>
+
+                                    <div class="change-password-actions">
+                                        <button type="button" class="btn-confirm-password" id="clientConfirmPasswordBtn">Сменить</button>
+                                        <button type="button" class="btn-cancel-password" id="clientCancelPasswordBtn">Отмена</button>
+                                    </div>
+
+                                    <div class="change-password-message" id="clientChangePasswordMessage"></div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
 
@@ -177,14 +300,14 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ -->
+    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ (планировщик) -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">Новое событие</h3>
 
             <div class="form-group">
                 <label for="eventTitle">Название</label>
-                <input type="text" id="eventTitle" placeholder="Например: Сессия с психологом">
+                <input type="text" id="eventTitle" placeholder="Например: Встреча, тренировка">
             </div>
 
             <div class="form-group">
@@ -225,11 +348,11 @@
             <div class="form-group">
                 <label for="eventCategory">Категория</label>
                 <select id="eventCategory">
-                    <option value="session">Сессия</option>
-                    <option value="personal">Личное</option>
-                    <option value="work">Работа</option>
-                    <option value="health">Здоровье</option>
-                    <option value="study">Учёба</option>
+                    <option value="session">🟦 Сессия (для клиента)</option>
+                    <option value="personal">🟢 Личное</option>
+                    <option value="work">🟠 Работа</option>
+                    <option value="health">🔴 Здоровье</option>
+                    <option value="study">🟣 Учёба</option>
                 </select>
             </div>
 
@@ -241,30 +364,29 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО ОТМЕНЫ -->
-<div class="modal-overlay" id="cancelModalOverlay">
-    <div class="modal">
-        <h3>Отмена сессии</h3>
-        <div id="cancelSummary"></div>
+    <!-- МОДАЛЬНОЕ ОКНО: ОТМЕНА СЕССИИ -->
+    <div class="modal-overlay" id="cancelModalOverlay">
+        <div class="modal">
+            <h3>Отмена сессии</h3>
+            <div id="cancelSummary"></div>
 
-        <div class="form-group">
-            <label for="cancelReason">Причина (необязательно)</label>
-            <input type="text" id="cancelReason" placeholder="Например: заболел">
-        </div>
+            <div class="form-group">
+                <label for="cancelReason">Причина (необязательно)</label>
+                <input type="text" id="cancelReason" placeholder="Например: заболел">
+            </div>
 
-        <div class="modal-actions">
-            <button class="btn-save" id="confirmCancelBtn" style="background:#e74c3c;">Отменить сессию</button>
-            <button class="btn-cancel" id="cancelCancelBtn">Оставить</button>
+            <div class="modal-actions">
+                <button class="btn-save" id="confirmCancelBtn" style="background:#e74c3c;">Отменить сессию</button>
+                <button class="btn-cancel" id="cancelCancelBtn">Оставить</button>
+            </div>
         </div>
     </div>
-</div>
 
     <script>window.CURRENT_USER = 'client';</script>
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/sessions.js"></script>
+    <script src="../assets/js/client-profile.js"></script>
     <script src="../assets/js/client.js"></script>
-
-    
 </body>
 </html>
