@@ -127,7 +127,18 @@ function renderPsySessions(tab) {
             const now = new Date();
             const diffMinutes = (now.getTime() - dt.getTime()) / 60000;
             const canComplete = diffMinutes >= 0;
+            const canJoin = diffMinutes <= 5 && diffMinutes >= -120;
 
+            // Кнопка «Войти в комнату»
+            actionsHtml +=
+                '<a class="session-btn session-btn-join" ' +
+                    (canJoin ? '' : 'style="pointer-events:none;opacity:0.5;"') + ' ' +
+                    'href="room.html?session=' + session.id + '" ' +
+                    'target="_blank">' +
+                    (canJoin ? 'Войти в комнату' : 'Комната откроется за 5 мин') +
+                '</a>';
+
+            // Кнопка «Проведена»
             actionsHtml +=
                 '<button class="session-btn session-btn-complete" ' +
                         (canComplete ? '' : 'disabled') + ' ' +
