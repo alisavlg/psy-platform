@@ -23,7 +23,16 @@ function saveUser(user) {
     localStorage.setItem(USER_MENU_KEY, JSON.stringify(user));
 }
 
-// Генератор кода (2 буквы + 4 цифры)
+// Сохраняем активную роль при переключении
+function saveActiveRole(role) {
+    const user = getUser();
+    if (!user.id) return;
+    user.activeRole = role;
+    saveUser(user);
+    console.log('[user-menu] activeRole сохранён:', role);
+}
+
+// Генератор кода
 function generateUserCode() {
     const letters = 'ACDEFHJKMNPRTUVWXY';
     const digits = '23456789';
@@ -41,64 +50,68 @@ function generateUserId() {
     return 'u-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
 }
 
-// Если у пользователя есть имя, но нет id — генерируем
-function ensureUserRoles() {
-    const user = getUser();
+// ============================================
+// Миграция старых аккаунтов + заполнение
+// ============================================
 
-    // Если пользователя вообще нет — выходим
-    if (!user.firstName && !user.email) {
-        console.log('[user-menu] psyhelp_user пуст или неполный');
-        return user;
-    }
-
+function migrateUser(user) {
     let changed = false;
 
-    // Генерируем id, если нет
-    if (!user.id) {
-        user.id = generateUserId();
+    // Старый аккаунт с firstName/middleName/lastName → новые поля
+    if (user.firstName && !user.realFirstName) {
+        user.realFirstName = user.firstName;
+        user.realMiddleName = user.middleName || '';
+        user.realLastName = user.lastName || '';
+        delete user.firstName;
+        delete user.middleName;
+        delete user.lastName;
         changed = true;
-        console.log('[user-menu] сгенерирован id:', user.id);
     }
 
-    // Генерируем code, если нет
-    if (!user.code) {
-        user.code = generateUserCode();
-        changed = true;
-        console.log('[user-menu] сгенерирован code:', user.code);
-    }
-
-    // Добавляем роли
+    if (!user.id) { user.id = generateUserId(); changed = true; }
+    if (!user.code) { user.code = generateUserCode(); changed = true; }
+    if (typeof user.displayFirstName !== 'string') { user.displayFirstName = ''; changed = true; }
+    if (typeof user.displayMiddleName !== 'string') { user.displayMiddleName = ''; changed = true; }
+    if (typeof user.avatarUrl !== 'string') { user.avatarUrl = ''; changed = true; }
+    if (!user.psychologistStatus) { user.psychologistStatus = 'none'; changed = true; }
     if (!Array.isArray(user.roles) || user.roles.length === 0) {
-        user.roles = ['client', 'psychologist'];
+        user.roles = ['client'];
         changed = true;
     }
-
-    if (!user.activeRole) {
-        user.activeRole = window.CURRENT_USER || 'client';
-        changed = true;
-    }
+    if (!user.activeRole) { user.activeRole = 'client'; changed = true; }
 
     if (changed) saveUser(user);
     return user;
 }
 
+// ============================================
+// Транслируемое имя
+// ============================================
+
+// Возвращает "Имя Отчество" — либо display, либо real
+function getDisplayName(user) {
+    var f = (user.displayFirstName || '').trim();
+    var m = (user.displayMiddleName || '').trim();
+
+    if (f && m) return f + ' ' + m;
+    if (f) return f;
+
+    // Fallback — реальное имя + отчество
+    var rf = (user.realFirstName || '').trim();
+    var rm = (user.realMiddleName || '').trim();
+    if (rf && rm) return rf + ' ' + rm;
+    if (rf) return rf;
+
+    return 'Пользователь';
+}
+
+// Инициалы для аватара
 function getInitials(user) {
-    const f = (user.firstName || '').charAt(0).toUpperCase();
-    const m = (user.middleName || '').charAt(0).toUpperCase();
+    var f = (user.displayFirstName || user.realFirstName || '').charAt(0).toUpperCase();
+    var m = (user.displayMiddleName || user.realMiddleName || '').charAt(0).toUpperCase();
     if (f && m) return f + m;
     if (f) return f;
     return '?';
-}
-
-function getShortName(user) {
-    const f = (user.firstName || '').trim();
-    const m = (user.middleName || '').trim();
-    if (f && m) {
-        return f.charAt(0).toUpperCase() + f.slice(1).toLowerCase() + ' ' +
-               m.charAt(0).toUpperCase() + m.slice(1).toLowerCase();
-    }
-    if (f) return f.charAt(0).toUpperCase() + f.slice(1).toLowerCase();
-    return 'Пользователь';
 }
 
 function escapeHtmlUser(text) {
@@ -121,15 +134,17 @@ function renderUserMenu() {
     }
     console.log('[user-menu] topbar-actions найден');
 
-    const user = ensureUserRoles();
-    if (!user.id) {
-        console.log('[user-menu] нет пользователя — меню не строим');
+    var user = getUser();
+    if (!user.realFirstName && !user.email) {
+        console.log('[user-menu] psyhelp_user пуст или неполный');
         return;
     }
-    console.log('[user-menu] user готов:', user.firstName, user.code);
+
+    user = migrateUser(user);
+    console.log('[user-menu] user готов:', user.realFirstName, user.code);
 
     const initials = getInitials(user);
-    const shortName = getShortName(user);
+    const displayName = getDisplayName(user);
     const code = user.code || '—';
     const roles = Array.isArray(user.roles) ? user.roles : [];
     const currentRole = window.CURRENT_USER || 'client';
@@ -139,7 +154,7 @@ function renderUserMenu() {
     if (roles.indexOf('client') !== -1) {
         const isActive = currentRole === 'client';
         roleItemsHtml +=
-            '<a href="client.html?section=catalog" class="user-menu-item' + (isActive ? ' active' : '') + '">' +
+            '<a href="client.html?section=catalog" class="user-menu-item' + (isActive ? ' active' : '') + '" data-role="client">' +
                 '<svg class="user-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                     '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>' +
                     '<circle cx="12" cy="7" r="4"></circle>' +
@@ -151,7 +166,7 @@ function renderUserMenu() {
     if (roles.indexOf('psychologist') !== -1) {
         const isActive = currentRole === 'psychologist';
         roleItemsHtml +=
-            '<a href="dashboard.html?section=calendar" class="user-menu-item' + (isActive ? ' active' : '') + '">' +
+            '<a href="dashboard.html?section=calendar" class="user-menu-item' + (isActive ? ' active' : '') + '" data-role="psychologist">' +
                 '<svg class="user-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                     '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>' +
                     '<circle cx="12" cy="7" r="4"></circle>' +
@@ -178,7 +193,7 @@ function renderUserMenu() {
                 '<div class="user-menu-info">' +
                     '<div class="user-avatar">' + initials + '</div>' +
                     '<div class="user-menu-info-text">' +
-                        '<div class="user-menu-name">' + escapeHtmlUser(shortName) + '</div>' +
+                        '<div class="user-menu-name">' + escapeHtmlUser(displayName) + '</div>' +
                         '<div class="user-menu-code">' + escapeHtmlUser(code) + '</div>' +
                     '</div>' +
                 '</div>' +
@@ -190,7 +205,7 @@ function renderUserMenu() {
 
                 '<div class="user-menu-divider"></div>' +
 
-                '<a href="' + settingsHref + '" class="user-menu-item">' +
+                '<a href="' + settingsHref + '" class="user-menu-item" data-action="settings">' +
                     '<svg class="user-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
                         '<circle cx="12" cy="12" r="3"></circle>' +
                         '<path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>' +
@@ -233,6 +248,13 @@ function renderUserMenu() {
         if (menu && !menu.contains(e.target)) {
             menu.classList.remove('open');
         }
+    });
+
+    document.querySelectorAll('.user-menu-item').forEach(function (link) {
+        link.addEventListener('click', function () {
+            var role = link.getAttribute('data-role');
+            if (role) saveActiveRole(role);
+        });
     });
 
     if (logoutBtn) {

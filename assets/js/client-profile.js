@@ -1,5 +1,5 @@
 // ============================================
-// ПРОФИЛЬ КЛИЕНТА — данные, код, безопасность
+// ПРОФИЛЬ КЛИЕНТА — данные аккаунта, аватар, безопасность
 // ============================================
 
 console.log('[client-profile.js] loaded');
@@ -25,30 +25,68 @@ function saveClientUser(user) {
 }
 
 // ============================================
+// Транслируемое имя
+// ============================================
+
+function getDisplayName(user) {
+    var f = (user.displayFirstName || '').trim();
+    var m = (user.displayMiddleName || '').trim();
+    if (f && m) return f + ' ' + m;
+    if (f) return f;
+    var rf = (user.realFirstName || '').trim();
+    var rm = (user.realMiddleName || '').trim();
+    if (rf && rm) return rf + ' ' + rm;
+    if (rf) return rf;
+    return '—';
+}
+
+// ============================================
 // Отрисовка
 // ============================================
 
 function renderClientProfile() {
     const user = getClientUser();
 
-    // ФИО
-    const fioF = document.getElementById('clientFioFirstName');
-    const fioM = document.getElementById('clientFioMiddleName');
-    const fioL = document.getElementById('clientFioLastName');
+    // ФИО — реальные (read-only)
+    const realF = document.getElementById('clientRealFirstName');
+    const realM = document.getElementById('clientRealMiddleName');
+    const realL = document.getElementById('clientRealLastName');
 
-    if (fioF) fioF.textContent = user.firstName || '—';
-    if (fioM) fioM.textContent = user.middleName || '—';
-    if (fioL) fioL.textContent = user.lastName || '—';
+    if (realF) realF.textContent = user.realFirstName || '—';
+    if (realM) realM.textContent = user.realMiddleName || '—';
+    if (realL) realL.textContent = user.realLastName || '—';
 
-    // Бейдж верификации
+    // Бейдж — только роль клиента (никогда «Психолог проверен»)
     const badge = document.getElementById('clientVerifyBadge');
     if (badge) {
-        if (user.isVerified) {
-            badge.className = 'verify-badge verified';
-            badge.textContent = '✓ Проверен';
-        } else {
+        const status = user.psychologistStatus || 'none';
+        if (status === 'pending') {
             badge.className = 'verify-badge pending';
-            badge.textContent = '⏳ Ожидает проверки';
+            badge.textContent = '⏳ Заявка на психолога';
+        } else {
+            badge.className = 'verify-badge';
+            badge.textContent = '👤 Клиент';
+        }
+    }
+
+    // Транслируемое имя
+    const dispF = document.getElementById('displayFirstName');
+    const dispM = document.getElementById('displayMiddleName');
+    if (dispF) dispF.value = user.displayFirstName || '';
+    if (dispM) dispM.value = user.displayMiddleName || '';
+
+    const preview = document.getElementById('displayNamePreview');
+    if (preview) preview.textContent = getDisplayName(user);
+
+    // Аватар
+    const avatarEl = document.getElementById('clientAvatarPreview');
+    if (avatarEl) {
+        if (user.avatarUrl) {
+            avatarEl.style.backgroundImage = 'url(' + user.avatarUrl + ')';
+            avatarEl.textContent = '';
+        } else {
+            avatarEl.style.backgroundImage = '';
+            avatarEl.textContent = 'Фото';
         }
     }
 
@@ -56,17 +94,35 @@ function renderClientProfile() {
     const codeEl = document.getElementById('clientUserCode');
     if (codeEl) codeEl.textContent = user.code || 'CL-0000';
 
-    // Email
+    // Контакты
     const emailEl = document.getElementById('clientEmail');
     if (emailEl) emailEl.value = user.email || '';
 
-    // Телефон
     const phoneEl = document.getElementById('clientPhone');
     if (phoneEl) phoneEl.value = user.phone || '';
 
-    // Часовой пояс
     const tzEl = document.getElementById('clientTimezone');
     if (tzEl) tzEl.value = user.timezone || 'Europe/Moscow';
+
+    // Кнопка «Стать психологом»
+    const becomeBlock = document.getElementById('becomePsychologistBlock');
+    if (becomeBlock) {
+        const status = user.psychologistStatus || 'none';
+        const hasPsyRole = Array.isArray(user.roles) && user.roles.indexOf('psychologist') !== -1;
+
+        if (hasPsyRole) {
+            becomeBlock.style.display = 'none';
+        } else if (status === 'pending') {
+            becomeBlock.innerHTML =
+                '<div class="become-psy-pending">' +
+                    '⏳ <strong>Заявка на роль психолога отправлена.</strong><br>' +
+                    '<small>Мы проверяем документы. Это занимает 1–3 дня.</small>' +
+                '</div>';
+            becomeBlock.style.display = 'block';
+        } else {
+            becomeBlock.style.display = 'block';
+        }
+    }
 
     // Статус пароля
     renderClientPasswordStatus(user);
@@ -126,18 +182,23 @@ function renderClientPasswordStatus(user) {
 function handleClientProfileSave(e) {
     e.preventDefault();
 
+    const user = getClientUser();
+
+    const dispF = document.getElementById('displayFirstName');
+    const dispM = document.getElementById('displayMiddleName');
     const emailEl = document.getElementById('clientEmail');
     const phoneEl = document.getElementById('clientPhone');
     const tzEl = document.getElementById('clientTimezone');
     const msgEl = document.getElementById('clientProfileMessage');
 
+    const displayFirstName = dispF ? dispF.value.trim() : '';
+    const displayMiddleName = dispM ? dispM.value.trim() : '';
     const email = emailEl ? emailEl.value.trim() : '';
     const phone = phoneEl ? phoneEl.value.trim() : '';
     const timezone = tzEl ? tzEl.value : 'Europe/Moscow';
 
     let isValid = true;
 
-    // Email
     const emailError = document.getElementById('clientEmailError');
     if (!email) {
         if (emailError) emailError.textContent = 'Введите email';
@@ -149,7 +210,6 @@ function handleClientProfileSave(e) {
         emailError.textContent = '';
     }
 
-    // Телефон
     const phoneError = document.getElementById('clientPhoneError');
     const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
     if (!phone) {
@@ -164,11 +224,15 @@ function handleClientProfileSave(e) {
 
     if (!isValid) return;
 
-    const user = getClientUser();
+    user.displayFirstName = displayFirstName;
+    user.displayMiddleName = displayMiddleName;
     user.email = email;
     user.phone = phone;
     user.timezone = timezone;
     saveClientUser(user);
+
+    const preview = document.getElementById('displayNamePreview');
+    if (preview) preview.textContent = getDisplayName(user);
 
     if (msgEl) {
         msgEl.className = 'form-message success';
@@ -176,6 +240,12 @@ function handleClientProfileSave(e) {
         setTimeout(function () {
             msgEl.className = 'form-message';
         }, 3000);
+    }
+
+    if (typeof renderUserMenu === 'function') {
+        const oldMenu = document.getElementById('userMenu');
+        if (oldMenu) oldMenu.remove();
+        renderUserMenu();
     }
 }
 
@@ -199,6 +269,41 @@ function copyClientCode() {
     }).catch(function () {
         prompt('Скопируйте код:', code);
     });
+}
+
+// ============================================
+// Загрузка аватара
+// ============================================
+
+function handleAvatarUpload(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Файл больше 5 МБ. Выберите меньший.');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (ev) {
+        const dataUrl = ev.target.result;
+        const user = getClientUser();
+        user.avatarUrl = dataUrl;
+        saveClientUser(user);
+
+        const avatarEl = document.getElementById('clientAvatarPreview');
+        if (avatarEl) {
+            avatarEl.style.backgroundImage = 'url(' + dataUrl + ')';
+            avatarEl.textContent = '';
+        }
+
+        if (typeof renderUserMenu === 'function') {
+            const oldMenu = document.getElementById('userMenu');
+            if (oldMenu) oldMenu.remove();
+            renderUserMenu();
+        }
+    };
+    reader.readAsDataURL(file);
 }
 
 // ============================================
@@ -259,7 +364,7 @@ function handleClientPasswordChange() {
     } else if (!/[a-zA-Z]/.test(newPwd) || !/\d/.test(newPwd)) {
         showErr('clientNewPassword', 'Пароль должен содержать буквы и цифры'); isValid = false;
     } else if (newPwd === current) {
-        showErr('clientNewPassword', 'Новый пароль должен отличаться от текущего'); isValid = false;
+        showErr('clientNewPassword', 'Новый пароль должен отличаться'); isValid = false;
     } else clearErr('clientNewPassword');
 
     if (!newPwd2) {
@@ -287,6 +392,14 @@ function handleClientPasswordChange() {
 }
 
 // ============================================
+// Кнопка «Стать психологом»
+// ============================================
+
+function handleBecomePsychologist() {
+    alert('Форма заявки на роль психолога появится в следующей задаче (#29).\n\nОна будет включать: специализацию, описание, стаж, цену, загрузку диплома и сертификатов.');
+}
+
+// ============================================
 // Инициализация
 // ============================================
 
@@ -297,6 +410,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const copyBtn = document.getElementById('copyCodeBtn');
     if (copyBtn) copyBtn.addEventListener('click', copyClientCode);
 
+    const avatarInput = document.getElementById('clientAvatarInput');
+    if (avatarInput) avatarInput.addEventListener('change', handleAvatarUpload);
+
+    const avatarBtn = document.getElementById('clientAvatarBtn');
+    if (avatarBtn && avatarInput) {
+        avatarBtn.addEventListener('click', function () {
+            avatarInput.click();
+        });
+    }
+
     const changeBtn = document.getElementById('clientChangePasswordBtn');
     if (changeBtn) changeBtn.addEventListener('click', toggleClientPasswordForm);
 
@@ -305,4 +428,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const cancelBtn = document.getElementById('clientCancelPasswordBtn');
     if (cancelBtn) cancelBtn.addEventListener('click', cancelClientPasswordChange);
+
+    const becomeBtn = document.getElementById('becomePsychologistBtn');
+    if (becomeBtn) becomeBtn.addEventListener('click', handleBecomePsychologist);
 });

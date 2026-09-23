@@ -6,6 +6,50 @@ console.log('[client.js] loaded');
 
 window.CURRENT_USER = window.CURRENT_USER || 'client';
 
+// ============================================
+// Проверка авторизации и роли
+// ============================================
+
+function checkClientAccess() {
+    var raw = localStorage.getItem('psyhelp_user');
+
+    if (!raw) {
+        console.log('[client.js] не авторизован → login.html');
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    var user;
+    try {
+        user = JSON.parse(raw);
+    } catch (e) {
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    var roles = Array.isArray(user.roles) ? user.roles : [];
+
+    // Старый аккаунт без ролей — считаем клиентом
+    if (roles.length === 0) {
+        user.roles = ['client'];
+        user.activeRole = 'client';
+        localStorage.setItem('psyhelp_user', JSON.stringify(user));
+        roles = ['client'];
+    }
+
+    if (roles.indexOf('client') === -1) {
+        console.log('[client.js] нет роли клиента → dashboard.html');
+        window.location.href = 'dashboard.html?section=calendar';
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================
+// Разделы
+// ============================================
+
 const clientSections = {
     catalog:  { title: 'Найти психолога', isCatalog: true },
     sessions: { title: 'Мои сессии', isSessions: true },
@@ -249,6 +293,9 @@ function escapeHtml(text) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
+    // Проверка доступа
+    if (!checkClientAccess()) return;
+
     renderClientSection();
 
     const searchInput = document.getElementById('catalogSearch');

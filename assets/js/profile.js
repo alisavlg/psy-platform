@@ -1,84 +1,131 @@
 // ============================================
-// РАЗДЕЛ «ЛИЧНАЯ СТРАНИЦА»
+// ЛИЧНАЯ СТРАНИЦА ПСИХОЛОГА
 // ============================================
 
 console.log('[profile.js] loaded');
 
+const PROFILE_USER_KEY = 'psyhelp_user';
 const PROFILE_STORAGE_KEY = 'psyhelp_profile';
-const USER_STORAGE_KEY = 'psyhelp_user';
-
+const PSY_REGISTRY_KEY = 'psyhelp_psychologists_registry';
 const PASSWORD_MAX_AGE_DAYS = 60;
 
-const DEFAULT_USER = {
-    firstName: 'Анна',
-    middleName: 'Сергеевна',
-    lastName: 'Иванова',
-    email: 'anna@example.com',
-    phone: '+7 900 123-45-67',
-    isVerified: true,
-    registeredAt: Date.now(),
-    passwordChangedAt: Date.now()
-};
+// ============================================
+// Миграция старой структуры
+// ============================================
 
-const DEFAULT_PROFILE = {
-    specialty: 'Тревога, отношения, самооценка',
-    description: 'Помогаю справляться с тревогой, строить здоровые отношения и повышать самооценку. Работаю в методах КПТ и гештальт-терапии. Онлайн-сессии.',
-    experience: 8,
-    price: 3000,
-    photoUrl: ''
-};
+function migrateProfileUser() {
+    let user = getUser();
+    let changed = false;
+
+    // Старые поля firstName/middleName/lastName → realFirstName/...
+    if (user.firstName && !user.realFirstName) {
+        user.realFirstName = user.firstName;
+        user.realMiddleName = user.middleName || '';
+        user.realLastName = user.lastName || '';
+        delete user.firstName;
+        delete user.middleName;
+        delete user.lastName;
+        changed = true;
+    }
+
+    if (typeof user.displayFirstName !== 'string') { user.displayFirstName = ''; changed = true; }
+    if (typeof user.displayMiddleName !== 'string') { user.displayMiddleName = ''; changed = true; }
+    if (!user.psychologistStatus) { user.psychologistStatus = 'pending'; changed = true; }
+    if (!Array.isArray(user.roles)) { user.roles = ['psychologist']; changed = true; }
+
+    if (changed) saveUser(user);
+    return user;
+}
+
+// ============================================
+// Хранилище
+// ============================================
 
 function getUser() {
-    const data = localStorage.getItem(USER_STORAGE_KEY);
-    if (data) {
-        try { return Object.assign({}, DEFAULT_USER, JSON.parse(data)); } catch (e) { return DEFAULT_USER; }
-    }
-    return DEFAULT_USER;
+    const data = localStorage.getItem(PROFILE_USER_KEY);
+    if (!data) return {};
+    try { return JSON.parse(data) || {}; } catch (e) { return {}; }
 }
 
 function saveUser(user) {
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
+    localStorage.setItem(PROFILE_USER_KEY, JSON.stringify(user));
 }
 
 function getProfile() {
     const data = localStorage.getItem(PROFILE_STORAGE_KEY);
     if (data) {
-        try { return Object.assign({}, DEFAULT_PROFILE, JSON.parse(data)); } catch (e) { return DEFAULT_PROFILE; }
+        try { return JSON.parse(data); } catch (e) { return {}; }
     }
-    return DEFAULT_PROFILE;
+    return {
+        specialty: 'Тревога, отношения, самооценка',
+        description: 'Помогаю справляться с тревогой, строить здоровые отношения и повышать самооценку.',
+        experience: 8,
+        price: 3000,
+        photoUrl: ''
+    };
 }
 
 function saveProfile(profile) {
     localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(profile));
+
+    // Также сохраняем в реестр психологов (для публичного каталога)
+    let registry = [];
+    try {
+        const d = localStorage.getItem(PSY_REGISTRY_KEY);
+        registry = d ? JSON.parse(d) : [];
+        if (!Array.isArray(registry)) registry = [];
+    } catch (e) { registry = []; }
+
+    const user = getUser();
+    const psyId = user.id || 'psy-1';
+
+    const existing = registry.find(function (p) { return p.id === psyId; });
+    if (existing) {
+        existing.specialty = profile.specialty;
+        existing.description = profile.description;
+        existing.experience = profile.experience;
+        existing.price = profile.price;
+        existing.photoUrl = profile.photoUrl;
+    }
+    localStorage.setItem(PSY_REGISTRY_KEY, JSON.stringify(registry));
 }
 
 // ============================================
-// Отрисовка формы
+// Отрисовка
 // ============================================
 
 function renderProfileForm() {
-    const user = getUser();
+    const user = migrateProfileUser();
     const profile = getProfile();
 
-    const fioFirstName = document.getElementById('fioFirstName');
-    const fioMiddleName = document.getElementById('fioMiddleName');
-    const fioLastName = document.getElementById('fioLastName');
+    // ФИО — реальные
+    const fioF = document.getElementById('fioFirstName');
+    const fioM = document.getElementById('fioMiddleName');
+    const fioL = document.getElementById('fioLastName');
+
+    if (fioF) fioF.textContent = user.realFirstName || '—';
+    if (fioM) fioM.textContent = user.realMiddleName || '—';
+    if (fioL) fioL.textContent = user.realLastName || '—';
+
+    // Бейдж верификации
     const verifyBadge = document.getElementById('verifyBadge');
-
-    if (fioFirstName) fioFirstName.textContent = user.firstName || '—';
-    if (fioMiddleName) fioMiddleName.textContent = user.middleName || '—';
-    if (fioLastName) fioLastName.textContent = user.lastName || '—';
-
     if (verifyBadge) {
-        if (user.isVerified) {
+        const status = user.psychologistStatus || 'none';
+        if (status === 'approved') {
             verifyBadge.className = 'verify-badge verified';
             verifyBadge.textContent = '✓ Проверен';
+        } else if (status === 'rejected') {
+            verifyBadge.className = 'verify-badge';
+            verifyBadge.style.background = '#f8d7da';
+            verifyBadge.style.color = '#721c24';
+            verifyBadge.textContent = '✗ Отклонён';
         } else {
             verifyBadge.className = 'verify-badge pending';
             verifyBadge.textContent = '⏳ На проверке';
         }
     }
 
+    // Редактируемые поля профиля
     const specialtyEl = document.getElementById('profileSpecialty');
     const descriptionEl = document.getElementById('profileDescription');
     const experienceEl = document.getElementById('profileExperience');
@@ -91,10 +138,11 @@ function renderProfileForm() {
     if (priceEl) priceEl.value = profile.price || '';
 
     if (photoEl && profile.photoUrl) {
-        photoEl.style.backgroundImage = `url(${profile.photoUrl})`;
+        photoEl.style.backgroundImage = 'url(' + profile.photoUrl + ')';
         photoEl.textContent = '';
     }
 
+    // Статус пароля
     renderPasswordStatus(user);
 }
 
@@ -110,7 +158,7 @@ function renderPasswordStatus(user) {
     const fillEl = document.getElementById('passwordAgeFill');
     const textEl = document.getElementById('passwordAgeText');
 
-    if (!statusEl || !fillEl) return;
+    if (!statusEl) return;
 
     const changedAt = user.passwordChangedAt || user.registeredAt || Date.now();
     const daysPassed = Math.floor((Date.now() - changedAt) / 86400000);
@@ -125,23 +173,23 @@ function renderPasswordStatus(user) {
         statusEl.classList.add('ok');
         iconEl.textContent = '✓';
         titleEl.textContent = 'Пароль в порядке';
-        descEl.textContent = `Пароль был установлен ${daysPassed} дн. назад.`;
-        textEl.textContent = `Осталось ${daysLeft} дн. до рекомендуемой смены`;
+        descEl.textContent = 'Пароль был установлен ' + daysPassed + ' дн. назад.';
+        textEl.textContent = 'Осталось ' + daysLeft + ' дн. до рекомендуемой смены';
     } else if (daysLeft > 0) {
         statusEl.classList.add('warning');
         fillEl.classList.add('warning');
         iconEl.textContent = '⚠️';
         titleEl.textContent = 'Скоро нужно сменить пароль';
-        descEl.textContent = `Пароль установлен ${daysPassed} дн. назад.`;
-        textEl.textContent = `Осталось ${daysLeft} дн.`;
+        descEl.textContent = 'Пароль установлен ' + daysPassed + ' дн. назад.';
+        textEl.textContent = 'Осталось ' + daysLeft + ' дн.';
     } else {
         statusEl.classList.add('expired');
         fillEl.classList.add('expired');
         fillEl.style.width = '100%';
         iconEl.textContent = '🚨';
         titleEl.textContent = 'Пора сменить пароль';
-        descEl.textContent = `Пароль не менялся ${daysPassed} дн.`;
-        textEl.textContent = `Просрочено на ${Math.abs(daysLeft)} дн.`;
+        descEl.textContent = 'Пароль не менялся ' + daysPassed + ' дн.';
+        textEl.textContent = 'Просрочено на ' + Math.abs(daysLeft) + ' дн.';
     }
 }
 
@@ -160,7 +208,7 @@ function handleProfileSave(e) {
     let isValid = true;
 
     if (!specialty || specialty.length < 3) { showProfileError('profileSpecialty', 'Введите специализацию'); isValid = false; } else clearProfileError('profileSpecialty');
-    if (!description || description.length < 20) { showProfileError('profileDescription', 'Описание должно быть не короче 20 символов'); isValid = false; } else clearProfileError('profileDescription');
+    if (!description || description.length < 20) { showProfileError('profileDescription', 'Описание минимум 20 символов'); isValid = false; } else clearProfileError('profileDescription');
     if (!experience || experience < 0) { showProfileError('profileExperience', 'Укажите стаж'); isValid = false; } else clearProfileError('profileExperience');
     if (!price || price < 0) { showProfileError('profilePrice', 'Укажите цену'); isValid = false; } else clearProfileError('profilePrice');
 
@@ -171,8 +219,8 @@ function handleProfileSave(e) {
     const msg = document.getElementById('profileMessage');
     if (msg) {
         msg.className = 'form-message success';
-        msg.textContent = '✓ Изменения сохранены. Они уже видны на главной странице.';
-        setTimeout(() => { msg.className = 'form-message'; }, 4000);
+        msg.textContent = '✓ Изменения сохранены.';
+        setTimeout(function () { msg.className = 'form-message'; }, 3000);
     }
 }
 
@@ -180,14 +228,20 @@ function showProfileError(fieldId, message) {
     const errorEl = document.getElementById(fieldId + 'Error');
     const inputEl = document.getElementById(fieldId);
     if (errorEl) errorEl.textContent = message;
-    if (inputEl) { const g = inputEl.closest('.form-group'); if (g) g.classList.add('has-error'); }
+    if (inputEl) {
+        const g = inputEl.closest('.form-group');
+        if (g) g.classList.add('has-error');
+    }
 }
 
 function clearProfileError(fieldId) {
     const errorEl = document.getElementById(fieldId + 'Error');
     const inputEl = document.getElementById(fieldId);
     if (errorEl) errorEl.textContent = '';
-    if (inputEl) { const g = inputEl.closest('.form-group'); if (g) g.classList.remove('has-error'); }
+    if (inputEl) {
+        const g = inputEl.closest('.form-group');
+        if (g) g.classList.remove('has-error');
+    }
 }
 
 // ============================================
@@ -195,13 +249,8 @@ function clearProfileError(fieldId) {
 // ============================================
 
 function toggleChangePasswordForm() {
-    console.log('[profile.js] toggle change password form');
     const form = document.getElementById('changePasswordForm');
-    if (!form) {
-        console.error('[profile.js] changePasswordForm not found');
-        return;
-    }
-    form.classList.toggle('active');
+    if (form) form.classList.toggle('active');
 }
 
 function cancelChangePassword() {
@@ -240,7 +289,7 @@ function handleChangePassword() {
     } else if (!/[a-zA-Z]/.test(newPwd) || !/\d/.test(newPwd)) {
         showProfileError('newPassword', 'Пароль должен содержать буквы и цифры'); isValid = false;
     } else if (newPwd === current) {
-        showProfileError('newPassword', 'Новый пароль должен отличаться от текущего'); isValid = false;
+        showProfileError('newPassword', 'Новый пароль должен отличаться'); isValid = false;
     } else clearProfileError('newPassword');
 
     if (!newPwd2) {
@@ -262,21 +311,18 @@ function handleChangePassword() {
 
     renderPasswordStatus(user);
 
-    setTimeout(() => { cancelChangePassword(); }, 2000);
+    setTimeout(function () { cancelChangePassword(); }, 2000);
 }
 
 // ============================================
 // Инициализация
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('[profile.js] DOMContentLoaded');
-
+document.addEventListener('DOMContentLoaded', function () {
     const form = document.getElementById('profileForm');
     if (form) form.addEventListener('submit', handleProfileSave);
 
     const changeBtn = document.getElementById('changePasswordBtn');
-    console.log('[profile.js] changePasswordBtn found:', !!changeBtn);
     if (changeBtn) changeBtn.addEventListener('click', toggleChangePasswordForm);
 
     const confirmBtn = document.getElementById('confirmPasswordBtn');

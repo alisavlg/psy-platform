@@ -11,7 +11,7 @@
     box-shadow: var(--shadow-card);
 }
 
-/* Блок ФИО */
+/* ФИО */
 .profile-fio-block {
     background: #fafbfd;
     border: 1px solid var(--color-border);
@@ -42,6 +42,8 @@
     font-weight: 600;
     padding: 3px 10px;
     border-radius: 20px;
+    background: #f0f4fa;
+    color: var(--color-text-light);
 }
 
 .verify-badge.verified {
@@ -92,7 +94,90 @@
     line-height: 1.4;
 }
 
-/* Блок кода пользователя */
+/* Блок «Как вас видят другие» */
+.profile-display-block {
+    background: #fafbfd;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    padding: 22px 25px;
+    margin-bottom: 20px;
+}
+
+.profile-display-header {
+    margin-bottom: 15px;
+}
+
+.profile-display-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin: 0;
+}
+
+.profile-display-preview {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    background: #fff;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border: 1px solid var(--color-border);
+}
+
+.profile-display-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.profile-display-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.profile-display-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--color-heading);
+    margin-bottom: 3px;
+}
+
+.profile-display-role {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.profile-display-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-bottom: 15px;
+}
+
+.profile-avatar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.profile-avatar-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+}
+
+/* Блок кода */
 .profile-code-block {
     background: linear-gradient(135deg, #eaf4ff, #dceaf9);
     border-radius: 12px;
@@ -255,6 +340,55 @@
     background: #d4edda;
     color: #155724;
     display: block;
+}
+
+/* Блок «Стать психологом» */
+.become-psy-block {
+    margin-top: 25px;
+    background: linear-gradient(135deg, #eaf4ff, #dceaf9);
+    border-radius: 12px;
+    padding: 25px 28px;
+}
+
+.become-psy-content h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #222;
+    margin-bottom: 8px;
+}
+
+.become-psy-content p {
+    font-size: 14px;
+    color: #357abd;
+    line-height: 1.5;
+    margin-bottom: 18px;
+}
+
+.btn-become-psy {
+    background: #4a90e2;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background 0.2s;
+}
+
+.btn-become-psy:hover {
+    background: #357abd;
+}
+
+.become-psy-pending {
+    font-size: 14px;
+    color: #856404;
+    background: #fff3cd;
+    padding: 15px 20px;
+    border-radius: 10px;
+    line-height: 1.5;
+    text-align: center;
 }
 
 /* Блок безопасности */
@@ -447,6 +581,24 @@
     background: #f8d7da;
     color: #721c24;
     display: block;
+}
+
+/* Кнопка загрузки фото */
+.btn-photo {
+    background: none;
+    border: 1px solid var(--color-border);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background-color 0.2s;
+}
+
+.btn-photo:hover {
+    background-color: #f0f4fa;
 }
 
 @media (max-width: 600px) {

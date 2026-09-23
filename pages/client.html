@@ -163,33 +163,74 @@
                     <div id="profileSection" style="display:none;">
                         <div class="profile-edit-container">
 
+                            <!-- ФИО (read-only) -->
                             <div class="profile-fio-block">
                                 <div class="profile-fio-header">
                                     <h3>Персональные данные</h3>
-                                    <span class="verify-badge pending" id="clientVerifyBadge">⏳ Ожидает проверки</span>
+                                    <span class="verify-badge" id="clientVerifyBadge">👤 Клиент</span>
                                 </div>
 
                                 <div class="profile-fio-row">
                                     <div class="profile-fio-item">
                                         <span class="profile-fio-label">Имя</span>
-                                        <span class="profile-fio-value" id="clientFioFirstName">—</span>
+                                        <span class="profile-fio-value" id="clientRealFirstName">—</span>
                                     </div>
                                     <div class="profile-fio-item">
                                         <span class="profile-fio-label">Отчество</span>
-                                        <span class="profile-fio-value" id="clientFioMiddleName">—</span>
+                                        <span class="profile-fio-value" id="clientRealMiddleName">—</span>
                                     </div>
                                 </div>
                                 <div class="profile-fio-row">
                                     <div class="profile-fio-item full">
-                                        <span class="profile-fio-label">Фамилия (не показывается публично)</span>
-                                        <span class="profile-fio-value" id="clientFioLastName">—</span>
+                                        <span class="profile-fio-label">Фамилия (не показывается никому, кроме вас)</span>
+                                        <span class="profile-fio-value" id="clientRealLastName">—</span>
                                     </div>
                                 </div>
                                 <p class="profile-fio-hint">
-                                    ФИО указано при регистрации. Для изменения обратитесь в поддержку.
+                                    Реальные ФИО указаны при регистрации и нужны для договора и чеков.
+                                    Другим пользователям они не показываются.
                                 </p>
                             </div>
 
+                            <!-- Транслируемое имя -->
+                            <div class="profile-display-block">
+                                <div class="profile-display-header">
+                                    <h3>Как вас видят другие</h3>
+                                </div>
+
+                                <div class="profile-display-preview">
+                                    <div class="profile-display-avatar" id="clientAvatarPreview">Фото</div>
+                                    <div class="profile-display-info">
+                                        <div class="profile-display-name" id="displayNamePreview">—</div>
+                                        <div class="profile-display-role">Клиент</div>
+                                    </div>
+                                </div>
+
+                                <p class="profile-display-hint">
+                                    Можете указать любое имя и отчество — настоящее или вымышленное.
+                                    Фамилия никогда не транслируется. Если оставить поля пустыми —
+                                    будет показано ваше реальное имя и отчество.
+                                </p>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="displayFirstName">Имя (транслируемое)</label>
+                                        <input type="text" id="displayFirstName" placeholder="Например, Ирина">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="displayMiddleName">Отчество (транслируемое)</label>
+                                        <input type="text" id="displayMiddleName" placeholder="Например, Викторовна">
+                                    </div>
+                                </div>
+
+                                <div class="profile-avatar-actions">
+                                    <input type="file" id="clientAvatarInput" accept="image/*" style="display:none;">
+                                    <button type="button" class="btn-photo" id="clientAvatarBtn">Загрузить фото</button>
+                                    <span class="profile-avatar-hint">JPG или PNG, до 5 МБ</span>
+                                </div>
+                            </div>
+
+                            <!-- Код -->
                             <div class="profile-code-block">
                                 <div class="profile-code-label">Ваш код на платформе</div>
                                 <div class="profile-code-row">
@@ -245,6 +286,16 @@
                                 <div class="form-message" id="clientProfileMessage"></div>
                             </form>
 
+                            <!-- Стать психологом -->
+                            <div class="become-psy-block" id="becomePsychologistBlock">
+                                <div class="become-psy-content">
+                                    <h3>Хотите помогать другим?</h3>
+                                    <p>Подайте заявку на роль психолога. Мы проверим документы и проведём собеседование.</p>
+                                    <button type="button" class="btn-become-psy" id="becomePsychologistBtn">Стать психологом →</button>
+                                </div>
+                            </div>
+
+                            <!-- Безопасность -->
                             <div class="security-block">
                                 <h3>Безопасность</h3>
 
@@ -379,7 +430,7 @@
         </div>
     </div>
 
-    <!-- Скрипты: сначала CURRENT_USER, потом все модули -->
+    <!-- Скрипты -->
     <script>window.CURRENT_USER = 'client';</script>
     <script src="../assets/js/user-menu.js"></script>
     <script src="../assets/js/calendar.js"></script>

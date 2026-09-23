@@ -1,12 +1,12 @@
 // ============================================
-// Регистрация: валидация, генератор пароля, код пользователя
+// Регистрация: валидация, генераторы, структура аккаунта
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
     var form = document.getElementById('registerForm');
     if (!form) return;
 
-    // === 1. Показать/скрыть пароли ===
+    // === Показать/скрыть пароли ===
     var togglePassword = document.getElementById('togglePassword');
     var togglePassword2 = document.getElementById('togglePassword2');
     var passwordInput = document.getElementById('password');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === 2. Индикатор надёжности ===
+    // === Индикатор надёжности ===
     var strengthBar = document.getElementById('passwordStrength');
 
     function updateStrength(val) {
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
         passwordInput.addEventListener('input', function () { updateStrength(passwordInput.value); });
     }
 
-    // === 3. Генератор пароля ===
+    // === Генератор пароля ===
     var generateBtn = document.getElementById('generatePassword');
     if (generateBtn) {
         generateBtn.addEventListener('click', function () {
@@ -87,9 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return pwd.split('').sort(function () { return Math.random() - 0.5; }).join('');
     }
 
-    // === 4. Генератор кода пользователя ===
-    // Формат: 2 буквы + 4 цифры, например AK-4821
-    // Буквы без путаницы: без O, I, L, Z, S, B, G
+    // === Генераторы кода и id ===
     function generateUserCode() {
         var letters = 'ACDEFHJKMNPRTUVWXY';
         var digits = '23456789';
@@ -107,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return 'u-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
     }
 
-    // === 5. Вспомогательные функции ===
+    // === Вспомогательные ===
     function showError(fieldId, message) {
         var errorEl = document.getElementById(fieldId + 'Error');
         var inputEl = document.getElementById(fieldId);
@@ -137,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return /^(\+7|8)\d{10}$/.test(cleaned);
     }
 
-    // === 6. Валидация ===
+    // === Валидация ===
     function validateForm() {
         var isValid = true;
 
@@ -160,15 +158,15 @@ document.addEventListener('DOMContentLoaded', function () {
         else clearError('password2');
 
         var firstName = document.getElementById('firstName').value.trim();
-        if (!firstName || firstName.length < 2) { showError('firstName', 'Введите имя (минимум 2 символа)'); isValid = false; }
+        if (!firstName || firstName.length < 2) { showError('firstName', 'Введите имя'); isValid = false; }
         else clearError('firstName');
 
         var middleName = document.getElementById('middleName').value.trim();
-        if (!middleName || middleName.length < 2) { showError('middleName', 'Введите отчество (минимум 2 символа)'); isValid = false; }
+        if (!middleName || middleName.length < 2) { showError('middleName', 'Введите отчество'); isValid = false; }
         else clearError('middleName');
 
         var lastName = document.getElementById('lastName').value.trim();
-        if (!lastName || lastName.length < 2) { showError('lastName', 'Введите фамилию (минимум 2 символа)'); isValid = false; }
+        if (!lastName || lastName.length < 2) { showError('lastName', 'Введите фамилию'); isValid = false; }
         else clearError('lastName');
 
         var phone = document.getElementById('phone').value.trim();
@@ -193,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return isValid;
     }
 
-    // === 7. Отправка ===
+    // === Отправка ===
     form.addEventListener('submit', function (e) {
         e.preventDefault();
         if (!validateForm()) return;
@@ -204,26 +202,45 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.disabled = true;
         submitBtn.textContent = 'Отправляем...';
 
-        // Генерируем уникальный код и id
         var userCode = generateUserCode();
         var userId = generateUserId();
+
+        // Реальные ФИО — для договора (не транслируются)
+        var realFirstName = document.getElementById('firstName').value.trim();
+        var realMiddleName = document.getElementById('middleName').value.trim();
+        var realLastName = document.getElementById('lastName').value.trim();
 
         var userData = {
             id: userId,
             code: userCode,
-            firstName: document.getElementById('firstName').value.trim(),
-            middleName: document.getElementById('middleName').value.trim(),
-            lastName: document.getElementById('lastName').value.trim(),
+
+            // Реальные данные (не транслируются, кроме имени+отчества)
+            realFirstName: realFirstName,
+            realMiddleName: realMiddleName,
+            realLastName: realLastName,
+
+            // Транслируемое имя (пусто = используется имя+отчество из реальных)
+            displayFirstName: '',
+            displayMiddleName: '',
+
+            avatarUrl: '',
+
             email: document.getElementById('email').value.trim(),
             phone: document.getElementById('phone').value.trim(),
             timezone: document.getElementById('timezone').value,
+
+            // Роли
+            roles: ['client'],
+            activeRole: 'client',
+            psychologistStatus: 'none',
+
             isVerified: false,
             registeredAt: Date.now(),
             passwordChangedAt: Date.now()
         };
         localStorage.setItem('psyhelp_user', JSON.stringify(userData));
 
-        console.log('Регистрация, код пользователя:', userCode);
+        console.log('Регистрация, код:', userCode, 'роли:', userData.roles);
 
         setTimeout(function () {
             messageEl.className = 'form-message success';
@@ -236,8 +253,8 @@ document.addEventListener('DOMContentLoaded', function () {
             submitBtn.textContent = 'Зарегистрироваться';
 
             setTimeout(function () {
-                window.location.href = 'dashboard.html?section=profile';
-            }, 3500);
+                window.location.href = 'client.html?section=catalog';
+            }, 3000);
         }, 1500);
     });
 });

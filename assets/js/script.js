@@ -4,6 +4,52 @@
 
 window.CURRENT_USER = window.CURRENT_USER || 'psychologist';
 
+// ============================================
+// Проверка авторизации и роли
+// ============================================
+
+function checkPsychologistAccess() {
+    var raw = localStorage.getItem('psyhelp_user');
+
+    // Не авторизован — на вход
+    if (!raw) {
+        console.log('[script.js] не авторизован → login.html');
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    var user;
+    try {
+        user = JSON.parse(raw);
+    } catch (e) {
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    var roles = Array.isArray(user.roles) ? user.roles : [];
+
+    // Старый аккаунт без ролей — считаем клиентом
+    if (roles.length === 0) {
+        user.roles = ['client'];
+        user.activeRole = 'client';
+        localStorage.setItem('psyhelp_user', JSON.stringify(user));
+        roles = ['client'];
+    }
+
+    // Нет роли психолога — редирект в клиентский кабинет
+    if (roles.indexOf('psychologist') === -1) {
+        console.log('[script.js] нет роли психолога → client.html');
+        window.location.href = 'client.html?section=catalog';
+        return false;
+    }
+
+    return true;
+}
+
+// ============================================
+// Разделы
+// ============================================
+
 const sections = {
     calendar: { title: 'Календарь', isCalendar: true },
     sessions: { title: 'Мои сессии', isSessions: true },
@@ -124,4 +170,13 @@ function renderSection() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', renderSection);
+// ============================================
+// Запуск
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Сначала проверяем доступ. Если не прошёл — функция сама сделает редирект.
+    if (!checkPsychologistAccess()) return;
+
+    renderSection();
+});
