@@ -229,6 +229,7 @@ function renderCatalog() {
 
 function getInitials(name) {
     if (!name) return '?';
+    if (typeof name !== 'string') name = String(name);
     return name.split(' ')
         .filter(function (w) { return w.length > 0; })
         .map(function (w) { return w[0]; })

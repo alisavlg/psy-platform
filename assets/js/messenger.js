@@ -1,8 +1,6 @@
 // ============================================
 // РАЗДЕЛ «СООБЩЕНИЯ» — личные чаты
 // ============================================
-// Правило: у каждого пользователя — свои чаты.
-// Ключ localStorage привязан к CURRENT_USER.
 
 console.log('[messenger.js] loaded');
 
@@ -14,8 +12,6 @@ function getChats() {
         try { return JSON.parse(data); } catch (e) { console.error(e); }
     }
 
-    // Демо-данные создаются ТОЛЬКО при первом входе.
-    // У психолога — свои, у клиента — свои.
     const now = Date.now();
     let demo;
 
@@ -57,7 +53,6 @@ function getChats() {
             }
         ];
     } else {
-        // Клиент видит чаты со своими психологами
         demo = [
             {
                 id: 'chat-1',
@@ -251,8 +246,13 @@ function sendMessage() {
     }, 1500);
 }
 
+// ============================================
+// Утилиты
+// ============================================
+
 function getInitials(name) {
     if (!name) return '?';
+    if (typeof name !== 'string') name = String(name);
     return name.split(' ')
         .filter(function (w) { return w.length > 0; })
         .map(function (w) { return w[0]; })

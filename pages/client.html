@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="../assets/css/sessions.css">
     <link rel="stylesheet" href="../assets/css/profile-client.css">
     <link rel="stylesheet" href="../assets/css/client.css">
+    <link rel="stylesheet" href="../assets/css/user-menu.css">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -69,7 +70,6 @@
                 <h1 class="page-title" id="pageTitle">Найти психолога</h1>
                 <div class="topbar-actions">
                     <button class="icon-btn" aria-label="Уведомления">🔔</button>
-                    <div class="user-avatar">К</div>
                 </div>
             </header>
 
@@ -163,7 +163,6 @@
                     <div id="profileSection" style="display:none;">
                         <div class="profile-edit-container">
 
-                            <!-- Блок ФИО (read-only) -->
                             <div class="profile-fio-block">
                                 <div class="profile-fio-header">
                                     <h3>Персональные данные</h3>
@@ -191,7 +190,6 @@
                                 </p>
                             </div>
 
-                            <!-- Код пользователя -->
                             <div class="profile-code-block">
                                 <div class="profile-code-label">Ваш код на платформе</div>
                                 <div class="profile-code-row">
@@ -247,7 +245,6 @@
                                 <div class="form-message" id="clientProfileMessage"></div>
                             </form>
 
-                            <!-- Безопасность -->
                             <div class="security-block">
                                 <h3>Безопасность</h3>
 
@@ -300,7 +297,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ (планировщик) -->
+    <!-- МОДАЛЬНОЕ ОКНО: СОБЫТИЕ -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
             <h3 id="modalTitle">Новое событие</h3>
@@ -382,7 +379,9 @@
         </div>
     </div>
 
+    <!-- Скрипты: сначала CURRENT_USER, потом все модули -->
     <script>window.CURRENT_USER = 'client';</script>
+    <script src="../assets/js/user-menu.js"></script>
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/sessions.js"></script>
