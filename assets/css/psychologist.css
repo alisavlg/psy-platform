@@ -402,3 +402,109 @@
         font-size: var(--font-size-h3);
     }
 }
+/* ============================================
+   ОТЗЫВЫ
+   ============================================ */
+
+.psy-action-review {
+    background: var(--color-bg-card);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
+}
+
+.psy-action-review:hover {
+    background: #fff8e6;
+}
+
+.psy-reviews-section h3 {
+    font-size: var(--font-size-h3);
+    color: var(--color-heading);
+    margin: 0 0 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 700;
+}
+
+.reviews-empty {
+    font-size: var(--font-size-small);
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.reviews-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.review-item {
+    padding: 16px 18px;
+    background: var(--color-bg-hover);
+    border-radius: var(--input-radius);
+    border-left: 3px solid var(--color-primary);
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.review-author {
+    font-size: var(--font-size-small);
+    font-weight: 600;
+    color: var(--color-heading);
+}
+
+.review-date {
+    font-size: var(--font-size-tiny);
+    color: var(--color-text-muted);
+}
+
+.review-stars {
+    font-size: 15px;
+    color: var(--color-rating);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+}
+
+.review-text {
+    font-size: var(--font-size-small-plus);
+    color: var(--color-text);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* Модалка отзыва */
+.review-modal-psy {
+    font-size: var(--font-size-small);
+    color: var(--color-text-light);
+    margin: -10px 0 20px 0;
+}
+
+.review-stars-input {
+    display: flex;
+    gap: 6px;
+    font-size: 32px;
+    color: var(--color-border);
+    cursor: pointer;
+    user-select: none;
+    line-height: 1;
+}
+
+.review-stars-input span {
+    transition: color var(--transition-fast), transform var(--transition-fast);
+}
+
+.review-stars-input span.hover,
+.review-stars-input span.active {
+    color: var(--color-rating);
+}
+
+.review-stars-input span:hover {
+    transform: scale(1.15);
+}

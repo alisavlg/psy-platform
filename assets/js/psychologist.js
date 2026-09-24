@@ -1,5 +1,5 @@
 // ============================================
-// ПРОФИЛЬ ПСИХОЛОГА + БРОНИРОВАНИЕ
+// ПРОФИЛЬ ПСИХОЛОГА + БРОНИРОВАНИЕ + ОТЗЫВЫ
 // ============================================
 
 console.log('[psychologist.js] loaded');
@@ -14,6 +14,7 @@ const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', '
 let currentPsy = null;
 let currentSlot = null;
 let currentFilterDays = 7;
+let currentReviewRating = 0;
 
 function getCurrentUserId() {
     try {
@@ -76,6 +77,10 @@ function getPsychologists() {
     return [];
 }
 
+function savePsychologists(list) {
+    localStorage.setItem(PSY_REGISTRY_KEY, JSON.stringify(list));
+}
+
 function getPsychologistById(id) {
     return getPsychologists().find(function (p) { return p.id === id; });
 }
@@ -110,6 +115,94 @@ function getSlotsFor(psy) {
 }
 
 // ============================================
+// ОТЗЫВЫ — вспомогательные
+// ============================================
+
+function getReviews(psy) {
+    if (!psy || !Array.isArray(psy.reviews)) return [];
+    return psy.reviews;
+}
+
+function hasReviewed(psy, userId) {
+    var reviews = getReviews(psy);
+    return reviews.some(function (r) { return r.authorId === userId; });
+}
+
+function hasCompletedSessionWith(psy, userId) {
+    var psyUserId = getPsychologistUserId(psy);
+    var sessions = readSessions(getSessionsKeyFor(userId));
+    return sessions.some(function (s) {
+        return s.status === 'completed' &&
+               (s.psychologistUserId === psyUserId || s.psychologistId === psy.id);
+    });
+}
+
+function addReview(psyId, authorId, authorName, rating, text) {
+    var list = getPsychologists();
+    var idx = list.findIndex(function (p) { return p.id === psyId; });
+    if (idx === -1) return false;
+
+    var psy = list[idx];
+    if (!Array.isArray(psy.reviews)) psy.reviews = [];
+
+    psy.reviews.push({
+        id: 'rev-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        authorId: authorId,
+        authorName: authorName,
+        rating: rating,
+        text: text,
+        createdAt: Date.now()
+    });
+
+    var oldRating = Number(psy.rating) || 0;
+    var oldCount = Number(psy.reviewsCount) || 0;
+    var newCount = oldCount + 1;
+    var newRating = (oldRating * oldCount + rating) / newCount;
+
+    psy.rating = Math.round(newRating * 10) / 10;
+    psy.reviewsCount = newCount;
+
+    savePsychologists(list);
+    currentPsy = psy;
+    return true;
+}
+
+function renderReviewsSection() {
+    var reviews = getReviews(currentPsy);
+    var html = '<div class="psy-profile-section psy-reviews-section">' +
+        '<h3>Отзывы ' + (reviews.length > 0 ? '(' + reviews.length + ')' : '') + '</h3>';
+
+    if (reviews.length === 0) {
+        html += '<p class="reviews-empty">Пока отзывов нет. ' +
+                'Оставьте свой, если уже работали с этим специалистом.</p>';
+    } else {
+        var sorted = reviews.slice().sort(function (a, b) { return b.createdAt - a.createdAt; });
+        html += '<div class="reviews-list">';
+        sorted.forEach(function (r) {
+            var stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
+            html += '<div class="review-item">' +
+                '<div class="review-header">' +
+                    '<div class="review-author">' + escapeHtml(r.authorName) + '</div>' +
+                    '<div class="review-date">' + formatReviewDate(r.createdAt) + '</div>' +
+                '</div>' +
+                '<div class="review-stars">' + stars + '</div>' +
+                (r.text ? '<div class="review-text">' + escapeHtml(r.text) + '</div>' : '') +
+            '</div>';
+        });
+        html += '</div>';
+    }
+
+    html += '</div>';
+    return html;
+}
+
+function formatReviewDate(ts) {
+    var d = new Date(ts);
+    var months = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+// ============================================
 // Отрисовка профиля
 // ============================================
 
@@ -133,7 +226,25 @@ function renderProfile() {
     const fullName = currentPsy.firstName + ' ' + currentPsy.middleName;
     const stars = '★'.repeat(Math.round(currentPsy.rating)) + '☆'.repeat(5 - Math.round(currentPsy.rating));
 
+    var reviewButtonHtml =
+        '<button type="button" class="psy-action-btn psy-action-review" id="writeReviewBtn">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>' +
+            '</svg>' +
+            'Оставить отзыв' +
+        '</button>';
+
+    // ============================================
+    // ПОРЯДОК БЛОКОВ:
+    // 1. Карточка с рейтингом
+    // 2. О специалисте
+    // 3. Свободные слоты
+    // 4. Как записаться
+    // 5. Отзывы
+    // ============================================
+
     container.innerHTML =
+        // 1. Карточка
         '<div class="psy-profile-card">' +
             '<div class="psy-profile-avatar">' + initials + '</div>' +
             '<div class="psy-profile-info">' +
@@ -156,34 +267,18 @@ function renderProfile() {
                         '</svg>' +
                         'Написать' +
                     '</button>' +
+                    reviewButtonHtml +
                 '</div>' +
             '</div>' +
         '</div>' +
 
+        // 2. О специалисте
         '<div class="psy-profile-section">' +
             '<h3>О специалисте</h3>' +
             '<p class="psy-profile-description">' + escapeHtml(currentPsy.description) + '</p>' +
         '</div>' +
 
-        '<div class="psy-profile-section psy-how-to">' +
-            '<h3>Как записаться на сессию</h3>' +
-            '<ol class="how-to-steps">' +
-                '<li>' +
-                    '<strong>Напишите психологу</strong> и обсудите запрос — ' +
-                    'расскажите, с чем хотите работать, узнайте, работает ли специалист с этим, ' +
-                    'обсудите формат и подход. Это поможет понять, комфортно ли вам.' +
-                '</li>' +
-                '<li>' +
-                    '<strong>Если вам комфортно</strong> и психолог готов — ' +
-                    'выберите свободный слот ниже.' +
-                '</li>' +
-                '<li>' +
-                    '<strong>Забронируйте и оплатите</strong> — сессия закреплена. ' +
-                    'Оплата резервирует время за вами.' +
-                '</li>' +
-            '</ol>' +
-        '</div>' +
-
+        // 3. Свободные слоты
         '<div class="psy-profile-section" id="slotsSection">' +
             '<h3>Свободные слоты</h3>' +
             '<div class="slots-toolbar">' +
@@ -194,7 +289,30 @@ function renderProfile() {
                 '</div>' +
             '</div>' +
             '<div class="slots-container" id="psySlotsGrid"></div>' +
-        '</div>';
+        '</div>' +
+
+        // 4. Как записаться
+        '<div class="psy-profile-section psy-how-to">' +
+            '<h3>Как записаться на сессию</h3>' +
+            '<ol class="how-to-steps">' +
+                '<li>' +
+                    '<strong>Напишите психологу</strong> и обсудите запрос — ' +
+                    'расскажите, с чем хотите работать, узнайте, работает ли специалист с этим, ' +
+                    'обсудите формат и подход. Это поможет понять, комфортно ли вам.' +
+                '</li>' +
+                '<li>' +
+                    '<strong>Если вам комфортно</strong> и психолог готов — ' +
+                    'выберите свободный слот выше.' +
+                '</li>' +
+                '<li>' +
+                    '<strong>Забронируйте и оплатите</strong> — сессия закреплена. ' +
+                    'Оплата резервирует время за вами.' +
+                '</li>' +
+            '</ol>' +
+        '</div>' +
+
+        // 5. Отзывы
+        renderReviewsSection();
 
     container.querySelectorAll('.slot-filter').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -215,7 +333,146 @@ function renderProfile() {
         });
     }
 
+    const reviewBtn = document.getElementById('writeReviewBtn');
+    if (reviewBtn) {
+        reviewBtn.addEventListener('click', openReviewModal);
+    }
+
     renderSlots();
+}
+
+// ============================================
+// Модалка отзыва
+// ============================================
+
+function openReviewModal() {
+    var userId = getCurrentUserId();
+
+    if (hasReviewed(currentPsy, userId)) {
+        alert('Вы уже оставили отзыв этому психологу.\n\nОдин клиент — один отзыв.');
+        return;
+    }
+
+    if (!hasCompletedSessionWith(currentPsy, userId)) {
+        alert('Отзыв можно оставить после проведённых сессий с этим психологом.');
+        return;
+    }
+
+    currentReviewRating = 0;
+
+    var overlay = document.getElementById('reviewModalOverlay');
+    if (!overlay) {
+        var html =
+            '<div class="modal-overlay" id="reviewModalOverlay">' +
+                '<div class="modal">' +
+                    '<h3>Оставить отзыв</h3>' +
+                    '<p class="review-modal-psy">' + escapeHtml(currentPsy.firstName + ' ' + currentPsy.middleName) + '</p>' +
+                    '<div class="form-group">' +
+                        '<label>Ваша оценка</label>' +
+                        '<div class="review-stars-input" id="reviewStarsInput">' +
+                            '<span data-star="1">★</span>' +
+                            '<span data-star="2">★</span>' +
+                            '<span data-star="3">★</span>' +
+                            '<span data-star="4">★</span>' +
+                            '<span data-star="5">★</span>' +
+                        '</div>' +
+                        '<span class="form-error" id="reviewRatingError"></span>' +
+                    '</div>' +
+                    '<div class="form-group">' +
+                        '<label for="reviewText">Комментарий <span style="color:var(--color-text-muted);font-weight:400;">(необязательно)</span></label>' +
+                        '<textarea id="reviewText" rows="4" placeholder="Как вам было? Что помогло?"></textarea>' +
+                    '</div>' +
+                    '<div class="modal-actions">' +
+                        '<button class="btn-save" id="submitReviewBtn">Отправить</button>' +
+                        '<button class="btn-cancel" id="cancelReviewBtn">Отмена</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        document.body.insertAdjacentHTML('beforeend', html);
+        overlay = document.getElementById('reviewModalOverlay');
+
+        overlay.querySelectorAll('#reviewStarsInput span').forEach(function (star) {
+            star.addEventListener('click', function () {
+                currentReviewRating = parseInt(star.dataset.star);
+                overlay.querySelectorAll('#reviewStarsInput span').forEach(function (s) {
+                    s.classList.toggle('active', parseInt(s.dataset.star) <= currentReviewRating);
+                });
+                var errEl = document.getElementById('reviewRatingError');
+                if (errEl) errEl.textContent = '';
+            });
+            star.addEventListener('mouseenter', function () {
+                var n = parseInt(star.dataset.star);
+                overlay.querySelectorAll('#reviewStarsInput span').forEach(function (s) {
+                    s.classList.toggle('hover', parseInt(s.dataset.star) <= n);
+                });
+            });
+        });
+        var starsWrap = document.getElementById('reviewStarsInput');
+        if (starsWrap) {
+            starsWrap.addEventListener('mouseleave', function () {
+                starsWrap.querySelectorAll('span').forEach(function (s) {
+                    s.classList.remove('hover');
+                });
+            });
+        }
+
+        document.getElementById('submitReviewBtn').addEventListener('click', submitReview);
+        document.getElementById('cancelReviewBtn').addEventListener('click', closeReviewModal);
+        overlay.addEventListener('click', function (e) {
+            if (e.target.id === 'reviewModalOverlay') closeReviewModal();
+        });
+    }
+
+    var textEl = document.getElementById('reviewText');
+    if (textEl) textEl.value = '';
+    var errEl = document.getElementById('reviewRatingError');
+    if (errEl) errEl.textContent = '';
+    overlay.querySelectorAll('#reviewStarsInput span').forEach(function (s) {
+        s.classList.remove('active', 'hover');
+    });
+
+    overlay.classList.add('active');
+}
+
+function closeReviewModal() {
+    var overlay = document.getElementById('reviewModalOverlay');
+    if (overlay) overlay.classList.remove('active');
+    currentReviewRating = 0;
+}
+
+function submitReview() {
+    if (!currentPsy) return;
+    if (!currentReviewRating || currentReviewRating < 1) {
+        var errEl = document.getElementById('reviewRatingError');
+        if (errEl) errEl.textContent = 'Поставьте оценку';
+        return;
+    }
+
+    var userId = getCurrentUserId();
+    var authorName = getPrefilledClientName() || 'Клиент';
+    var textEl = document.getElementById('reviewText');
+    var text = textEl ? textEl.value.trim() : '';
+
+    if (hasReviewed(currentPsy, userId)) {
+        alert('Вы уже оставили отзыв этому психологу.');
+        closeReviewModal();
+        return;
+    }
+    if (!hasCompletedSessionWith(currentPsy, userId)) {
+        alert('Отзыв можно оставить после проведённых сессий.');
+        closeReviewModal();
+        return;
+    }
+
+    var ok = addReview(currentPsy.id, userId, authorName, currentReviewRating, text);
+    if (!ok) {
+        alert('Не удалось сохранить отзыв.');
+        return;
+    }
+
+    closeReviewModal();
+    renderProfile();
+    alert('✓ Спасибо за отзыв!');
 }
 
 // ============================================
@@ -477,15 +734,10 @@ function confirmBooking() {
     currentSlot = null;
     renderSlots();
 
-    // ============================================
-    // УВЕДОМЛЕНИЯ — напрямую в localStorage
-    // ============================================
-
     var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
     var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
     var psyName = currentPsy.firstName + ' ' + currentPsy.middleName;
 
-    // 1. Клиенту — в его ведро
     try {
         var clientNotifKey = 'psyhelp_notifications_' + clientUserId;
         var clientNotifList = JSON.parse(localStorage.getItem(clientNotifKey)) || [];
@@ -501,10 +753,8 @@ function confirmBooking() {
             isRead: false
         });
         localStorage.setItem(clientNotifKey, JSON.stringify(clientNotifList));
-        console.log('[psychologist] уведомление клиенту создано');
-    } catch (e) { console.error('[psychologist] ошибка клиенту:', e); }
+    } catch (e) {}
 
-    // 2. Психологу — в его ведро (только если разные люди)
     if (psyUserId !== clientUserId) {
         try {
             var psyNotifKey = 'psyhelp_notifications_' + psyUserId;
@@ -520,8 +770,7 @@ function confirmBooking() {
                 isRead: false
             });
             localStorage.setItem(psyNotifKey, JSON.stringify(psyNotifList));
-            console.log('[psychologist] уведомление психологу создано');
-        } catch (e) { console.error('[psychologist] ошибка психологу:', e); }
+        } catch (e) {}
     }
 
     alert('✓ Запись подтверждена!\n\n' +
