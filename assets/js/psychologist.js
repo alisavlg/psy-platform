@@ -835,8 +835,6 @@ function writeSessions(key, list) {
 
 function addEventForUser(userId, event) {
     const key = getEventsKeyFor(userId);
-    console.log('[addEventForUser] ПОПЫТКА. key =', key, '| userId =', userId);
-
     let events = [];
     try {
         const data = localStorage.getItem(key);
@@ -844,23 +842,11 @@ function addEventForUser(userId, event) {
             const p = JSON.parse(data);
             events = Array.isArray(p) ? p : [];
         }
-    } catch (e) {
-        console.error('[addEventForUser] Ошибка чтения:', e);
-        events = [];
-    }
-
-    console.log('[addEventForUser] Событий было:', events.length);
+    } catch (e) { events = []; }
 
     event.id = Date.now().toString() + '-' + Math.random().toString(36).slice(2, 8);
     events.push(event);
-
-    try {
-        localStorage.setItem(key, JSON.stringify(events));
-        console.log('[addEventForUser] ✅ СОХРАНЕНО. Стало:', events.length);
-    } catch (e) {
-        console.error('[addEventForUser] ❌ ОШИБКА СОХРАНЕНИЯ:', e.name, e.message);
-        alert('Ошибка сохранения события: ' + e.name + '\n\n' + e.message);
-    }
+    localStorage.setItem(key, JSON.stringify(events));
 }
 
 // ============================================
