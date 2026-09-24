@@ -480,7 +480,7 @@ function confirmBooking() {
     currentSlot = null;
     renderSlots();
 
-    confirmBooking()
+    
 
         // Уведомление клиенту (уже своё ведро)
     if (typeof window.Notifications !== 'undefined') {
