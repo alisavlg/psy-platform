@@ -313,11 +313,20 @@ function renderProfile() {
         });
     });
 
-    const writeBtn = document.getElementById('writeToPsyBtn');
+        const writeBtn = document.getElementById('writeToPsyBtn');
     if (writeBtn) {
         writeBtn.addEventListener('click', function () {
             if (!currentPsy) return;
-            const chatId = 'chat-' + getCurrentUserId() + '-' + currentPsy.id;
+
+            var clientUserId = getCurrentUserId();
+            var psyUserId = getPsychologistUserId(currentPsy);
+
+            if (clientUserId === psyUserId) {
+                alert('Это ваш собственный профиль. Написать самому себе нельзя.');
+                return;
+            }
+
+            const chatId = 'chat-' + clientUserId + '-' + currentPsy.id;
             window.location.href = 'client.html?section=messages&chat=' + encodeURIComponent(chatId) + '&psyId=' + encodeURIComponent(currentPsy.id);
         });
     }

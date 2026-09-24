@@ -1,5 +1,6 @@
 // ============================================
-// СЕССИИ — список (единый для роли клиента и психолога)
+// СЕССИИ — кабинет психолога
+// Показываем только те, где я — ПСИХОЛОГ
 // ============================================
 
 console.log('[psychologist-sessions.js] loaded');
@@ -12,10 +13,6 @@ const STATUS_LABELS_PSY = {
 };
 
 let psySessionsTab = 'upcoming';
-
-// ============================================
-// Пользователь
-// ============================================
 
 function getCurrentUser() {
     try {
@@ -44,10 +41,6 @@ function getEventsKeyFor(userId) {
     return 'psyhelp_events_' + userId;
 }
 
-// ============================================
-// Хранилище
-// ============================================
-
 function readSessions(key) {
     const data = localStorage.getItem(key);
     if (!data) return [];
@@ -61,17 +54,21 @@ function writeSessions(key, list) {
     localStorage.setItem(key, JSON.stringify(list));
 }
 
+// === ГЛАВНОЕ: фильтр по роли ===
+// Психолог видит только сессии, где ОН психолог
 function getPsySessionsList() {
-    return readSessions(getSessionsKey());
+    var myId = getCurrentUserId();
+    var all = readSessions(getSessionsKey());
+
+    return all.filter(function (s) {
+        // сессия «моя как психолога»
+        return s.psychologistUserId === myId;
+    });
 }
 
 function savePsySessionsList(list) {
     writeSessions(getSessionsKey(), list);
 }
-
-// ============================================
-// Разделение
-// ============================================
 
 function getSessionDateTime(session) {
     const parts = session.date.split('-');
@@ -168,7 +165,6 @@ function renderPsySessions(tab) {
                     (canComplete ? 'Проведена' : 'Начнётся ' + timeFormatted) +
                 '</button>';
 
-            // Кнопка отмены — рядом с «Проведена»
             actionsHtml +=
                 '<button class="session-btn session-btn-cancel" ' +
                     'data-action="cancel" data-id="' + session.id + '">Отменить</button>';
@@ -238,18 +234,68 @@ function renderPsySessions(tab) {
 function completeSession(id) {
     if (!confirm('Отметить сессию как проведённую?')) return;
 
-    const sessions = getPsySessionsList();
-    const session = sessions.find(function (s) { return s.id === id; });
+    var myId = getCurrentUserId();
+    var sessions = readSessions(getSessionsKey());
+    var session = sessions.find(function (s) {
+        return s.id === id && s.psychologistUserId === myId;
+    });
     if (!session) return;
 
     session.status = 'completed';
     session.completedAt = Date.now();
-    savePsySessionsList(sessions);
+    writeSessions(getSessionsKey(), sessions);
 
     removeSessionEventFromCalendar(getEventsKey(), session);
 
     renderPsySessions();
     alert('Сессия отмечена как проведённая.');
+}
+
+function removeSessionEventFromCalendar(key, session) {
+    if (!session) return;
+    let events = [];
+    try {
+        const d = localStorage.getItem(key);
+        events = d ? JSON.parse(d) : [];
+        if (!Array.isArray(events)) events = [];
+    } catch (e) { events = []; }
+
+    events = events.filter(function (e) {
+        if (e.category !== 'session') return true;
+        return !(e.date === session.date && e.hour === session.hour);
+    });
+    localStorage.setItem(key, JSON.stringify(events));
+}
+
+function restoreFreeSlotForPsy(psyUserId, session) {
+    if (!session) return;
+    const key = getEventsKeyFor(psyUserId);
+    const data = localStorage.getItem(key);
+    let events = [];
+    if (data) {
+        try {
+            const p = JSON.parse(data);
+            events = Array.isArray(p) ? p : [];
+        } catch (e) {}
+    }
+
+    const already = events.some(function (e) {
+        return e.category === 'free' && e.date === session.date && e.hour === session.hour;
+    });
+    if (already) return;
+
+    events.push({
+        id: 'restored-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        title: 'Свободно',
+        date: session.date,
+        hour: session.hour,
+        category: 'free'
+    });
+    localStorage.setItem(key, JSON.stringify(events));
+}
+
+function chatWithClient(id) {
+    alert('💬 Чат появится в следующих обновлениях.\n\nДля связи используйте раздел «Сообщения».');
 }
 
 // ============================================
@@ -259,8 +305,11 @@ function completeSession(id) {
 let psyCancellingId = null;
 
 function openPsyCancelModal(id) {
-    const sessions = getPsySessionsList();
-    const session = sessions.find(function (s) { return s.id === id; });
+    var myId = getCurrentUserId();
+    var sessions = readSessions(getSessionsKey());
+    var session = sessions.find(function (s) {
+        return s.id === id && s.psychologistUserId === myId;
+    });
     if (!session) return;
 
     psyCancellingId = id;
@@ -317,11 +366,9 @@ function confirmPsyCancel() {
     const isSamePerson = (clientUserId === psyUserId);
     const clientName = psySession.clientName || 'Клиент';
 
-    // Имя психолога для уведомления клиенту
     var me = getCurrentUser();
     var psyFullName = ((me.realFirstName || '') + ' ' + (me.realMiddleName || '')).trim() || 'Психолог';
 
-    // Отменяем у себя (у психолога)
     psySession.status = 'cancelled';
     psySession.cancelReason = reason;
     psySession.cancelledBy = 'psychologist';
@@ -329,7 +376,6 @@ function confirmPsyCancel() {
     psySession.refundPercent = 100;
     writeSessions(getSessionsKeyFor(psyUserId), psySessions);
 
-    // Отменяем у клиента (только если это другой человек)
     if (clientUserId && !isSamePerson) {
         const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
         const clientSession = clientSessions.find(function (s) { return s.id === psyCancellingId; });
@@ -357,11 +403,9 @@ function confirmPsyCancel() {
         removeSessionEventFromCalendar(clientUserId, psySession);
     }
 
-    // Возвращаем слот в календарь психолога
     restoreFreeSlotForPsy(psyUserId, psySession);
     removeSessionEventFromCalendar(psyUserId, psySession);
 
-    // Уведомление себе (психологу) — одно
     if (typeof window.Notifications !== 'undefined') {
         var selfText = (isSamePerson
             ? 'Ваша запись как клиента. '
@@ -385,54 +429,51 @@ function confirmPsyCancel() {
 }
 
 // ============================================
-// Утилиты
+// Очистка истории
 // ============================================
 
-function restoreFreeSlotForPsy(psyUserId, session) {
-    if (!session) return;
-    const key = getEventsKeyFor(psyUserId);
-    const data = localStorage.getItem(key);
-    let events = [];
-    if (data) {
-        try {
-            const p = JSON.parse(data);
-            events = Array.isArray(p) ? p : [];
-        } catch (e) {}
-    }
+function clearOldHistory() {
+    if (!confirm('Очистить историю? Все отменённые и завершённые сессии будут удалены.')) return;
 
-    const already = events.some(function (e) {
-        return e.category === 'free' && e.date === session.date && e.hour === session.hour;
+    var myId = getCurrentUserId();
+    var all = readSessions(getSessionsKey());
+
+    var toRemove = all.filter(function (s) {
+        return s.psychologistUserId === myId &&
+               (s.status === 'cancelled' || s.status === 'completed');
     });
-    if (already) return;
 
-    events.push({
-        id: 'restored-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-        title: 'Свободно',
-        date: session.date,
-        hour: session.hour,
-        category: 'free'
+    var clean = all.filter(function (s) {
+        return !(s.psychologistUserId === myId &&
+                 (s.status === 'cancelled' || s.status === 'completed'));
     });
-    localStorage.setItem(key, JSON.stringify(events));
-}
 
-function removeSessionEventFromCalendar(userId, session) {
-    if (!session) return;
-    const key = getEventsKeyFor(userId);
-    const data = localStorage.getItem(key);
-    if (!data) return;
+    var key = getEventsKey();
+    var events = [];
     try {
-        let events = JSON.parse(data);
-        if (!Array.isArray(events)) return;
-        events = events.filter(function (e) {
-            return !(e.date === session.date && e.hour === session.hour && e.category === 'session');
+        const d = localStorage.getItem(key);
+        events = d ? JSON.parse(d) : [];
+        if (!Array.isArray(events)) events = [];
+    } catch (e) { events = []; }
+
+    var cleanedEvents = events.filter(function (e) {
+        if (e.category !== 'session') return true;
+        var removed = toRemove.find(function (s) {
+            return s.date === e.date && s.hour === e.hour;
         });
-        localStorage.setItem(key, JSON.stringify(events));
-    } catch (e) {}
+        return !removed;
+    });
+    localStorage.setItem(key, JSON.stringify(cleanedEvents));
+
+    writeSessions(getSessionsKey(), clean);
+
+    renderPsySessions();
+    alert('История очищена.');
 }
 
-function chatWithClient(id) {
-    alert('💬 Чат появится в следующих обновлениях.\n\nДля связи используйте раздел «Сообщения».');
-}
+// ============================================
+// Утилиты
+// ============================================
 
 function formatHumanDate(date) {
     const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
@@ -453,46 +494,6 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-// ============================================
-// Очистка истории
-// ============================================
-
-function clearOldHistory() {
-    if (!confirm('Очистить историю? Все отменённые и завершённые сессии будут удалены.')) return;
-
-    const sessions = getPsySessionsList();
-
-    const toRemove = sessions.filter(function (s) {
-        return s.status === 'cancelled' || s.status === 'completed';
-    });
-
-    const clean = sessions.filter(function (s) {
-        return s.status !== 'cancelled' && s.status !== 'completed';
-    });
-
-    const key = getEventsKey();
-    let events = [];
-    try {
-        const d = localStorage.getItem(key);
-        events = d ? JSON.parse(d) : [];
-        if (!Array.isArray(events)) events = [];
-    } catch (e) { events = []; }
-
-    const cleanedEvents = events.filter(function (e) {
-        if (e.category !== 'session') return true;
-        const removed = toRemove.find(function (s) {
-            return s.date === e.date && s.hour === e.hour;
-        });
-        return !removed;
-    });
-    localStorage.setItem(key, JSON.stringify(cleanedEvents));
-
-    savePsySessionsList(clean);
-
-    renderPsySessions();
-    alert('История очищена.');
 }
 
 // ============================================

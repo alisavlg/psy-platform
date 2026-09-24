@@ -50,7 +50,13 @@ function writeSessions(key, list) {
 }
 
 function getClientSessions() {
-    return readSessions(getSessionsKeyFor(getCurrentUserId()));
+    var myId = getCurrentUserId();
+    var all = readSessions(getSessionsKeyFor(myId));
+
+    // Показываем только сессии, где я — КЛИЕНТ
+    return all.filter(function (s) {
+        return s.clientId === myId;
+    });
 }
 
 function saveClientSessions(list) {

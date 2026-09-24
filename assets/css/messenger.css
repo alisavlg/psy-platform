@@ -337,3 +337,8 @@
     line-height: 1.6;
     color: var(--color-text-muted);
 }
+
+/* Аватар поддержки — синий */
+.chat-avatar-support {
+    background: var(--color-primary);
+}

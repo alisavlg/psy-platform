@@ -1,84 +1,53 @@
 // ============================================
 // РАЗДЕЛ «СООБЩЕНИЯ» — личные чаты
+// Ключ хранилища — по user.id, не по роли
 // ============================================
 
 console.log('[messenger.js] loaded');
 
-const MESSAGES_KEY = 'psyhelp_messages_' + (window.CURRENT_USER || 'anonymous');
+function getCurrentUserId() {
+    try {
+        const u = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+        return u.id || 'anonymous';
+    } catch (e) { return 'anonymous'; }
+}
+
+const MESSAGES_KEY = 'psyhelp_messages_' + getCurrentUserId();
+
+const SUPPORT_CHAT_ID = 'chat-support';
+
+function getSupportChat() {
+    return {
+        id: SUPPORT_CHAT_ID,
+        participantName: 'Поддержка PsyHelp',
+        participantRole: 'Команда платформы',
+        unread: 0,
+        messages: [
+            {
+                id: 'msg-support-hello',
+                from: 'them',
+                text: 'Здравствуйте! Это чат поддержки PsyHelp. ' +
+                      'Если возникнут вопросы по работе платформы — напишите здесь. ' +
+                      'Мы отвечаем в течение рабочего дня.',
+                time: Date.now()
+            }
+        ]
+    };
+}
 
 function getChats() {
     const data = localStorage.getItem(MESSAGES_KEY);
     if (data) {
-        try { return JSON.parse(data); } catch (e) { console.error(e); }
+        try {
+            var list = JSON.parse(data);
+            if (Array.isArray(list) && list.length > 0) return list;
+        } catch (e) { console.error(e); }
     }
 
-    const now = Date.now();
-    let demo;
-
-    if (window.CURRENT_USER === 'psychologist') {
-        demo = [
-            {
-                id: 'chat-1',
-                participantName: 'Дмитрий Петрович',
-                participantRole: 'Клиент',
-                unread: 0,
-                messages: [
-                    { id: 'm1', from: 'them', text: 'Здравствуйте! Хотел бы записаться на сессию на следующей неделе.', time: now - 3600000 * 24 * 2 },
-                    { id: 'm2', from: 'me', text: 'Здравствуйте! Конечно. У меня есть свободные слоты во вторник и четверг.', time: now - 3600000 * 24 * 2 + 600000 },
-                    { id: 'm3', from: 'them', text: 'Отлично, давайте во вторник в 14:00.', time: now - 3600000 * 24 },
-                    { id: 'm4', from: 'me', text: 'Договорились. Добавлю в расписание.', time: now - 3600000 * 20 }
-                ]
-            },
-            {
-                id: 'chat-2',
-                participantName: 'Елена Александровна',
-                participantRole: 'Клиент',
-                unread: 1,
-                messages: [
-                    { id: 'm1', from: 'me', text: 'Здравствуйте, Елена! Как ваши дела после последней сессии?', time: now - 3600000 * 30 },
-                    { id: 'm2', from: 'them', text: 'Здравствуйте! Стало значительно легче. Спасибо вам большое.', time: now - 3600000 * 28 },
-                    { id: 'm3', from: 'them', text: 'Можно записаться на следующую неделю?', time: now - 3600000 * 5 }
-                ]
-            },
-            {
-                id: 'chat-3',
-                participantName: 'Иван Сергеевич',
-                participantRole: 'Психолог',
-                unread: 0,
-                messages: [
-                    { id: 'm1', from: 'me', text: 'Иван, добрый день. Хотел бы записаться к вам на супервизию.', time: now - 3600000 * 72 },
-                    { id: 'm2', from: 'them', text: 'Добрый! Да, конечно. Есть окно в пятницу в 16:00.', time: now - 3600000 * 70 },
-                    { id: 'm3', from: 'me', text: 'Отлично, подходит.', time: now - 3600000 * 68 }
-                ]
-            }
-        ];
-    } else {
-        demo = [
-            {
-                id: 'chat-1',
-                participantName: 'Анна Сергеевна',
-                participantRole: 'Психолог',
-                unread: 0,
-                messages: [
-                    { id: 'm1', from: 'me', text: 'Здравствуйте! Хотела бы записаться к вам на консультацию.', time: now - 3600000 * 24 * 2 },
-                    { id: 'm2', from: 'them', text: 'Здравствуйте! Рада вас слышать. У меня есть окно в среду в 15:00.', time: now - 3600000 * 24 * 2 + 600000 },
-                    { id: 'm3', from: 'me', text: 'Отлично, подходит.', time: now - 3600000 * 24 }
-                ]
-            },
-            {
-                id: 'chat-2',
-                participantName: 'Иван Сергеевич',
-                participantRole: 'Психолог',
-                unread: 1,
-                messages: [
-                    { id: 'm1', from: 'them', text: 'Как ваши успехи на этой неделе?', time: now - 3600000 * 5 }
-                ]
-            }
-        ];
-    }
-
-    saveChats(demo);
-    return demo;
+    // Первый запуск — создаём только чат поддержки
+    var initial = [getSupportChat()];
+    saveChats(initial);
+    return initial;
 }
 
 function saveChats(chats) {
@@ -88,7 +57,7 @@ function saveChats(chats) {
 let currentChatId = null;
 
 // ============================================
-// Инициализация чата по ?chat=psyId=
+// Инициализация чата по ?chat=&psyId=
 // ============================================
 
 function initChatFromUrl() {
@@ -107,7 +76,6 @@ function initChatFromUrl() {
         return;
     }
 
-    // Создаём новый чат
     var psyName = 'Новый диалог';
     var psyRole = 'Психолог';
 
@@ -137,6 +105,10 @@ function initChatFromUrl() {
     console.log('[messenger] создан новый чат:', chatId, '→', psyName);
 }
 
+// ============================================
+// Отрисовка
+// ============================================
+
 function renderMessenger() {
     console.log('[messenger] renderMessenger, currentChatId =', currentChatId);
 
@@ -147,7 +119,10 @@ function renderMessenger() {
     const listEl = document.getElementById('chatsList');
     if (!listEl) return;
 
+    // Сортировка: чат поддержки всегда сверху, остальные — по времени
     chats.sort(function (a, b) {
+        if (a.id === SUPPORT_CHAT_ID) return -1;
+        if (b.id === SUPPORT_CHAT_ID) return 1;
         const aLast = a.messages.length > 0 ? a.messages[a.messages.length - 1].time : 0;
         const bLast = b.messages.length > 0 ? b.messages[b.messages.length - 1].time : 0;
         return bLast - aLast;
@@ -164,7 +139,7 @@ function renderMessenger() {
         const timeStr = lastMsg ? formatChatTime(lastMsg.time) : '';
 
         item.innerHTML =
-            '<div class="chat-avatar">' + initials + '</div>' +
+            '<div class="chat-avatar' + (chat.id === SUPPORT_CHAT_ID ? ' chat-avatar-support' : '') + '">' + initials + '</div>' +
             '<div class="chat-item-info">' +
                 '<div class="chat-item-name">' + escapeHtml(chat.participantName) + '</div>' +
                 '<div class="chat-item-preview">' + escapeHtml(preview) + '</div>' +
@@ -193,6 +168,7 @@ function renderChatWindow(chat) {
 
     const initials = getInitials(chat.participantName);
     const isEmpty = chat.messages.length === 0;
+    const isSupport = chat.id === SUPPORT_CHAT_ID;
 
     let messagesHtml = '';
     if (isEmpty) {
@@ -214,13 +190,18 @@ function renderChatWindow(chat) {
         });
     }
 
-    const placeholder = isEmpty
-        ? 'Здравствуйте! Хотел(а) бы с Вами поработать. Мой запрос: ...'
-        : 'Напишите сообщение...';
+    var placeholder;
+    if (isSupport) {
+        placeholder = 'Опишите вопрос или проблему...';
+    } else if (isEmpty) {
+        placeholder = 'Здравствуйте! Хотел(а) бы с Вами поработать. Мой запрос: ...';
+    } else {
+        placeholder = 'Напишите сообщение...';
+    }
 
     windowEl.innerHTML =
         '<div class="chat-window-header">' +
-            '<div class="chat-window-avatar">' + initials + '</div>' +
+            '<div class="chat-window-avatar' + (isSupport ? ' chat-avatar-support' : '') + '">' + initials + '</div>' +
             '<div>' +
                 '<div class="chat-window-name">' + escapeHtml(chat.participantName) + '</div>' +
                 '<div class="chat-window-role">' + escapeHtml(chat.participantRole) + '</div>' +
@@ -274,6 +255,7 @@ function openChat(chatId) {
     if (input) input.focus();
 }
 
+// Отправка — без автоответа. В реальности ответит живой человек.
 function sendMessage() {
     const input = document.getElementById('chatInput');
     if (!input) return;
@@ -295,27 +277,6 @@ function sendMessage() {
 
     input.value = '';
     renderMessenger();
-
-    // Автоответ — только для демо-чатов (chat-1, chat-2, chat-3)
-    // Для реальных чатов (chat-u-...-psy-...) — не отвечаем, там живого собеседника нет
-    if (currentChatId && currentChatId.indexOf('chat-u-') === 0) {
-        return;
-    }
-
-    const currentId = currentChatId;
-    setTimeout(function () {
-        const freshChats = getChats();
-        const freshChat = freshChats.find(function (c) { return c.id === currentId; });
-        if (!freshChat) return;
-        freshChat.messages.push({
-            id: 'm-' + Date.now(),
-            from: 'them',
-            text: 'Спасибо, я увидел(а) ваше сообщение. Отвечу чуть позже.',
-            time: Date.now()
-        });
-        saveChats(freshChats);
-        if (currentChatId === currentId) renderMessenger();
-    }, 1500);
 }
 
 // ============================================
