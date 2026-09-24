@@ -87,6 +87,56 @@ function saveChats(chats) {
 
 let currentChatId = null;
 
+// ============================================
+// Инициализация чата по ?chat=psyId=
+// ============================================
+
+function initChatFromUrl() {
+    var params = new URLSearchParams(window.location.search);
+    var chatId = params.get('chat');
+    var psyId = params.get('psyId');
+
+    if (!chatId) return;
+
+    var chats = getChats();
+    var existing = chats.find(function (c) { return c.id === chatId; });
+
+    if (existing) {
+        currentChatId = chatId;
+        console.log('[messenger] открыт существующий чат:', chatId);
+        return;
+    }
+
+    // Создаём новый чат
+    var psyName = 'Новый диалог';
+    var psyRole = 'Психолог';
+
+    if (psyId) {
+        try {
+            var reg = JSON.parse(localStorage.getItem('psyhelp_psychologists_registry')) || [];
+            var psy = reg.find(function (p) { return p.id === psyId; });
+            if (psy) {
+                var f = (psy.firstName || '').trim();
+                var m = (psy.middleName || '').trim();
+                psyName = (f + ' ' + m).trim() || 'Психолог';
+            }
+        } catch (e) {}
+    }
+
+    var newChat = {
+        id: chatId,
+        participantName: psyName,
+        participantRole: psyRole,
+        unread: 0,
+        messages: []
+    };
+
+    chats.push(newChat);
+    saveChats(chats);
+    currentChatId = chatId;
+    console.log('[messenger] создан новый чат:', chatId, '→', psyName);
+}
+
 function renderMessenger() {
     console.log('[messenger] renderMessenger, currentChatId =', currentChatId);
 
@@ -142,16 +192,31 @@ function renderChatWindow(chat) {
     if (!windowEl) return;
 
     const initials = getInitials(chat.participantName);
+    const isEmpty = chat.messages.length === 0;
 
     let messagesHtml = '';
-    chat.messages.forEach(function (m) {
-        const cls = m.from === 'me' ? 'me' : 'them';
-        messagesHtml +=
-            '<div class="message ' + cls + '">' +
-                escapeHtml(m.text) +
-                '<span class="message-time">' + formatChatTime(m.time) + '</span>' +
+    if (isEmpty) {
+        messagesHtml =
+            '<div class="chat-start-hint">' +
+                '<div class="chat-start-title">Это начало вашего диалога.</div>' +
+                '<div class="chat-start-text">' +
+                    'Напишите первое сообщение — начните с приветствия и коротко опишите, с чем хотите работать.' +
+                '</div>' +
             '</div>';
-    });
+    } else {
+        chat.messages.forEach(function (m) {
+            const cls = m.from === 'me' ? 'me' : 'them';
+            messagesHtml +=
+                '<div class="message ' + cls + '">' +
+                    escapeHtml(m.text) +
+                    '<span class="message-time">' + formatChatTime(m.time) + '</span>' +
+                '</div>';
+        });
+    }
+
+    const placeholder = isEmpty
+        ? 'Здравствуйте! Хотел(а) бы с Вами поработать. Мой запрос: ...'
+        : 'Напишите сообщение...';
 
     windowEl.innerHTML =
         '<div class="chat-window-header">' +
@@ -163,7 +228,7 @@ function renderChatWindow(chat) {
         '</div>' +
         '<div class="chat-messages" id="chatMessages">' + messagesHtml + '</div>' +
         '<div class="chat-input-area">' +
-            '<input type="text" class="chat-input" id="chatInput" placeholder="Напишите сообщение..." autocomplete="off">' +
+            '<input type="text" class="chat-input" id="chatInput" placeholder="' + escapeHtml(placeholder) + '" autocomplete="off">' +
             '<button class="btn-send" id="btnSend">Отправить</button>' +
         '</div>';
 
@@ -181,6 +246,7 @@ function renderChatWindow(chat) {
                 sendMessage();
             }
         });
+        if (isEmpty) input.focus();
     }
 }
 
@@ -229,6 +295,12 @@ function sendMessage() {
 
     input.value = '';
     renderMessenger();
+
+    // Автоответ — только для демо-чатов (chat-1, chat-2, chat-3)
+    // Для реальных чатов (chat-u-...-psy-...) — не отвечаем, там живого собеседника нет
+    if (currentChatId && currentChatId.indexOf('chat-u-') === 0) {
+        return;
+    }
 
     const currentId = currentChatId;
     setTimeout(function () {
@@ -287,3 +359,11 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ============================================
+// Инициализация
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    initChatFromUrl();
+});

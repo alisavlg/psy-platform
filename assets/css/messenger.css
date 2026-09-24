@@ -312,3 +312,28 @@
     display: flex !important;
     flex-direction: column !important;
 }
+
+/* ============================================
+   ПРИВЕТСТВИЕ В ПУСТОМ ЧАТЕ
+   ============================================ */
+
+.chat-start-hint {
+    text-align: center;
+    padding: 60px 30px;
+    max-width: 480px;
+    margin: 0 auto;
+    color: var(--color-text-muted);
+}
+
+.chat-start-title {
+    font-size: var(--font-size-base, 16px);
+    font-weight: 600;
+    color: var(--color-text-light);
+    margin-bottom: 12px;
+}
+
+.chat-start-text {
+    font-size: var(--font-size-small, 14px);
+    line-height: 1.6;
+    color: var(--color-text-muted);
+}

@@ -89,7 +89,7 @@ function isToday(date) {
 }
 
 // ============================================
-// ЕДИНОЕ хранилище — по user.id
+// Хранилище
 // ============================================
 
 function getEventsKey() {
@@ -127,6 +127,18 @@ function addEvent(event) {
 function deleteEvent(id) {
     const events = getEvents().filter(function (e) { return e.id !== id; });
     saveEvents(events);
+}
+
+// ============================================
+// Проверка занятости времени
+// ============================================
+
+// Есть ли уже событие на это время (кроме самого себя при редактировании)
+function isTimeTaken(events, dateKey, hour, excludeId) {
+    return events.some(function (e) {
+        if (excludeId && e.id === excludeId) return false;
+        return e.date === dateKey && e.hour === hour;
+    });
 }
 
 // ============================================
@@ -272,8 +284,27 @@ function renderCalendar() {
             html += '<div class="hour-cell" data-date="' + dateKey + '" data-hour="' + h + '"></div>';
         }
 
-        const dayEvents = events.filter(function (e) { return e.date === dateKey; });
-        dayEvents.forEach(function (ev) {
+        // ГРУППИРОВКА: на одно время — только одно событие.
+        // Приоритет: session > personal/work/health/study > free
+        var dayEvents = events.filter(function (e) { return e.date === dateKey; });
+        var byHour = {};
+        dayEvents.forEach(function (e) {
+            var existing = byHour[e.hour];
+            if (!existing) {
+                byHour[e.hour] = e;
+            } else {
+                // приоритет: session > free > всё остальное
+                var priority = { session: 3, free: 2 };
+                var curP = priority[existing.category] || 1;
+                var newP = priority[e.category] || 1;
+                if (newP > curP) {
+                    byHour[e.hour] = e;
+                }
+            }
+        });
+
+        Object.keys(byHour).forEach(function (hourKey) {
+            var ev = byHour[hourKey];
             const cat = CATEGORIES[ev.category] || CATEGORIES.personal;
             const top = (ev.hour - START_HOUR) * 60;
             const isFree = ev.category === 'free';
@@ -332,7 +363,7 @@ function updateFreeSlotsCount() {
 }
 
 // ============================================
-// Детали сессии — универсально для обеих ролей
+// Детали сессии
 // ============================================
 
 function openSessionDetails(event) {
@@ -344,25 +375,17 @@ function openSessionDetails(event) {
     }
 
     const isPsy = isPsychologist();
-
-    // Логика: если это психолог — показываем клиента.
-    // Если клиент — показываем психолога + ссылку на его страницу.
     let counterpartHtml = '';
-    let counterpartName = '';
-    let counterpartCode = '';
 
     if (isPsy && event.clientName) {
-        counterpartName = event.clientName;
-        counterpartCode = event.clientCode || '';
         counterpartHtml =
-            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(counterpartName) + '</strong></div>' +
-            (counterpartCode
-                ? '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(counterpartCode) + '</strong></div>'
+            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(event.clientName) + '</strong></div>' +
+            (event.clientCode
+                ? '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(event.clientCode) + '</strong></div>'
                 : '');
     } else if (event.psychologistName) {
-        counterpartName = event.psychologistName;
         counterpartHtml =
-            '<div class="session-detail-row"><span>Психолог:</span> <strong>' + escapeHtml(counterpartName) + '</strong></div>';
+            '<div class="session-detail-row"><span>Психолог:</span> <strong>' + escapeHtml(event.psychologistName) + '</strong></div>';
         if (event.psychologistId) {
             counterpartHtml +=
                 '<div class="session-detail-row"><span>Профиль:</span> ' +
@@ -442,7 +465,7 @@ function saveEvent() {
     const hour = parseInt(document.getElementById('eventHour').value);
 
     if (category === 'session') {
-        alert('Сессии создаются автоматически при бронировании клиентом.\n\nЧтобы принять клиента — отметьте свободный слот в календаре.');
+        alert('Сессии создаются автоматически при бронировании клиентом.');
         return;
     }
 
@@ -460,12 +483,21 @@ function saveEvent() {
         return;
     }
 
+    const events = getEvents();
+
+    // ПРОВЕРКА КОНФЛИКТА: нельзя ставить событие на занятое время
+    const conflict = isTimeTaken(events, date, hour, editingEventId);
+    if (conflict) {
+        alert('На это время уже есть событие.\n\n' +
+              'Одно время — одно событие. Сначала уберите существующее.');
+        return;
+    }
+
     if (editingEventId) {
-        const events = getEvents();
         const ev = events.find(function (e) { return e.id === editingEventId; });
         if (ev) {
             if (ev.category === 'session') {
-                alert('Сессии нельзя редактировать вручную — они связаны с клиентом и оплатой.');
+                alert('Сессии нельзя редактировать вручную.');
                 closeModal();
                 return;
             }
@@ -493,7 +525,7 @@ function removeEvent() {
 }
 
 // ============================================
-// Быстрые действия
+// Быстрые действия (только для психолога)
 // ============================================
 
 function fillWeekdays() {
@@ -503,6 +535,9 @@ function fillWeekdays() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    let added = 0;
+    let skipped = 0;
+
     for (let week = 0; week < 4; week++) {
         for (let i = 0; i < 5; i++) {
             const date = new Date(today);
@@ -510,24 +545,28 @@ function fillWeekdays() {
             const dateKey = formatDateKey(date);
 
             for (let h = 10; h < 19; h++) {
-                const exists = events.some(function (e) {
-                    return e.date === dateKey && e.hour === h;
-                });
-                if (!exists) {
-                    events.push({
-                        id: 'fill-' + week + '-' + i + '-' + h,
-                        title: 'Свободно',
-                        date: dateKey,
-                        hour: h,
-                        category: 'free'
-                    });
+                if (isTimeTaken(events, dateKey, h)) {
+                    skipped++;
+                    continue;
                 }
+                events.push({
+                    id: 'fill-' + week + '-' + i + '-' + h,
+                    title: 'Свободно',
+                    date: dateKey,
+                    hour: h,
+                    category: 'free'
+                });
+                added++;
             }
         }
     }
 
     saveEvents(events);
     renderCalendar();
+
+    if (skipped > 0) {
+        console.log('[calendar] заполнено слотов:', added, 'пропущено (занято):', skipped);
+    }
 }
 
 function fillWeekend() {
@@ -537,6 +576,9 @@ function fillWeekend() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    let added = 0;
+    let skipped = 0;
+
     for (let week = 0; week < 4; week++) {
         for (let i = 5; i < 7; i++) {
             const date = new Date(today);
@@ -544,24 +586,28 @@ function fillWeekend() {
             const dateKey = formatDateKey(date);
 
             for (let h = 11; h < 16; h++) {
-                const exists = events.some(function (e) {
-                    return e.date === dateKey && e.hour === h;
-                });
-                if (!exists) {
-                    events.push({
-                        id: 'fill-' + week + '-' + i + '-' + h,
-                        title: 'Свободно',
-                        date: dateKey,
-                        hour: h,
-                        category: 'free'
-                    });
+                if (isTimeTaken(events, dateKey, h)) {
+                    skipped++;
+                    continue;
                 }
+                events.push({
+                    id: 'fill-' + week + '-' + i + '-' + h,
+                    title: 'Свободно',
+                    date: dateKey,
+                    hour: h,
+                    category: 'free'
+                });
+                added++;
             }
         }
     }
 
     saveEvents(events);
     renderCalendar();
+
+    if (skipped > 0) {
+        console.log('[calendar] заполнено слотов:', added, 'пропущено (занято):', skipped);
+    }
 }
 
 function clearFreeSlots() {

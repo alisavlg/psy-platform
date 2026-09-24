@@ -99,11 +99,14 @@ function getSlotsFor(psy) {
     }
     if (!Array.isArray(events)) events = [];
 
+    // Занято = ЛЮБОЕ событие, кроме free
     const busy = {};
     events.forEach(function (e) {
-        if (e.category === 'session') busy[e.date + '-' + e.hour] = true;
+        if (e.category === 'free') return;
+        busy[e.date + '-' + e.hour] = true;
     });
 
+    // Свободные = free, но не занятые ничем
     const freeKeys = {};
     events.forEach(function (e) {
         if (e.category !== 'free') return;
@@ -234,17 +237,7 @@ function renderProfile() {
             'Оставить отзыв' +
         '</button>';
 
-    // ============================================
-    // ПОРЯДОК БЛОКОВ:
-    // 1. Карточка с рейтингом
-    // 2. О специалисте
-    // 3. Свободные слоты
-    // 4. Как записаться
-    // 5. Отзывы
-    // ============================================
-
     container.innerHTML =
-        // 1. Карточка
         '<div class="psy-profile-card">' +
             '<div class="psy-profile-avatar">' + initials + '</div>' +
             '<div class="psy-profile-info">' +
@@ -272,13 +265,11 @@ function renderProfile() {
             '</div>' +
         '</div>' +
 
-        // 2. О специалисте
         '<div class="psy-profile-section">' +
             '<h3>О специалисте</h3>' +
             '<p class="psy-profile-description">' + escapeHtml(currentPsy.description) + '</p>' +
         '</div>' +
 
-        // 3. Свободные слоты
         '<div class="psy-profile-section" id="slotsSection">' +
             '<h3>Свободные слоты</h3>' +
             '<div class="slots-toolbar">' +
@@ -291,7 +282,6 @@ function renderProfile() {
             '<div class="slots-container" id="psySlotsGrid"></div>' +
         '</div>' +
 
-        // 4. Как записаться
         '<div class="psy-profile-section psy-how-to">' +
             '<h3>Как записаться на сессию</h3>' +
             '<ol class="how-to-steps">' +
@@ -311,7 +301,6 @@ function renderProfile() {
             '</ol>' +
         '</div>' +
 
-        // 5. Отзывы
         renderReviewsSection();
 
     container.querySelectorAll('.slot-filter').forEach(function (btn) {
@@ -329,7 +318,7 @@ function renderProfile() {
         writeBtn.addEventListener('click', function () {
             if (!currentPsy) return;
             const chatId = 'chat-' + getCurrentUserId() + '-' + currentPsy.id;
-            window.location.href = 'client.html?section=messages&chat=' + encodeURIComponent(chatId);
+            window.location.href = 'client.html?section=messages&chat=' + encodeURIComponent(chatId) + '&psyId=' + encodeURIComponent(currentPsy.id);
         });
     }
 
@@ -620,6 +609,7 @@ function confirmBooking() {
     const bookedHour = currentSlot.hour;
     const bookedDateStr = formatDateKey(bookedDate);
 
+    // === ПРОВЕРКА 1: у психолога на это время ===
     const psyEventsKey = getEventsKeyFor(psyUserId);
     let psyEvents = [];
     try {
@@ -628,19 +618,50 @@ function confirmBooking() {
         if (!Array.isArray(psyEvents)) psyEvents = [];
     } catch (e) { psyEvents = []; }
 
-    const slotTaken = psyEvents.some(function (e) {
-        return e.category === 'session'
-            && e.date === bookedDateStr
-            && e.hour === bookedHour;
+    const psyBusy = psyEvents.some(function (e) {
+        return e.date === bookedDateStr && e.hour === bookedHour && e.category !== 'free';
     });
 
-    if (slotTaken) {
-        alert('Этот слот уже занят. Выберите другой.');
+    if (psyBusy) {
+        alert('Это время уже занято у психолога. Выберите другое.');
         closeBookingModal();
         renderSlots();
         return;
     }
 
+    const psyHasFree = psyEvents.some(function (e) {
+        return e.date === bookedDateStr && e.hour === bookedHour && e.category === 'free';
+    });
+
+    if (!psyHasFree) {
+        alert('Этот слот уже недоступен. Выберите другой.');
+        closeBookingModal();
+        renderSlots();
+        return;
+    }
+
+    // === ПРОВЕРКА 2: у клиента на это время ===
+    const clientEventsKey = getEventsKeyFor(clientUserId);
+    let clientEvents = [];
+    try {
+        const d = localStorage.getItem(clientEventsKey);
+        clientEvents = d ? JSON.parse(d) : [];
+        if (!Array.isArray(clientEvents)) clientEvents = [];
+    } catch (e) { clientEvents = []; }
+
+    const clientBusy = clientEvents.some(function (e) {
+        return e.date === bookedDateStr && e.hour === bookedHour;
+    });
+
+    if (clientBusy) {
+        alert('У вас на это время уже есть событие в планировщике.\n\n' +
+              'Одно время — одно событие. Выберите другое время или уберите своё событие.');
+        closeBookingModal();
+        renderSlots();
+        return;
+    }
+
+    // === ВАЛИДАЦИЯ ФОРМЫ ===
     const nameEl = document.getElementById('bookingClientName');
     const clientFullName = nameEl ? capitalizeWords(nameEl.value.trim()) : '';
     const errEl = document.getElementById('bookingClientNameError');
@@ -679,10 +700,12 @@ function confirmBooking() {
         remind1Sent: false
     };
 
+    // Сессия клиенту
     const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
     clientSessions.push(booking);
     writeSessions(getSessionsKeyFor(clientUserId), clientSessions);
 
+    // Сессия психологу
     const psySessions = readSessions(getSessionsKeyFor(psyUserId));
     psySessions.push({
         id: bookingId,
@@ -702,6 +725,7 @@ function confirmBooking() {
     });
     writeSessions(getSessionsKeyFor(psyUserId), psySessions);
 
+    // Календарь психолога: убираем free, добавляем session
     psyEvents = psyEvents.filter(function (e) {
         if (e.category !== 'free') return true;
         return !(e.date === bookedDateStr && e.hour === bookedHour);
@@ -719,6 +743,7 @@ function confirmBooking() {
     });
     localStorage.setItem(psyEventsKey, JSON.stringify(psyEvents));
 
+    // Календарь клиента: добавляем session
     addEventForUser(clientUserId, {
         title: 'Сессия: ' + shortPsyName,
         date: booking.date,
@@ -734,6 +759,7 @@ function confirmBooking() {
     currentSlot = null;
     renderSlots();
 
+    // === УВЕДОМЛЕНИЯ ===
     var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
     var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
     var psyName = currentPsy.firstName + ' ' + currentPsy.middleName;
