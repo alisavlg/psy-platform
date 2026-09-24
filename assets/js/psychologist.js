@@ -478,30 +478,50 @@ function confirmBooking() {
     renderSlots();
 
     // ============================================
-    // УВЕДОМЛЕНИЯ
+    // УВЕДОМЛЕНИЯ — напрямую в localStorage
     // ============================================
 
     var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
     var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
     var psyName = currentPsy.firstName + ' ' + currentPsy.middleName;
 
-    if (typeof window.Notifications !== 'undefined') {
-        // 1. Клиенту — в его ведро
-        window.Notifications.add({
+    // 1. Клиенту — в его ведро
+    try {
+        var clientNotifKey = 'psyhelp_notifications_' + clientUserId;
+        var clientNotifList = JSON.parse(localStorage.getItem(clientNotifKey)) || [];
+        if (!Array.isArray(clientNotifList)) clientNotifList = [];
+        clientNotifList.unshift({
+            id: 'notif-' + Date.now() + '-book-client',
             type: 'session_booked',
             title: 'Сессия подтверждена',
             text: psyName + ' — ' + dateTimeLabel + '. Стоимость: ' + priceLabel + '. ' +
                   'Правила отмены: ≥48 ч — возврат 100%, 24–48 ч — 50%, <24 ч — без возврата.',
-            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId)
+            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
+            createdAt: Date.now(),
+            isRead: false
         });
+        localStorage.setItem(clientNotifKey, JSON.stringify(clientNotifList));
+        console.log('[psychologist] уведомление клиенту создано');
+    } catch (e) { console.error('[psychologist] ошибка клиенту:', e); }
 
-        // 2. Психологу — в ЕГО ведро
-        window.Notifications.addForUser(psyUserId, {
-            type: 'session_booked',
-            title: 'Новая сессия',
-            text: clientFullName + ' записался на ' + dateTimeLabel + '. Тема: ' + topic + '.',
-            link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(bookingId)
-        });
+    // 2. Психологу — в его ведро (только если разные люди)
+    if (psyUserId !== clientUserId) {
+        try {
+            var psyNotifKey = 'psyhelp_notifications_' + psyUserId;
+            var psyNotifList = JSON.parse(localStorage.getItem(psyNotifKey)) || [];
+            if (!Array.isArray(psyNotifList)) psyNotifList = [];
+            psyNotifList.unshift({
+                id: 'notif-' + Date.now() + '-book-psy',
+                type: 'session_booked',
+                title: 'Новая сессия',
+                text: clientFullName + ' записался на ' + dateTimeLabel + '. Тема: ' + topic + '.',
+                link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
+                createdAt: Date.now(),
+                isRead: false
+            });
+            localStorage.setItem(psyNotifKey, JSON.stringify(psyNotifList));
+            console.log('[psychologist] уведомление психологу создано');
+        } catch (e) { console.error('[psychologist] ошибка психологу:', e); }
     }
 
     alert('✓ Запись подтверждена!\n\n' +

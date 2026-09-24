@@ -36,12 +36,20 @@ function getEventsKey() {
     return 'psyhelp_events_' + getCurrentUserId();
 }
 
+function getSessionsKeyFor(userId) {
+    return 'psyhelp_sessions_' + userId;
+}
+
+function getEventsKeyFor(userId) {
+    return 'psyhelp_events_' + userId;
+}
+
 // ============================================
 // Хранилище
 // ============================================
 
-function getPsySessionsList() {
-    const data = localStorage.getItem(getSessionsKey());
+function readSessions(key) {
+    const data = localStorage.getItem(key);
     if (!data) return [];
     try {
         const parsed = JSON.parse(data);
@@ -49,8 +57,16 @@ function getPsySessionsList() {
     } catch (e) { return []; }
 }
 
+function writeSessions(key, list) {
+    localStorage.setItem(key, JSON.stringify(list));
+}
+
+function getPsySessionsList() {
+    return readSessions(getSessionsKey());
+}
+
 function savePsySessionsList(list) {
-    localStorage.setItem(getSessionsKey(), JSON.stringify(list));
+    writeSessions(getSessionsKey(), list);
 }
 
 // ============================================
@@ -151,6 +167,11 @@ function renderPsySessions(tab) {
                         'data-action="complete" data-id="' + session.id + '">' +
                     (canComplete ? 'Проведена' : 'Начнётся ' + timeFormatted) +
                 '</button>';
+
+            // Кнопка отмены — рядом с «Проведена»
+            actionsHtml +=
+                '<button class="session-btn session-btn-cancel" ' +
+                    'data-action="cancel" data-id="' + session.id + '">Отменить</button>';
         }
 
         actionsHtml +=
@@ -191,13 +212,13 @@ function renderPsySessions(tab) {
                 const id = btn.dataset.id;
                 if (action === 'complete') completeSession(id);
                 if (action === 'chat') chatWithClient(id);
+                if (action === 'cancel') openPsyCancelModal(id);
             });
         });
 
         listEl.appendChild(card);
     });
 
-    // Подсветка по ?highlight=
     var urlParams = new URLSearchParams(window.location.search);
     var highlightId = urlParams.get('highlight');
     if (highlightId) {
@@ -231,24 +252,207 @@ function completeSession(id) {
     alert('Сессия отмечена как проведённая.');
 }
 
-function removeSessionEventFromCalendar(key, session) {
-    if (!session) return;
-    let events = [];
-    try {
-        const d = localStorage.getItem(key);
-        events = d ? JSON.parse(d) : [];
-        if (!Array.isArray(events)) events = [];
-    } catch (e) { events = []; }
+// ============================================
+// Отмена сессии психологом
+// ============================================
 
-    events = events.filter(function (e) {
-        if (e.category !== 'session') return true;
-        return !(e.date === session.date && e.hour === session.hour);
+let psyCancellingId = null;
+
+function openPsyCancelModal(id) {
+    const sessions = getPsySessionsList();
+    const session = sessions.find(function (s) { return s.id === id; });
+    if (!session) return;
+
+    psyCancellingId = id;
+
+    const dt = getSessionDateTime(session);
+    const overlay = document.getElementById('cancelModalOverlay');
+    const summaryEl = document.getElementById('cancelSummary');
+    const reasonEl = document.getElementById('cancelReason');
+    if (!overlay || !summaryEl) return;
+
+    const dateFormatted = formatHumanDate(dt);
+    const timeFormatted = String(session.hour).padStart(2, '0') + ':00';
+
+    summaryEl.innerHTML =
+        '<div class="cancel-row">' +
+            '<span>Сессия с клиентом</span>' +
+            '<strong>' + escapeHtml(session.clientName || 'Клиент') + '</strong>' +
+        '</div>' +
+        '<div class="cancel-row">' +
+            '<span>Дата и время</span>' +
+            '<strong>' + dateFormatted + ', ' + timeFormatted + '</strong>' +
+        '</div>' +
+        '<div class="cancel-row">' +
+            '<span>Стоимость</span>' +
+            '<strong>' + session.price.toLocaleString('ru-RU') + ' ₽</strong>' +
+        '</div>' +
+        '<div class="cancel-divider"></div>' +
+        '<div class="cancel-refund full">' +
+            'Отмена со стороны психолога — <strong>клиенту возврат 100%</strong>, ' +
+            'независимо от срока. Так правильно.' +
+        '</div>';
+
+    if (reasonEl) reasonEl.value = '';
+    overlay.classList.add('active');
+}
+
+function closePsyCancelModal() {
+    const overlay = document.getElementById('cancelModalOverlay');
+    if (overlay) overlay.classList.remove('active');
+    psyCancellingId = null;
+}
+
+function confirmPsyCancel() {
+    if (!psyCancellingId) return;
+
+    const reason = document.getElementById('cancelReason').value.trim();
+    const psyUserId = getCurrentUserId();
+
+    const psySessions = readSessions(getSessionsKeyFor(psyUserId));
+    const psySession = psySessions.find(function (s) { return s.id === psyCancellingId; });
+    if (!psySession) return;
+
+    const clientUserId = psySession.clientId;
+    const isSamePerson = (clientUserId === psyUserId);
+    const clientName = psySession.clientName || 'Клиент';
+
+    // Имя психолога для уведомления клиенту
+    var me = getCurrentUser();
+    var psyFullName = ((me.realFirstName || '') + ' ' + (me.realMiddleName || '')).trim() || 'Психолог';
+
+    // Отменяем у себя (у психолога)
+    psySession.status = 'cancelled';
+    psySession.cancelReason = reason;
+    psySession.cancelledBy = 'psychologist';
+    psySession.cancelledAt = Date.now();
+    psySession.refundPercent = 100;
+    writeSessions(getSessionsKeyFor(psyUserId), psySessions);
+
+    // Отменяем у клиента (только если это другой человек)
+    if (clientUserId && !isSamePerson) {
+        const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
+        const clientSession = clientSessions.find(function (s) { return s.id === psyCancellingId; });
+        if (clientSession) {
+            clientSession.status = 'cancelled';
+            clientSession.cancelReason = reason;
+            clientSession.cancelledBy = 'psychologist';
+            clientSession.cancelledAt = Date.now();
+            clientSession.refundPercent = 100;
+            writeSessions(getSessionsKeyFor(clientUserId), clientSessions);
+        }
+
+        if (typeof window.Notifications !== 'undefined') {
+            window.Notifications.addForUser(clientUserId, {
+                type: 'session_cancelled',
+                title: 'Сессия отменена психологом',
+                text: 'Психолог: ' + psyFullName + '. ' +
+                      'Дата: ' + psySession.date + ' в ' + String(psySession.hour).padStart(2, '0') + ':00. ' +
+                      'Возврат: 100%.' +
+                      (reason ? ' Причина: ' + reason : ''),
+                link: 'client.html?section=sessions&highlight=' + encodeURIComponent(psySession.id)
+            });
+        }
+
+        removeSessionEventFromCalendar(clientUserId, psySession);
+    }
+
+    // Возвращаем слот в календарь психолога
+    restoreFreeSlotForPsy(psyUserId, psySession);
+    removeSessionEventFromCalendar(psyUserId, psySession);
+
+    // Уведомление себе (психологу) — одно
+    if (typeof window.Notifications !== 'undefined') {
+        var selfText = (isSamePerson
+            ? 'Ваша запись как клиента. '
+            : 'Клиент: ' + clientName + '. ') +
+            'Дата: ' + psySession.date + ' в ' + String(psySession.hour).padStart(2, '0') + ':00. ' +
+            'Клиенту возврат 100%.' +
+            (reason ? ' Причина: ' + reason : '');
+
+        window.Notifications.add({
+            type: 'session_cancelled',
+            title: 'Вы отменили сессию как психолог',
+            text: selfText,
+            link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(psySession.id)
+        });
+    }
+
+    closePsyCancelModal();
+    setTimeout(function () { renderPsySessions(); }, 50);
+
+    alert('Сессия отменена. Возврат клиенту — 100%.');
+}
+
+// ============================================
+// Утилиты
+// ============================================
+
+function restoreFreeSlotForPsy(psyUserId, session) {
+    if (!session) return;
+    const key = getEventsKeyFor(psyUserId);
+    const data = localStorage.getItem(key);
+    let events = [];
+    if (data) {
+        try {
+            const p = JSON.parse(data);
+            events = Array.isArray(p) ? p : [];
+        } catch (e) {}
+    }
+
+    const already = events.some(function (e) {
+        return e.category === 'free' && e.date === session.date && e.hour === session.hour;
+    });
+    if (already) return;
+
+    events.push({
+        id: 'restored-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        title: 'Свободно',
+        date: session.date,
+        hour: session.hour,
+        category: 'free'
     });
     localStorage.setItem(key, JSON.stringify(events));
 }
 
+function removeSessionEventFromCalendar(userId, session) {
+    if (!session) return;
+    const key = getEventsKeyFor(userId);
+    const data = localStorage.getItem(key);
+    if (!data) return;
+    try {
+        let events = JSON.parse(data);
+        if (!Array.isArray(events)) return;
+        events = events.filter(function (e) {
+            return !(e.date === session.date && e.hour === session.hour && e.category === 'session');
+        });
+        localStorage.setItem(key, JSON.stringify(events));
+    } catch (e) {}
+}
+
 function chatWithClient(id) {
     alert('💬 Чат появится в следующих обновлениях.\n\nДля связи используйте раздел «Сообщения».');
+}
+
+function formatHumanDate(date) {
+    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+    return date.getDate() + ' ' + months[date.getMonth()] + ' ' + date.getFullYear();
+}
+
+function getInitials(name) {
+    if (!name) return '?';
+    return name.split(' ')
+        .filter(function (w) { return w.length > 0; })
+        .map(function (w) { return w[0]; })
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // ============================================
@@ -292,31 +496,6 @@ function clearOldHistory() {
 }
 
 // ============================================
-// Утилиты
-// ============================================
-
-function formatHumanDate(date) {
-    const months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
-    return date.getDate() + ' ' + months[date.getMonth()] + ' ' + date.getFullYear();
-}
-
-function getInitials(name) {
-    if (!name) return '?';
-    return name.split(' ')
-        .filter(function (w) { return w.length > 0; })
-        .map(function (w) { return w[0]; })
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-}
-
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// ============================================
 // Инициализация
 // ============================================
 
@@ -331,4 +510,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const clearBtn = document.getElementById('clearHistoryBtn');
     if (clearBtn) clearBtn.addEventListener('click', clearOldHistory);
+
+    const confirmBtn = document.getElementById('confirmCancelBtn');
+    if (confirmBtn) confirmBtn.addEventListener('click', confirmPsyCancel);
+
+    const cancelBtn = document.getElementById('cancelCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', closePsyCancelModal);
+
+    const overlay = document.getElementById('cancelModalOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', function (e) {
+            if (e.target.id === 'cancelModalOverlay') closePsyCancelModal();
+        });
+    }
 });

@@ -274,21 +274,39 @@ function confirmCancel() {
 
     const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
     const clientSession = clientSessions.find(function (s) { return s.id === cancellingId; });
+
+    // Расчёт возврата
+    let refundPercent = 0;
     if (clientSession) {
-        clientSession.status = 'cancelled';
-        clientSession.cancelReason = reason;
-        clientSession.cancelledAt = Date.now();
-        writeSessions(getSessionsKeyFor(clientUserId), clientSessions);
+        const sDT = getSessionDateTime(clientSession);
+        const hoursLeft = (sDT.getTime() - Date.now()) / 3600000;
+        if (hoursLeft >= 48) refundPercent = 100;
+        else if (hoursLeft >= 24) refundPercent = 50;
+        else refundPercent = 0;
     }
 
     const psyUserId = clientSession && (clientSession.psychologistUserId || clientSession.psychologistId);
+    const isSamePerson = (clientUserId === psyUserId);
+    const psyName = (clientSession && clientSession.psychologistName) || 'Психолог';
+
+    if (clientSession) {
+        clientSession.status = 'cancelled';
+        clientSession.cancelReason = reason;
+        clientSession.cancelledBy = 'client';
+        clientSession.cancelledAt = Date.now();
+        clientSession.refundPercent = refundPercent;
+        writeSessions(getSessionsKeyFor(clientUserId), clientSessions);
+    }
+
     if (psyUserId) {
         const psySessions = readSessions(getSessionsKeyFor(psyUserId));
         const psySession = psySessions.find(function (s) { return s.id === cancellingId; });
         if (psySession) {
             psySession.status = 'cancelled';
             psySession.cancelReason = reason;
+            psySession.cancelledBy = 'client';
             psySession.cancelledAt = Date.now();
+            psySession.refundPercent = refundPercent;
             writeSessions(getSessionsKeyFor(psyUserId), psySessions);
         }
 
@@ -301,25 +319,33 @@ function confirmCancel() {
     closeCancelModal();
     setTimeout(function () { renderSessions(); }, 50);
 
-    // Уведомления
     if (clientSession) {
         var dateLabel = clientSession.date + ' в ' + String(clientSession.hour).padStart(2, '0') + ':00';
+        var refundText = refundPercent > 0
+            ? 'Возврат: ' + refundPercent + '%.'
+            : 'Возврат не производится.';
 
-        // Расчёт возврата — чтобы указать в уведомлении
-        var sessionDT = getSessionDateTime(clientSession);
-        var hoursLeft = (sessionDT.getTime() - Date.now()) / 3600000;
-        var refundPercent = hoursLeft >= 48 ? 100 : (hoursLeft >= 24 ? 50 : 0);
-
-        if (typeof window.Notifications !== 'undefined' && psyUserId) {
-            // Психологу — в его ведро
-            window.Notifications.addForUser(psyUserId, {
+        if (typeof window.Notifications !== 'undefined') {
+            // Себе — одно уведомление
+            window.Notifications.add({
                 type: 'session_cancelled',
-                title: 'Сессия отменена клиентом',
-                text: 'Дата: ' + dateLabel + '. ' +
-                      (refundPercent > 0 ? 'Возврат клиенту: ' + refundPercent + '%. ' : 'Возврат: без возврата. ') +
-                      (reason ? 'Причина: ' + reason : ''),
-                link: 'dashboard.html?section=sessions'
+                title: 'Вы отменили сессию',
+                text: 'Психолог: ' + psyName + '. ' + dateLabel + '. ' + refundText +
+                      (reason ? ' Причина: ' + reason : ''),
+                link: 'client.html?section=sessions&highlight=' + encodeURIComponent(clientSession.id)
             });
+
+            // Психологу — только если это другой человек
+            if (psyUserId && !isSamePerson) {
+                window.Notifications.addForUser(psyUserId, {
+                    type: 'session_cancelled',
+                    title: 'Сессия отменена клиентом',
+                    text: 'Клиент: ' + (clientSession.clientName || 'Клиент') + '. ' +
+                          dateLabel + '. ' + refundText +
+                          (reason ? ' Причина: ' + reason : ''),
+                    link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(clientSession.id)
+                });
+            }
         }
     }
 
