@@ -835,17 +835,32 @@ function writeSessions(key, list) {
 
 function addEventForUser(userId, event) {
     const key = getEventsKeyFor(userId);
-    const data = localStorage.getItem(key);
+    console.log('[addEventForUser] ПОПЫТКА. key =', key, '| userId =', userId);
+
     let events = [];
-    if (data) {
-        try {
+    try {
+        const data = localStorage.getItem(key);
+        if (data) {
             const p = JSON.parse(data);
             events = Array.isArray(p) ? p : [];
-        } catch (e) {}
+        }
+    } catch (e) {
+        console.error('[addEventForUser] Ошибка чтения:', e);
+        events = [];
     }
+
+    console.log('[addEventForUser] Событий было:', events.length);
+
     event.id = Date.now().toString() + '-' + Math.random().toString(36).slice(2, 8);
     events.push(event);
-    localStorage.setItem(key, JSON.stringify(events));
+
+    try {
+        localStorage.setItem(key, JSON.stringify(events));
+        console.log('[addEventForUser] ✅ СОХРАНЕНО. Стало:', events.length);
+    } catch (e) {
+        console.error('[addEventForUser] ❌ ОШИБКА СОХРАНЕНИЯ:', e.name, e.message);
+        alert('Ошибка сохранения события: ' + e.name + '\n\n' + e.message);
+    }
 }
 
 // ============================================
