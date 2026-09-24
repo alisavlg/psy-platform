@@ -1,11 +1,8 @@
 // ============================================
-// СЕССИИ ПСИХОЛОГА — список клиентов
+// СЕССИИ — список (единый для роли клиента и психолога)
 // ============================================
 
 console.log('[psychologist-sessions.js] loaded');
-
-const PSY_SESSIONS_KEY = 'psyhelp_sessions_psychologist';
-const CLIENT_SESSIONS_KEY = 'psyhelp_sessions_client';
 
 const STATUS_LABELS_PSY = {
     confirmed: 'Подтверждена',
@@ -17,11 +14,34 @@ const STATUS_LABELS_PSY = {
 let psySessionsTab = 'upcoming';
 
 // ============================================
+// Пользователь
+// ============================================
+
+function getCurrentUser() {
+    try {
+        return JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+    } catch (e) { return {}; }
+}
+
+function getCurrentUserId() {
+    var u = getCurrentUser();
+    return u.id || 'anonymous';
+}
+
+function getSessionsKey() {
+    return 'psyhelp_sessions_' + getCurrentUserId();
+}
+
+function getEventsKey() {
+    return 'psyhelp_events_' + getCurrentUserId();
+}
+
+// ============================================
 // Хранилище
 // ============================================
 
 function getPsySessionsList() {
-    const data = localStorage.getItem(PSY_SESSIONS_KEY);
+    const data = localStorage.getItem(getSessionsKey());
     if (!data) return [];
     try {
         const parsed = JSON.parse(data);
@@ -30,20 +50,7 @@ function getPsySessionsList() {
 }
 
 function savePsySessionsList(list) {
-    localStorage.setItem(PSY_SESSIONS_KEY, JSON.stringify(list));
-}
-
-function getClientSessionsList() {
-    const data = localStorage.getItem(CLIENT_SESSIONS_KEY);
-    if (!data) return [];
-    try {
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) { return []; }
-}
-
-function saveClientSessionsList(list) {
-    localStorage.setItem(CLIENT_SESSIONS_KEY, JSON.stringify(list));
+    localStorage.setItem(getSessionsKey(), JSON.stringify(list));
 }
 
 // ============================================
@@ -111,6 +118,7 @@ function renderPsySessions(tab) {
     filtered.forEach(function (session) {
         const card = document.createElement('div');
         card.className = 'session-item';
+        card.setAttribute('data-session-id', session.id);
 
         const dt = getSessionDateTime(session);
         const dateFormatted = formatHumanDate(dt);
@@ -129,7 +137,6 @@ function renderPsySessions(tab) {
             const canComplete = diffMinutes >= 0;
             const canJoin = diffMinutes <= 5 && diffMinutes >= -120;
 
-            // Кнопка «Войти в комнату» — с ролью психолога
             actionsHtml +=
                 '<a class="session-btn session-btn-join" ' +
                     (canJoin ? '' : 'style="pointer-events:none;opacity:0.5;"') + ' ' +
@@ -138,7 +145,6 @@ function renderPsySessions(tab) {
                     (canJoin ? 'Войти в комнату' : 'Комната откроется за 5 мин') +
                 '</a>';
 
-            // Кнопка «Проведена»
             actionsHtml +=
                 '<button class="session-btn session-btn-complete" ' +
                         (canComplete ? '' : 'disabled') + ' ' +
@@ -190,6 +196,18 @@ function renderPsySessions(tab) {
 
         listEl.appendChild(card);
     });
+
+    // Подсветка по ?highlight=
+    var urlParams = new URLSearchParams(window.location.search);
+    var highlightId = urlParams.get('highlight');
+    if (highlightId) {
+        var targetCard = listEl.querySelector('[data-session-id="' + highlightId + '"]');
+        if (targetCard) {
+            targetCard.classList.add('notif-highlight');
+            setTimeout(function () { targetCard.classList.remove('notif-highlight'); }, 2600);
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 }
 
 // ============================================
@@ -199,24 +217,15 @@ function renderPsySessions(tab) {
 function completeSession(id) {
     if (!confirm('Отметить сессию как проведённую?')) return;
 
-    const psySessions = getPsySessionsList();
-    const psySession = psySessions.find(function (s) { return s.id === id; });
-    if (psySession) {
-        psySession.status = 'completed';
-        psySession.completedAt = Date.now();
-        savePsySessionsList(psySessions);
-    }
+    const sessions = getPsySessionsList();
+    const session = sessions.find(function (s) { return s.id === id; });
+    if (!session) return;
 
-    const clientSessions = getClientSessionsList();
-    const clientSession = clientSessions.find(function (s) { return s.id === id; });
-    if (clientSession) {
-        clientSession.status = 'completed';
-        clientSession.completedAt = Date.now();
-        saveClientSessionsList(clientSessions);
-    }
+    session.status = 'completed';
+    session.completedAt = Date.now();
+    savePsySessionsList(sessions);
 
-    removeSessionEventFromCalendar('psyhelp_events_psy-1', psySession);
-    removeSessionEventFromCalendar('psyhelp_events_client', psySession);
+    removeSessionEventFromCalendar(getEventsKey(), session);
 
     renderPsySessions();
     alert('Сессия отмечена как проведённая.');
@@ -249,40 +258,34 @@ function chatWithClient(id) {
 function clearOldHistory() {
     if (!confirm('Очистить историю? Все отменённые и завершённые сессии будут удалены.')) return;
 
-    const psySessions = getPsySessionsList();
-    const clientSessions = getClientSessionsList();
+    const sessions = getPsySessionsList();
 
-    const toRemove = psySessions.filter(function (s) {
+    const toRemove = sessions.filter(function (s) {
         return s.status === 'cancelled' || s.status === 'completed';
     });
 
-    const cleanPsy = psySessions.filter(function (s) {
-        return s.status !== 'cancelled' && s.status !== 'completed';
-    });
-    const cleanClient = clientSessions.filter(function (s) {
+    const clean = sessions.filter(function (s) {
         return s.status !== 'cancelled' && s.status !== 'completed';
     });
 
-    ['psyhelp_events_psy-1', 'psyhelp_events_client'].forEach(function (key) {
-        let events = [];
-        try {
-            const d = localStorage.getItem(key);
-            events = d ? JSON.parse(d) : [];
-            if (!Array.isArray(events)) events = [];
-        } catch (e) { events = []; }
+    const key = getEventsKey();
+    let events = [];
+    try {
+        const d = localStorage.getItem(key);
+        events = d ? JSON.parse(d) : [];
+        if (!Array.isArray(events)) events = [];
+    } catch (e) { events = []; }
 
-        const cleaned = events.filter(function (e) {
-            if (e.category !== 'session') return true;
-            const removed = toRemove.find(function (s) {
-                return s.date === e.date && s.hour === e.hour;
-            });
-            return !removed;
+    const cleanedEvents = events.filter(function (e) {
+        if (e.category !== 'session') return true;
+        const removed = toRemove.find(function (s) {
+            return s.date === e.date && s.hour === e.hour;
         });
-        localStorage.setItem(key, JSON.stringify(cleaned));
+        return !removed;
     });
+    localStorage.setItem(key, JSON.stringify(cleanedEvents));
 
-    savePsySessionsList(cleanPsy);
-    saveClientSessionsList(cleanClient);
+    savePsySessionsList(clean);
 
     renderPsySessions();
     alert('История очищена.');
@@ -318,6 +321,8 @@ function escapeHtml(text) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
+    renderPsySessions();
+
     document.querySelectorAll('.psy-session-tab').forEach(function (btn) {
         btn.addEventListener('click', function () {
             renderPsySessions(btn.dataset.tab);

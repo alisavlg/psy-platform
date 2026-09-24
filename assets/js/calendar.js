@@ -1,5 +1,5 @@
 // ============================================
-// КАЛЕНДАРЬ — единый планировщик психолога
+// КАЛЕНДАРЬ — единый планировщик
 // ============================================
 
 console.log('[calendar.js] loaded');
@@ -19,22 +19,41 @@ const DEFAULT_SCROLL_HOUR = 8;
 
 let currentWeekStart = getMonday(new Date());
 
-function getCurrentPsychologistId() {
-    return 'psy-1';
+// ============================================
+// Пользователь
+// ============================================
+
+function getCurrentUser() {
+    try {
+        return JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+    } catch (e) { return {}; }
+}
+
+function getCurrentUserId() {
+    var u = getCurrentUser();
+    return u.id || 'anonymous';
+}
+
+function getCurrentUserRoles() {
+    var u = getCurrentUser();
+    return Array.isArray(u.roles) ? u.roles : [];
+}
+
+function isPsychologist() {
+    return getCurrentUserRoles().indexOf('psychologist') !== -1;
 }
 
 function getCurrentPsychologistName() {
-    const user = localStorage.getItem('psyhelp_user');
-    if (user) {
-        try {
-            const u = JSON.parse(user);
-            if (u.firstName) {
-                return u.firstName + ' ' + (u.middleName || '');
-            }
-        } catch (e) {}
-    }
-    return 'Анна Сергеевна';
+    var u = getCurrentUser();
+    var f = (u.realFirstName || '').trim();
+    var m = (u.realMiddleName || '').trim();
+    if (f) return (f + ' ' + m).trim();
+    return 'Пользователь';
 }
+
+// ============================================
+// Даты
+// ============================================
 
 function getMonday(date) {
     const d = new Date(date);
@@ -70,14 +89,15 @@ function isToday(date) {
 }
 
 // ============================================
-// Хранение событий
+// ЕДИНОЕ хранилище — по user.id
 // ============================================
 
 function getEventsKey() {
-    if (window.CURRENT_USER === 'psychologist') {
-        return 'psyhelp_events_' + getCurrentPsychologistId();
-    }
-    return 'psyhelp_events_' + (window.CURRENT_USER || 'anonymous');
+    return 'psyhelp_events_' + getCurrentUserId();
+}
+
+function getSessionsKey() {
+    return 'psyhelp_sessions_' + getCurrentUserId();
 }
 
 function getEvents() {
@@ -114,18 +134,12 @@ function deleteEvent(id) {
 // ============================================
 
 function cleanupOldSessions() {
-    if (window.CURRENT_USER !== 'psychologist' && window.CURRENT_USER !== 'client') return;
-
     const events = getEvents();
     if (events.length === 0) return;
 
-    const sessionsKey = window.CURRENT_USER === 'psychologist'
-        ? 'psyhelp_sessions_psychologist'
-        : 'psyhelp_sessions_client';
-
     let sessions = [];
     try {
-        const d = localStorage.getItem(sessionsKey);
+        const d = localStorage.getItem(getSessionsKey());
         sessions = d ? JSON.parse(d) : [];
         if (!Array.isArray(sessions)) sessions = [];
     } catch (e) { sessions = []; }
@@ -165,13 +179,13 @@ function cleanupOldSessions() {
 // ============================================
 
 function migrateOldSlots() {
-    if (window.CURRENT_USER !== 'psychologist') return;
+    if (!isPsychologist()) return;
 
-    const psyId = getCurrentPsychologistId();
-    const oldKey = 'psyhelp_slots_' + psyId;
+    const uid = getCurrentUserId();
+    const oldKey = 'psyhelp_slots_' + uid;
     const oldData = localStorage.getItem(oldKey);
     if (!oldData) return;
-    if (localStorage.getItem('psyhelp_migration_done_' + psyId)) return;
+    if (localStorage.getItem('psyhelp_migration_done_' + uid)) return;
 
     let oldSlots = {};
     try { oldSlots = JSON.parse(oldData) || {}; } catch (e) { return; }
@@ -203,7 +217,7 @@ function migrateOldSlots() {
     }
 
     saveEvents(events);
-    localStorage.setItem('psyhelp_migration_done_' + psyId, '1');
+    localStorage.setItem('psyhelp_migration_done_' + uid, '1');
 }
 
 // ============================================
@@ -215,12 +229,14 @@ function renderCalendar() {
     const periodEl = document.getElementById('calendarPeriod');
     if (!grid) return;
 
-    // Автоочистка перед рендером
     cleanupOldSessions();
 
     const ownerEl = document.getElementById('calendarOwnerName');
-    if (ownerEl && window.CURRENT_USER === 'psychologist') {
-        ownerEl.textContent = getCurrentPsychologistName();
+    if (ownerEl) ownerEl.textContent = getCurrentPsychologistName();
+
+    const quickActions = document.querySelector('.calendar-quick-actions');
+    if (quickActions) {
+        quickActions.style.display = isPsychologist() ? '' : 'none';
     }
 
     const events = getEvents();
@@ -316,22 +332,52 @@ function updateFreeSlotsCount() {
 }
 
 // ============================================
-// Детали сессии — ПОЛНОЕ имя клиента
+// Детали сессии — универсально для обеих ролей
 // ============================================
 
 function openSessionDetails(event) {
     const overlay = document.getElementById('clientModalOverlay');
     const content = document.getElementById('clientModalContent');
-    if (!overlay || !content) return;
+    if (!overlay || !content) {
+        console.warn('[calendar] clientModalOverlay не найден в HTML');
+        return;
+    }
 
-    const clientFullName = event.clientName || 'Клиент';
-    const clientCode = event.clientCode || '—';
+    const isPsy = isPsychologist();
+
+    // Логика: если это психолог — показываем клиента.
+    // Если клиент — показываем психолога + ссылку на его страницу.
+    let counterpartHtml = '';
+    let counterpartName = '';
+    let counterpartCode = '';
+
+    if (isPsy && event.clientName) {
+        counterpartName = event.clientName;
+        counterpartCode = event.clientCode || '';
+        counterpartHtml =
+            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(counterpartName) + '</strong></div>' +
+            (counterpartCode
+                ? '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(counterpartCode) + '</strong></div>'
+                : '');
+    } else if (event.psychologistName) {
+        counterpartName = event.psychologistName;
+        counterpartHtml =
+            '<div class="session-detail-row"><span>Психолог:</span> <strong>' + escapeHtml(counterpartName) + '</strong></div>';
+        if (event.psychologistId) {
+            counterpartHtml +=
+                '<div class="session-detail-row"><span>Профиль:</span> ' +
+                    '<a href="psychologist.html?id=' + encodeURIComponent(event.psychologistId) + '" class="session-detail-link">Открыть страницу →</a>' +
+                '</div>';
+        }
+    } else {
+        counterpartHtml =
+            '<div class="session-detail-row"><span>Участник:</span> <strong>не указан</strong></div>';
+    }
 
     content.innerHTML =
         '<div class="session-detail">' +
-            '<div class="session-detail-row"><span>Клиент:</span> <strong>' + escapeHtml(clientFullName) + '</strong></div>' +
-            '<div class="session-detail-row"><span>Код:</span> <strong>' + escapeHtml(clientCode) + '</strong></div>' +
-            '<div class="session-detail-row"><span>Дата:</span> <strong>' + event.date + '</strong></div>' +
+            counterpartHtml +
+            '<div class="session-detail-row"><span>Дата:</span> <strong>' + escapeHtml(event.date) + '</strong></div>' +
             '<div class="session-detail-row"><span>Время:</span> <strong>' + String(event.hour).padStart(2, '0') + ':00</strong></div>' +
             '<div class="session-detail-note">Для связи используйте раздел «Сообщения». Обмен личными контактами запрещён.</div>' +
         '</div>';
@@ -340,7 +386,7 @@ function openSessionDetails(event) {
 }
 
 // ============================================
-// Модальное окно создания / редактирования
+// Модальное окно
 // ============================================
 
 let editingEventId = null;
@@ -351,8 +397,15 @@ function openModal(date, hour) {
     document.getElementById('eventTitle').value = '';
     document.getElementById('eventDate').value = date;
     document.getElementById('eventHour').value = hour;
-    document.getElementById('eventCategory').value = 'free';
+    document.getElementById('eventCategory').value = isPsychologist() ? 'free' : 'personal';
     document.getElementById('deleteBtn').style.display = 'none';
+
+    var catSelect = document.getElementById('eventCategory');
+    if (catSelect) {
+        var freeOption = catSelect.querySelector('option[value="free"]');
+        if (freeOption) freeOption.style.display = isPsychologist() ? '' : 'none';
+    }
+
     document.getElementById('modalOverlay').classList.add('active');
 }
 
@@ -361,7 +414,6 @@ function openModalForEdit(id) {
     const ev = events.find(function (e) { return e.id === id; });
     if (!ev) return;
 
-    // Сессию редактировать нельзя — открываем детали
     if (ev.category === 'session') {
         openSessionDetails(ev);
         return;
@@ -389,9 +441,13 @@ function saveEvent() {
     const date = document.getElementById('eventDate').value;
     const hour = parseInt(document.getElementById('eventHour').value);
 
-    // Запрет ручного создания сессии
     if (category === 'session') {
         alert('Сессии создаются автоматически при бронировании клиентом.\n\nЧтобы принять клиента — отметьте свободный слот в календаре.');
+        return;
+    }
+
+    if (category === 'free' && !isPsychologist()) {
+        alert('Только психолог может открывать свободные слоты для записи.');
         return;
     }
 
@@ -408,7 +464,6 @@ function saveEvent() {
         const events = getEvents();
         const ev = events.find(function (e) { return e.id === editingEventId; });
         if (ev) {
-            // Запрет редактирования сессии
             if (ev.category === 'session') {
                 alert('Сессии нельзя редактировать вручную — они связаны с клиентом и оплатой.');
                 closeModal();
@@ -442,6 +497,8 @@ function removeEvent() {
 // ============================================
 
 function fillWeekdays() {
+    if (!isPsychologist()) return;
+
     const events = getEvents();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -474,6 +531,8 @@ function fillWeekdays() {
 }
 
 function fillWeekend() {
+    if (!isPsychologist()) return;
+
     const events = getEvents();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -506,6 +565,7 @@ function fillWeekend() {
 }
 
 function clearFreeSlots() {
+    if (!isPsychologist()) return;
     if (!confirm('Убрать все свободные слоты? Клиенты не смогут записаться.')) return;
     const events = getEvents().filter(function (e) { return e.category !== 'free'; });
     saveEvents(events);

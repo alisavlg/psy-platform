@@ -1668,3 +1668,46 @@
     color: #357abd;
     line-height: 1.5;
 }
+/* Детали сессии */
+.session-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 5px 0;
+}
+.session-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eef2f8;
+    font-size: 14px;
+}
+.session-detail-row:last-of-type {
+    border-bottom: none;
+}
+.session-detail-row span {
+    color: var(--color-text-muted, #7a8899);
+}
+.session-detail-row strong {
+    color: var(--color-text, #2c3e50);
+    text-align: right;
+}
+.session-detail-link {
+    color: var(--color-primary, #4a90e2);
+    font-weight: 600;
+    text-decoration: none;
+}
+.session-detail-link:hover {
+    text-decoration: underline;
+}
+.session-detail-note {
+    background: #eef4ff;
+    padding: 12px 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #4a6a99;
+    margin-top: 10px;
+    line-height: 1.5;
+}

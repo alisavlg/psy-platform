@@ -238,6 +238,7 @@
         justify-content: center;
     }
 }
+
 /* ============================================
    КЛИЕНТ: убираем правую панель полностью
    ============================================ */
@@ -246,7 +247,6 @@
     display: block;
 }
 
-/* Планировщик занимает всю ширину — прокрутка по горизонтали */
 .main-content .calendar-wrapper {
     overflow-x: auto;
     overflow-y: auto;
@@ -257,7 +257,6 @@
     min-width: 900px;
 }
 
-/* Убедимся, что plannerSection не сжат */
 #plannerSection {
     width: 100%;
 }
@@ -487,6 +486,31 @@
     background: #e8f0fe;
 }
 
+.session-btn-complete {
+    background: #2ecc71;
+    color: #fff;
+}
+
+.session-btn-complete:hover:not(:disabled) {
+    background: #27ae60;
+}
+
+.session-btn-complete:disabled {
+    background: #e0e7ef;
+    color: #8899aa;
+    cursor: not-allowed;
+}
+
+.session-btn-chat {
+    background: #f0f4fa;
+    color: var(--color-primary);
+    border: 1px solid var(--color-primary);
+}
+
+.session-btn-chat:hover {
+    background: #e8f0fe;
+}
+
 .sessions-empty {
     text-align: center;
     padding: 60px 20px;
@@ -564,29 +588,100 @@
         gap: 12px;
     }
 }
-/* Кнопка «Проведена» */
-.session-btn-complete {
-    background: #2ecc71;
+
+/* ============================================
+   СЛОТЫ ПСИХОЛОГА (новые классы)
+   ============================================ */
+
+.slots-toolbar {
+    margin-bottom: 20px;
+}
+
+.slots-filters {
+    display: flex;
+    gap: 8px;
+}
+
+.slot-filter {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    background: #fff;
+    color: var(--color-text-light);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font-family);
+}
+
+.slot-filter.active {
+    background: var(--color-primary);
     color: #fff;
+    border-color: var(--color-primary);
 }
 
-.session-btn-complete:hover:not(:disabled) {
-    background: #27ae60;
+.slots-container {
+    display: block;
+    width: 100%;
 }
 
-.session-btn-complete:disabled {
-    background: #e0e7ef;
-    color: #8899aa;
-    cursor: not-allowed;
+.slots-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
-/* Кнопка «Написать в чат» */
-.session-btn-chat {
-    background: #f0f4fa;
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
+.slots-line:last-child {
+    margin-bottom: 0;
 }
 
-.session-btn-chat:hover {
-    background: #e8f0fe;
+.slot-card {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    min-width: 130px;
+    border-radius: 10px;
+    background: #eef4ff;
+    border: 1px solid #d0dcee;
+    color: #357abd;
+    font-family: var(--font-family);
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.slot-card:hover {
+    background: #dbe8fa;
+    border-color: var(--color-primary);
+}
+
+.slot-card:active {
+    transform: scale(0.97);
+}
+
+.slot-card-day {
+    font-size: 12px;
+    color: #6b8cba;
+    margin-bottom: 4px;
+    line-height: 1.2;
+}
+
+.slot-card-time {
+    font-size: 16px;
+    font-weight: 700;
+    color: #357abd;
+    line-height: 1.2;
+}
+
+.slots-empty {
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--color-text-muted);
+    background: #fafbfd;
+    border-radius: 10px;
+    font-size: 14px;
 }

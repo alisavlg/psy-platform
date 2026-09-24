@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="../assets/css/profile-client.css">
     <link rel="stylesheet" href="../assets/css/client.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
+    <link rel="stylesheet" href="../assets/css/notifications.css">
 </head>
 <body>
     <div class="dashboard-layout">
@@ -163,7 +164,6 @@
                     <div id="profileSection" style="display:none;">
                         <div class="profile-edit-container">
 
-                            <!-- ФИО (read-only) -->
                             <div class="profile-fio-block">
                                 <div class="profile-fio-header">
                                     <h3>Персональные данные</h3>
@@ -192,7 +192,6 @@
                                 </p>
                             </div>
 
-                            <!-- Транслируемое имя -->
                             <div class="profile-display-block">
                                 <div class="profile-display-header">
                                     <h3>Как вас видят другие</h3>
@@ -230,7 +229,6 @@
                                 </div>
                             </div>
 
-                            <!-- Код -->
                             <div class="profile-code-block">
                                 <div class="profile-code-label">Ваш код на платформе</div>
                                 <div class="profile-code-row">
@@ -286,7 +284,6 @@
                                 <div class="form-message" id="clientProfileMessage"></div>
                             </form>
 
-                            <!-- Стать психологом -->
                             <div class="become-psy-block" id="becomePsychologistBlock">
                                 <div class="become-psy-content">
                                     <h3>Хотите помогать другим?</h3>
@@ -295,7 +292,6 @@
                                 </div>
                             </div>
 
-                            <!-- Безопасность -->
                             <div class="security-block">
                                 <h3>Безопасность</h3>
 
@@ -344,6 +340,17 @@
 
                 </main>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: ДЕТАЛИ СЕССИИ -->
+    <div class="modal-overlay" id="clientModalOverlay">
+        <div class="modal modal-wide">
+            <h3 id="clientModalTitle">Сессия</h3>
+            <div id="clientModalContent"></div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="clientCancelBtn">Закрыть</button>
             </div>
         </div>
     </div>
@@ -433,10 +440,13 @@
     <!-- Скрипты -->
     <script>window.CURRENT_USER = 'client';</script>
     <script src="../assets/js/user-menu.js"></script>
+    <script src="../assets/js/notifications.js"></script>
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/sessions.js"></script>
     <script src="../assets/js/client-profile.js"></script>
+    <script src="../assets/js/demo-seed.js"></script>
+    <script src="../assets/js/become-block.js"></script>
     <script src="../assets/js/client.js"></script>
 </body>
 </html>

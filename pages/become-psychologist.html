@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Заявка на психолога | PsyHelp</title>
+    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/become-psychologist.css">
+</head>
+<body>
+    <div class="become-layout">
+
+        <!-- Верхняя панель -->
+        <header class="become-topbar">
+            <a href="client.html?section=profile" class="btn-back">← Назад в профиль</a>
+            <div class="become-logo">PsyHelp</div>
+        </header>
+
+        <main class="become-main">
+
+            <!-- Заголовок -->
+            <div class="become-header">
+                <h1>Стать психологом на PsyHelp</h1>
+                <p>Заполните заявку. Мы проверим документы и проведём собеседование. Обычно это занимает 1–3 рабочих дня.</p>
+            </div>
+
+            <!-- Форма -->
+            <form class="become-form" id="becomeForm" novalidate>
+
+                <!-- Шаг 1. О себе -->
+                <section class="become-block">
+                    <h2>1. О вас</h2>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="psySpecialty">Специализация <span class="required">*</span></label>
+                            <input type="text" id="psySpecialty" placeholder="Например: Тревога, отношения, КПТ" required>
+                            <span class="form-error" id="psySpecialtyError"></span>
+                        </div>
+                        <div class="form-group">
+                            <label for="psyExperience">Стаж (лет) <span class="required">*</span></label>
+                            <input type="number" id="psyExperience" min="0" max="60" placeholder="8" required>
+                            <span class="form-error" id="psyExperienceError"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="psyDescription">Описание (для публичного профиля) <span class="required">*</span></label>
+                        <textarea id="psyDescription" rows="5" placeholder="Расскажите о своём подходе, методах, с чем работаете..." required></textarea>
+                        <p class="form-hint">Это увидят клиенты в каталоге. Минимум 50 символов.</p>
+                        <span class="form-error" id="psyDescriptionError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="psyAbout">О себе (для модератора) <span class="required">*</span></label>
+                        <textarea id="psyAbout" rows="4" placeholder="Образование, подход, опыт, почему хотите работать на платформе..." required></textarea>
+                        <p class="form-hint">Это увидят только модераторы при проверке.</p>
+                        <span class="form-error" id="psyAboutError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="psyPrice">Цена за сессию (₽) <span class="required">*</span></label>
+                        <input type="number" id="psyPrice" min="0" placeholder="3000" required>
+                        <p class="form-hint">Вы сможете изменить её позже в настройках.</p>
+                        <span class="form-error" id="psyPriceError"></span>
+                    </div>
+                </section>
+
+                <!-- Шаг 2. Документы -->
+                <section class="become-block">
+                    <h2>2. Документы</h2>
+
+                    <div class="form-group">
+                        <label>Диплом об образовании <span class="required">*</span></label>
+                        <p class="form-hint">Загрузите фото или скан диплома. JPG, PNG или PDF, до 5 МБ.</p>
+                        <input type="file" id="diplomaInput" accept="image/*,application/pdf" style="display:none;">
+                        <button type="button" class="btn-upload" id="diplomaBtn">📎 Загрузить диплом</button>
+                        <div class="uploaded-files" id="diplomaFiles"></div>
+                        <span class="form-error" id="diplomaError"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Сертификаты, повышение квалификации (опционально)</label>
+                        <p class="form-hint">Можно загрузить несколько файлов.</p>
+                        <input type="file" id="certificatesInput" accept="image/*,application/pdf" multiple style="display:none;">
+                        <button type="button" class="btn-upload" id="certificatesBtn">📎 Загрузить сертификаты</button>
+                        <div class="uploaded-files" id="certificateFiles"></div>
+                    </div>
+                </section>
+
+                <!-- Шаг 3. Согласия -->
+                <section class="become-block">
+                    <h2>3. Согласия</h2>
+
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreeRules">
+                        <span>Я подтверждаю, что предоставил достоверные данные, и согласен с <a href="terms.html" target="_blank">правилами платформы для психологов</a> <span class="required">*</span></span>
+                    </label>
+                    <span class="form-error" id="agreeRulesError"></span>
+
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreeInterview">
+                        <span>Я готов пройти собеседование с модератором <span class="required">*</span></span>
+                    </label>
+                    <span class="form-error" id="agreeInterviewError"></span>
+                </section>
+
+                <!-- Кнопка -->
+                <div class="become-actions">
+                    <button type="submit" class="btn-submit-become" id="submitBecomeBtn">Отправить заявку</button>
+                </div>
+
+                <div class="form-message" id="becomeMessage"></div>
+
+            </form>
+
+        </main>
+    </div>
+
+    <script>window.CURRENT_USER = 'client';</script>
+    <script src="../assets/js/become-psychologist.js"></script>
+</body>
+</html>

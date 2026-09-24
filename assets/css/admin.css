@@ -1,0 +1,461 @@
+/* ============================================
+   АДМИНКА МОДЕРАТОРА
+   ============================================ */
+
+.admin-tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.admin-tab {
+    background: none;
+    border: none;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    cursor: pointer;
+    font-family: var(--font-family);
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.admin-tab:hover {
+    color: var(--color-primary);
+}
+
+.admin-tab.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+}
+
+.admin-tab span {
+    display: inline-block;
+    background: #eef2f8;
+    color: var(--color-text-light);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    margin-left: 6px;
+}
+
+.admin-tab.active span {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-empty {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 60px 30px;
+    text-align: center;
+    color: var(--color-text-light);
+    box-shadow: var(--shadow-card);
+}
+
+.admin-card {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 22px 25px;
+    box-shadow: var(--shadow-card);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border-left: 4px solid transparent;
+}
+
+.admin-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+}
+
+.admin-card.pending { border-left-color: #f39c12; }
+.admin-card.approved { border-left-color: #2ecc71; }
+.admin-card.rejected { border-left-color: #e74c3c; }
+
+.admin-card-main {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-card-name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-heading);
+    margin-bottom: 5px;
+}
+
+.admin-card-meta {
+    font-size: 13px;
+    color: var(--color-text-light);
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.admin-card-code {
+    font-family: monospace;
+    color: var(--color-primary);
+}
+
+.admin-card-date {
+    color: var(--color-text-muted);
+}
+
+.admin-card-status {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-card-status.pending { background: #fff3cd; color: #856404; }
+.admin-card-status.approved { background: #d4edda; color: #155724; }
+.admin-card-status.rejected { background: #f8d7da; color: #721c24; }
+
+/* Модальное окно */
+.admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.admin-modal-overlay.open {
+    display: flex;
+}
+
+.admin-modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 720px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+
+.admin-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 25px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.admin-modal-header h3 {
+    font-size: 18px;
+    color: var(--color-heading);
+}
+
+.admin-modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--color-text-light);
+    padding: 5px 10px;
+    border-radius: 8px;
+}
+
+.admin-modal-close:hover {
+    background: #f0f4fa;
+    color: var(--color-text);
+}
+
+.admin-modal-body {
+    padding: 25px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.admin-modal-actions {
+    padding: 20px 25px;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.admin-field {
+    margin-bottom: 18px;
+}
+
+.admin-field-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+}
+
+.admin-field-value {
+    font-size: 15px;
+    color: var(--color-text);
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.admin-docs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.admin-doc {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 10px;
+    width: 140px;
+    text-align: center;
+    background: #fafbfd;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.admin-doc:hover {
+    border-color: var(--color-primary);
+}
+
+.admin-doc img {
+    max-width: 100%;
+    max-height: 100px;
+    border-radius: 6px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+.admin-doc-pdf {
+    font-size: 40px;
+    margin-bottom: 6px;
+}
+
+.admin-doc-name {
+    font-size: 11px;
+    color: var(--color-text-light);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-btn {
+    padding: 11px 22px;
+    border-radius: 10px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: opacity 0.2s;
+}
+
+.admin-btn:hover { opacity: 0.85; }
+
+.admin-btn-approve { background: #2ecc71; color: #fff; }
+.admin-btn-reject { background: #e74c3c; color: #fff; }
+.admin-btn-cancel { background: #eef2f8; color: var(--color-text); }
+
+.admin-reject-reason {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-family: var(--font-family);
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    margin-top: 10px;
+}
+
+@media (max-width: 600px) {
+    .admin-card {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .admin-modal { max-height: 95vh; }
+}
+/* ============================================
+   РОЛИ, ЗАДАЧИ, ЧЕК-ЛИСТЫ
+   ============================================ */
+
+.nav-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: #fff;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 10px;
+    margin-left: 6px;
+    font-weight: 700;
+}
+.nav-badge:empty { display: none; }
+
+.role-switcher {
+    padding: 15px 20px;
+    border-top: 1px solid var(--color-border);
+    margin-top: auto;
+}
+.role-switcher label {
+    display: block;
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+}
+.role-switcher select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    background: #fff;
+}
+
+.admin-card-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.admin-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+/* Статусы (расширенные) */
+.admin-card-status.in_review { background: #cfe2ff; color: #084298; }
+.admin-card-status.awaiting_decision { background: #fff3cd; color: #856404; }
+.admin-card-status.needs_changes { background: #ffe5d0; color: #8a4b08; }
+
+.admin-card.in_review { border-left-color: #0d6efd; }
+.admin-card.awaiting_decision { border-left-color: #f39c12; }
+.admin-card.needs_changes { border-left-color: #fd7e14; }
+
+/* Превью чек-листа (модалка делегирования) */
+.checklist-preview {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0;
+}
+.checklist-preview li {
+    padding: 6px 0 6px 22px;
+    position: relative;
+    font-size: 13px;
+    color: var(--color-text);
+    line-height: 1.5;
+}
+.checklist-preview li::before {
+    content: '○';
+    position: absolute;
+    left: 0;
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+/* Чек-лист исполнителя */
+.checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.checklist-item {
+    background: #fafbfd;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 12px 15px;
+}
+.checklist-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.5;
+}
+.checklist-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin-top: 1px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}
+.checklist-comment {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-family: var(--font-family);
+    font-size: 13px;
+    resize: vertical;
+    min-height: 40px;
+    background: #fff;
+}
+.checklist-comment:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+/* Чек-лист: результат (модалка решения) */
+.checklist-done {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.checklist-done li {
+    padding: 8px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    border-bottom: 1px solid #eef2f8;
+}
+.checklist-done li:last-child { border-bottom: none; }
+.checklist-done .done { color: #2ecc71; font-weight: 700; margin-right: 4px; }
+.checklist-done .not-done { color: #e74c3c; font-weight: 700; margin-right: 4px; }
+.checklist-done-comment {
+    font-size: 12px;
+    color: var(--color-text-light);
+    margin-top: 3px;
+    margin-left: 22px;
+    font-style: italic;
+}
+
+/* Селект админа */
+.admin-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-family: var(--font-family);
+    font-size: 14px;
+    background: #fff;
+    color: var(--color-text);
+}
+.admin-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}

@@ -7,9 +7,6 @@ console.log('[psychologist.js] loaded');
 window.CURRENT_USER = window.CURRENT_USER || 'client';
 
 const PSY_REGISTRY_KEY = 'psyhelp_psychologists_registry';
-const SLOTS_KEY_PREFIX = 'psyhelp_slots_';
-const SESSIONS_CLIENT_KEY = 'psyhelp_sessions_client';
-const SESSIONS_PSY_KEY = 'psyhelp_sessions_psychologist';
 
 const DAYS_RU = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const MONTHS_RU = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
@@ -18,69 +15,40 @@ let currentPsy = null;
 let currentSlot = null;
 let currentFilterDays = 7;
 
-// ============================================
-// Получение данных
-// ============================================
-
-function getPsychologists() {
-    const data = localStorage.getItem(PSY_REGISTRY_KEY);
-    if (data) {
-        try { return JSON.parse(data); } catch (e) { return []; }
-    }
-    return [];
+function getCurrentUserId() {
+    try {
+        const u = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+        return u.id || 'demo-client';
+    } catch (e) { return 'demo-client'; }
 }
 
-function getPsychologistById(id) {
-    return getPsychologists().find(function (p) { return p.id === id; });
+function getPsychologistUserId(psy) {
+    if (psy && psy.userId) return psy.userId;
+    const uid = getCurrentUserId();
+    if (psy && psy.id === uid) return uid;
+    return (psy && psy.id) || 'psy-1';
 }
 
-function getSlotsFor(psyId) {
-    const key = 'psyhelp_events_' + psyId;
-    const data = localStorage.getItem(key);
-    let events = [];
-    if (data) {
-        try {
-            const parsed = JSON.parse(data);
-            events = Array.isArray(parsed) ? parsed : [];
-        } catch (e) {}
-    }
-
-    const freeSlots = {};
-    events.forEach(function (e) {
-        if (e.category !== 'free') return;
-        const parts = e.date.split('-');
-        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        const jsDay = d.getDay();
-        const isoDay = jsDay === 0 ? 7 : jsDay;
-        freeSlots[isoDay + '-' + e.hour] = true;
-    });
-    return freeSlots;
-}
-
-function saveSlotsFor(psyId, slots) {
-    // Не используется
-}
-
-function getUserId() {
-    const user = localStorage.getItem('psyhelp_user');
-    if (user) {
-        try {
-            const u = JSON.parse(user);
-            if (u.id) return u.id;
-        } catch (e) {}
-    }
-    return 'demo-client';
-}
+function getSessionsKeyFor(userId) { return 'psyhelp_sessions_' + userId; }
+function getEventsKeyFor(userId) { return 'psyhelp_events_' + userId; }
 
 function getUserCode() {
-    const user = localStorage.getItem('psyhelp_user');
-    if (user) {
-        try {
-            const u = JSON.parse(user);
-            if (u.code) return u.code;
-        } catch (e) {}
-    }
+    try {
+        const u = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+        if (u.code) return u.code;
+    } catch (e) {}
     return 'CL-0000';
+}
+
+function getPrefilledClientName() {
+    try {
+        const u = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+        const f = (u.displayFirstName || u.realFirstName || '').trim();
+        const m = (u.displayMiddleName || u.realMiddleName || '').trim();
+        if (f && m) return capitalizeWords(f + ' ' + m);
+        if (f) return capitalizeWords(f);
+    } catch (e) {}
+    return '';
 }
 
 function getShortName(firstName, middleName) {
@@ -100,18 +68,45 @@ function capitalizeWords(str) {
         .join(' ');
 }
 
-function getPrefilledClientName() {
-    const user = localStorage.getItem('psyhelp_user');
-    if (user) {
+function getPsychologists() {
+    const data = localStorage.getItem(PSY_REGISTRY_KEY);
+    if (data) {
+        try { return JSON.parse(data); } catch (e) { return []; }
+    }
+    return [];
+}
+
+function getPsychologistById(id) {
+    return getPsychologists().find(function (p) { return p.id === id; });
+}
+
+function getSlotsFor(psy) {
+    const psyUserId = getPsychologistUserId(psy);
+    const key = getEventsKeyFor(psyUserId);
+    const data = localStorage.getItem(key);
+
+    let events = [];
+    if (data) {
         try {
-            const u = JSON.parse(user);
-            const firstName = (u.firstName || '').trim();
-            const middleName = (u.middleName || '').trim();
-            if (firstName && middleName) return capitalizeWords(firstName + ' ' + middleName);
-            if (firstName) return capitalizeWords(firstName);
+            const parsed = JSON.parse(data);
+            events = Array.isArray(parsed) ? parsed : [];
         } catch (e) {}
     }
-    return '';
+    if (!Array.isArray(events)) events = [];
+
+    const busy = {};
+    events.forEach(function (e) {
+        if (e.category === 'session') busy[e.date + '-' + e.hour] = true;
+    });
+
+    const freeKeys = {};
+    events.forEach(function (e) {
+        if (e.category !== 'free') return;
+        const k = e.date + '-' + e.hour;
+        if (busy[k]) return;
+        freeKeys[k] = true;
+    });
+    return freeKeys;
 }
 
 // ============================================
@@ -139,6 +134,7 @@ function renderProfile() {
     const stars = '★'.repeat(Math.round(currentPsy.rating)) + '☆'.repeat(5 - Math.round(currentPsy.rating));
 
     container.innerHTML =
+        // === Карточка психолога ===
         '<div class="psy-profile-card">' +
             '<div class="psy-profile-avatar">' + initials + '</div>' +
             '<div class="psy-profile-info">' +
@@ -153,105 +149,164 @@ function renderProfile() {
                     '<span class="psy-profile-stars">' + stars + '</span>' +
                     '<span class="psy-profile-reviews">' + currentPsy.rating + ' · ' + currentPsy.reviewsCount + ' отзывов</span>' +
                 '</div>' +
+
+                // === Кнопка «Написать» ===
+                '<div class="psy-profile-actions">' +
+                    '<button type="button" class="psy-action-btn psy-action-write" id="writeToPsyBtn">' +
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                            '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>' +
+                        '</svg>' +
+                        'Написать' +
+                    '</button>' +
+                '</div>' +
             '</div>' +
         '</div>' +
 
+        // === О специалисте ===
         '<div class="psy-profile-section">' +
             '<h3>О специалисте</h3>' +
             '<p class="psy-profile-description">' + escapeHtml(currentPsy.description) + '</p>' +
         '</div>' +
 
-        '<div class="psy-profile-section">' +
+        // === Как записаться ===
+        '<div class="psy-profile-section psy-how-to">' +
+            '<h3>Как записаться на сессию</h3>' +
+            '<ol class="how-to-steps">' +
+                '<li>' +
+                    '<strong>Напишите психологу</strong> и обсудите запрос — ' +
+                    'расскажите, с чем хотите работать, узнайте, работает ли специалист с этим, ' +
+                    'обсудите формат и подход. Это поможет понять, комфортно ли вам.' +
+                '</li>' +
+                '<li>' +
+                    '<strong>Если вам комфортно</strong> и психолог готов — ' +
+                    'выберите свободный слот ниже.' +
+                '</li>' +
+                '<li>' +
+                    '<strong>Забронируйте и оплатите</strong> — сессия закреплена. ' +
+                    'Оплата резервирует время за вами.' +
+                '</li>' +
+            '</ol>' +
+        '</div>' +
+
+        // === Свободные слоты ===
+        '<div class="psy-profile-section" id="slotsSection">' +
             '<h3>Свободные слоты</h3>' +
-            '<div class="psy-slots-toolbar">' +
-                '<div class="psy-slots-filters">' +
-                    '<button class="psy-slot-filter active" data-days="7">Неделя</button>' +
-                    '<button class="psy-slot-filter" data-days="14">2 недели</button>' +
-                    '<button class="psy-slot-filter" data-days="30">Месяц</button>' +
+            '<div class="slots-toolbar">' +
+                '<div class="slots-filters">' +
+                    '<button class="slot-filter active" data-days="7">Неделя</button>' +
+                    '<button class="slot-filter" data-days="14">2 недели</button>' +
+                    '<button class="slot-filter" data-days="30">Месяц</button>' +
                 '</div>' +
             '</div>' +
-            '<div class="psy-slots-grid" id="psySlotsGrid"></div>' +
+            '<div class="slots-container" id="psySlotsGrid"></div>' +
         '</div>';
 
-    container.querySelectorAll('.psy-slot-filter').forEach(function (btn) {
+    // Обработчики фильтров
+    container.querySelectorAll('.slot-filter').forEach(function (btn) {
         btn.addEventListener('click', function () {
             currentFilterDays = parseInt(btn.dataset.days);
-            container.querySelectorAll('.psy-slot-filter').forEach(function (b) {
+            container.querySelectorAll('.slot-filter').forEach(function (b) {
                 b.classList.toggle('active', b === btn);
             });
             renderSlots();
         });
     });
 
+    // Обработчик «Написать»
+    const writeBtn = document.getElementById('writeToPsyBtn');
+    if (writeBtn) {
+        writeBtn.addEventListener('click', function () {
+            if (!currentPsy) return;
+            const chatId = 'chat-' + getCurrentUserId() + '-' + currentPsy.id;
+            window.location.href = 'client.html?section=messages&chat=' + encodeURIComponent(chatId);
+        });
+    }
+
     renderSlots();
 }
+
+// ============================================
+// Отрисовка слотов
+// ============================================
 
 function renderSlots() {
     const grid = document.getElementById('psySlotsGrid');
     if (!grid || !currentPsy) return;
 
-    const slots = getSlotsFor(currentPsy.id);
+    const slots = getSlotsFor(currentPsy);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const available = [];
+    const groups = {};
+    const dateOrder = [];
 
     for (let i = 0; i < currentFilterDays; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-
-        const jsDay = date.getDay();
-        const isoDay = jsDay === 0 ? 7 : jsDay;
+        const dateKey = formatDateKey(date);
+        const isoDay = date.getDay() === 0 ? 7 : date.getDay();
 
         for (let h = 8; h < 22; h++) {
-            const key = isoDay + '-' + h;
-            if (slots[key]) {
-                available.push({
-                    date: date,
-                    hour: h,
-                    isoDay: isoDay
-                });
+            if (slots[dateKey + '-' + h]) {
+                if (!groups[dateKey]) {
+                    groups[dateKey] = { date: date, isoDay: isoDay, hours: [] };
+                    dateOrder.push(dateKey);
+                }
+                groups[dateKey].hours.push(h);
             }
         }
     }
 
-    if (available.length === 0) {
-        grid.innerHTML = '<div class="psy-slots-empty">Свободных слотов нет в выбранном периоде</div>';
+    if (dateOrder.length === 0) {
+        grid.innerHTML = '<div class="slots-empty">Свободных слотов нет в выбранном периоде</div>';
         return;
     }
 
-    available.sort(function (a, b) {
-        if (a.date.getTime() !== b.date.getTime()) {
-            return a.date.getTime() - b.date.getTime();
-        }
-        return a.hour - b.hour;
+    let total = 0;
+    const limitedKeys = [];
+    for (let k = 0; k < dateOrder.length && total < 40; k++) {
+        const key = dateOrder[k];
+        const g = groups[key];
+        g.hours.sort(function (a, b) { return a - b; });
+        const take = Math.min(g.hours.length, 40 - total);
+        g.hours = g.hours.slice(0, take);
+        total += g.hours.length;
+        limitedKeys.push(key);
+    }
+
+    let html = '';
+    limitedKeys.forEach(function (dateKey) {
+        const g = groups[dateKey];
+        const dayLabel = DAYS_RU[g.isoDay - 1] + ', ' + g.date.getDate() + ' ' + MONTHS_RU[g.date.getMonth()];
+
+        html += '<div class="slots-line">';
+        g.hours.forEach(function (h) {
+            html += '<button type="button" class="slot-card" ' +
+                'data-date="' + dateKey + '" ' +
+                'data-hour="' + h + '">' +
+                '<span class="slot-card-day">' + escapeHtml(dayLabel) + '</span>' +
+                '<span class="slot-card-time">' + String(h).padStart(2, '0') + ':00</span>' +
+            '</button>';
+        });
+        html += '</div>';
     });
 
-    const toShow = available.slice(0, 20);
+    grid.innerHTML = html;
 
-    grid.innerHTML = '';
-    toShow.forEach(function (slot) {
-        const btn = document.createElement('button');
-        btn.className = 'psy-slot';
-        btn.type = 'button';
-
-        const dayLabel = DAYS_RU[slot.isoDay - 1] + ', ' + slot.date.getDate() + ' ' + MONTHS_RU[slot.date.getMonth()];
-        const timeLabel = String(slot.hour).padStart(2, '0') + ':00';
-
-        btn.innerHTML =
-            '<span class="psy-slot-day">' + dayLabel + '</span>' +
-            '<span class="psy-slot-time">' + timeLabel + '</span>';
-
+    grid.querySelectorAll('.slot-card').forEach(function (btn) {
         btn.addEventListener('click', function () {
-            openBookingModal(slot);
+            const dateStr = btn.dataset.date;
+            const hour = parseInt(btn.dataset.hour);
+            const parts = dateStr.split('-');
+            const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            const isoDay = date.getDay() === 0 ? 7 : date.getDay();
+            openBookingModal({ date: date, hour: hour, isoDay: isoDay });
         });
-
-        grid.appendChild(btn);
     });
 }
 
 // ============================================
-// Бронирование
+// Модалка бронирования
 // ============================================
 
 function openBookingModal(slot) {
@@ -262,6 +317,8 @@ function openBookingModal(slot) {
     const topicEl = document.getElementById('bookingTopic');
     const nameEl = document.getElementById('bookingClientName');
     const errEl = document.getElementById('bookingClientNameError');
+    const agreeEl = document.getElementById('agreeCancelRules');
+    const agreeErrEl = document.getElementById('agreeCancelRulesError');
 
     if (!overlay) return;
 
@@ -277,6 +334,8 @@ function openBookingModal(slot) {
     topicEl.value = '';
     if (nameEl) nameEl.value = getPrefilledClientName();
     if (errEl) errEl.textContent = '';
+    if (agreeEl) agreeEl.checked = false;
+    if (agreeErrEl) agreeErrEl.textContent = '';
 
     overlay.classList.add('active');
 }
@@ -289,21 +348,37 @@ function closeBookingModal() {
 function confirmBooking() {
     if (!currentSlot || !currentPsy) return;
 
+    const clientUserId = getCurrentUserId();
+    const psyUserId = getPsychologistUserId(currentPsy);
+
+    if (clientUserId === psyUserId) {
+        alert('Нельзя записаться к самому себе.\n\nВыберите другого психолога в каталоге.');
+        closeBookingModal();
+        return;
+    }
+
+    const agreeEl = document.getElementById('agreeCancelRules');
+    const agreeErrEl = document.getElementById('agreeCancelRulesError');
+    if (!agreeEl || !agreeEl.checked) {
+        if (agreeErrEl) agreeErrEl.textContent = 'Подтвердите согласие с правилами отмены';
+        return;
+    } else if (agreeErrEl) {
+        agreeErrEl.textContent = '';
+    }
+
     const bookedDate = new Date(currentSlot.date);
     const bookedHour = currentSlot.hour;
-    const bookedIsoDay = currentSlot.isoDay;
     const bookedDateStr = formatDateKey(bookedDate);
 
-    // === Проверка: слот ещё свободен? ===
-    const psyEventsKeyCheck = 'psyhelp_events_' + currentPsy.id;
-    let existingEvents = [];
+    const psyEventsKey = getEventsKeyFor(psyUserId);
+    let psyEvents = [];
     try {
-        const d = localStorage.getItem(psyEventsKeyCheck);
-        existingEvents = d ? JSON.parse(d) : [];
-        if (!Array.isArray(existingEvents)) existingEvents = [];
-    } catch (e) { existingEvents = []; }
+        const d = localStorage.getItem(psyEventsKey);
+        psyEvents = d ? JSON.parse(d) : [];
+        if (!Array.isArray(psyEvents)) psyEvents = [];
+    } catch (e) { psyEvents = []; }
 
-    const slotTaken = existingEvents.some(function (e) {
+    const slotTaken = psyEvents.some(function (e) {
         return e.category === 'session'
             && e.date === bookedDateStr
             && e.hour === bookedHour;
@@ -316,7 +391,6 @@ function confirmBooking() {
         return;
     }
 
-    // Имя и отчество из поля
     const nameEl = document.getElementById('bookingClientName');
     const clientFullName = nameEl ? capitalizeWords(nameEl.value.trim()) : '';
     const errEl = document.getElementById('bookingClientNameError');
@@ -329,18 +403,20 @@ function confirmBooking() {
     }
 
     const topic = document.getElementById('bookingTopic').value.trim() || 'Консультация';
-
-    const clientId = getUserId();
     const clientCode = getUserCode();
 
     const nameParts = clientFullName.split(' ');
-    const shortName = getShortName(nameParts[0] || '', nameParts[1] || '');
+    const shortClientName = getShortName(nameParts[0] || '', nameParts[1] || '');
+    const shortPsyName = getShortName(currentPsy.firstName, currentPsy.middleName);
+
+    const bookingId = 's-' + Date.now();
 
     const booking = {
-        id: 's-' + Date.now(),
+        id: bookingId,
         psychologistId: currentPsy.id,
+        psychologistUserId: psyUserId,
         psychologistName: currentPsy.firstName + ' ' + currentPsy.middleName,
-        clientId: clientId,
+        clientId: clientUserId,
         clientCode: clientCode,
         clientName: clientFullName,
         date: bookedDateStr,
@@ -351,19 +427,18 @@ function confirmBooking() {
         createdAt: Date.now()
     };
 
-    // 1. Сессии клиента
-    const clientSessions = getClientSessions();
+    const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
     clientSessions.push(booking);
-    saveClientSessions(clientSessions);
+    writeSessions(getSessionsKeyFor(clientUserId), clientSessions);
 
-    // 2. Сессии психолога
-    const psySessions = getPsySessions();
+    const psySessions = readSessions(getSessionsKeyFor(psyUserId));
     psySessions.push({
-        id: booking.id,
-        clientId: clientId,
+        id: bookingId,
+        clientId: clientUserId,
         clientCode: clientCode,
         clientName: clientFullName,
         psychologistId: currentPsy.id,
+        psychologistUserId: psyUserId,
         date: booking.date,
         hour: booking.hour,
         topic: topic,
@@ -371,41 +446,53 @@ function confirmBooking() {
         status: 'confirmed',
         createdAt: booking.createdAt
     });
-    savePsySessions(psySessions);
+    writeSessions(getSessionsKeyFor(psyUserId), psySessions);
 
-    // 3. Обновляем календарь психолога
-    existingEvents = existingEvents.filter(function (e) {
+    psyEvents = psyEvents.filter(function (e) {
         if (e.category !== 'free') return true;
         return !(e.date === bookedDateStr && e.hour === bookedHour);
     });
-
-    existingEvents.push({
-        id: 'sess-' + booking.id,
-        title: 'Сессия: ' + shortName,
+    psyEvents.push({
+        id: 'sess-' + bookingId,
+        title: 'Сессия: ' + shortClientName,
         date: bookedDateStr,
         hour: bookedHour,
         category: 'session',
-        clientId: clientId,
+        clientId: clientUserId,
         clientCode: clientCode,
         clientName: clientFullName,
-        sessionId: booking.id
+        sessionId: bookingId
     });
+    localStorage.setItem(psyEventsKey, JSON.stringify(psyEvents));
 
-    localStorage.setItem(psyEventsKeyCheck, JSON.stringify(existingEvents));
-
-    // 4. Событие в календарь клиента
-    addEventForClient({
-        title: 'Сессия: ' + getShortName(currentPsy.firstName, currentPsy.middleName),
+    addEventForUser(clientUserId, {
+        title: 'Сессия: ' + shortPsyName,
         date: booking.date,
         hour: booking.hour,
         category: 'session',
         psychologistId: currentPsy.id,
-        psychologistName: currentPsy.firstName + ' ' + currentPsy.middleName
+        psychologistUserId: psyUserId,
+        psychologistName: currentPsy.firstName + ' ' + currentPsy.middleName,
+        sessionId: bookingId
     });
 
     closeBookingModal();
     currentSlot = null;
     renderSlots();
+
+    confirmBooking()
+
+        // Уведомление клиенту (уже своё ведро)
+    if (typeof window.Notifications !== 'undefined') {
+        window.Notifications.add({
+            type: 'session_booked',
+            title: 'Сессия подтверждена',
+            text: currentPsy.firstName + ' ' + currentPsy.middleName + ': ' +
+                  formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00',
+            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
+            highlight: bookingId
+        });
+    }
 
     alert('✓ Запись подтверждена!\n\n' +
           'Психолог: ' + booking.psychologistName + '\n' +
@@ -415,34 +502,34 @@ function confirmBooking() {
           'Сессия добавлена в ваш планировщик и в раздел «Мои сессии».');
 }
 
-function getClientSessions() {
-    const data = localStorage.getItem(SESSIONS_CLIENT_KEY);
+// ============================================
+// Хранилище
+// ============================================
+
+function readSessions(key) {
+    const data = localStorage.getItem(key);
     if (!data) return [];
-    try { const p = JSON.parse(data); return Array.isArray(p) ? p : []; } catch (e) { return []; }
+    try {
+        const p = JSON.parse(data);
+        return Array.isArray(p) ? p : [];
+    } catch (e) { return []; }
 }
 
-function saveClientSessions(list) {
-    localStorage.setItem(SESSIONS_CLIENT_KEY, JSON.stringify(list));
+function writeSessions(key, list) {
+    localStorage.setItem(key, JSON.stringify(list));
 }
 
-function getPsySessions() {
-    const data = localStorage.getItem(SESSIONS_PSY_KEY);
-    if (!data) return [];
-    try { const p = JSON.parse(data); return Array.isArray(p) ? p : []; } catch (e) { return []; }
-}
-
-function savePsySessions(list) {
-    localStorage.setItem(SESSIONS_PSY_KEY, JSON.stringify(list));
-}
-
-function addEventForClient(event) {
-    const key = 'psyhelp_events_client';
+function addEventForUser(userId, event) {
+    const key = getEventsKeyFor(userId);
     const data = localStorage.getItem(key);
     let events = [];
     if (data) {
-        try { const p = JSON.parse(data); events = Array.isArray(p) ? p : []; } catch (e) {}
+        try {
+            const p = JSON.parse(data);
+            events = Array.isArray(p) ? p : [];
+        } catch (e) {}
     }
-    event.id = Date.now().toString();
+    event.id = Date.now().toString() + '-' + Math.random().toString(36).slice(2, 8);
     events.push(event);
     localStorage.setItem(key, JSON.stringify(events));
 }

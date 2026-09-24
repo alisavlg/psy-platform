@@ -13,15 +13,25 @@
     --color-heading: #222;
     --color-bg: #f4f7fc;
     --color-bg-card: #ffffff;
+    --color-bg-hover: #f0f4fa;
     --color-border: #eee;
+    --color-border-light: #eef2f8;
     --color-rating: #f5a623;
+
+    /* --- СЕМАНТИЧЕСКИЕ ЦВЕТА --- */
+    --color-success: #2ecc71;
+    --color-warning: #f39c12;
+    --color-danger: #e74c3c;
 
     /* --- ШРИФТЫ --- */
     --font-family: 'Segoe UI', Arial, sans-serif;
     --font-size-base: 16px;
     --font-size-h1: 28px;
     --font-size-h2: 22px;
+    --font-size-h3: 18px;
     --font-size-small: 14px;
+    --font-size-small-plus: 13.5px;
+    --font-size-tiny: 12px;
 
     /* --- ОТСТУПЫ И РАЗМЕРЫ --- */
     --radius-card: 20px;
@@ -29,6 +39,11 @@
     --radius-photo: 50%;
     --padding-card: 40px;
     --gap-blocks: 40px;
+
+    /* --- КНОПКИ И ИНПУТЫ --- */
+    --button-padding-y: 10px;
+    --button-padding-x: 22px;
+    --input-radius: 10px;
 
     /* --- ТЕНИ --- */
     --shadow-card: 0 10px 30px rgba(0,0,0,0.08);
@@ -48,4 +63,15 @@
     --calendar-cell-height: 60px;
     --calendar-visible-height: 600px;
     --calendar-scroll-hour: 8;
+
+    /* --- СЛОТЫ ПСИХОЛОГА --- */
+    --color-slot-bg: #eef4ff;
+    --color-slot-bg-hover: #dbe8fa;
+    --color-slot-border: #d0dcee;
+    --color-slot-text: #357abd;
+    --color-slot-text-muted: #6b8cba;
+
+    /* --- АНИМАЦИИ --- */
+    --transition-fast: 0.15s;
+    --transition-medium: 0.25s;
 }

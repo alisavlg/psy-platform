@@ -1,0 +1,343 @@
+/* ============================================
+   СТРАНИЦА «СТАТЬ ПСИХОЛОГОМ»
+   ============================================ */
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.become-layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Верхняя панель */
+.become-topbar {
+    background: var(--color-bg-card);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-header);
+}
+
+.btn-back {
+    text-decoration: none;
+    color: var(--color-primary);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.btn-back:hover {
+    background: #f0f4fa;
+}
+
+.become-logo {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+/* Основной контент */
+.become-main {
+    max-width: 700px;
+    margin: 40px auto;
+    padding: 0 20px 60px;
+}
+
+.become-header {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.become-header h1 {
+    font-size: 28px;
+    color: var(--color-heading);
+    margin-bottom: 10px;
+}
+
+.become-header p {
+    font-size: 15px;
+    color: var(--color-text-light);
+    line-height: 1.5;
+}
+
+/* Блоки формы */
+.become-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.become-block {
+    background: var(--color-bg-card);
+    border-radius: var(--radius-card);
+    padding: 30px;
+    box-shadow: var(--shadow-card);
+}
+
+.become-block h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-heading);
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* Поля */
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 8px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    font-size: 15px;
+    font-family: var(--font-family);
+    color: var(--color-text);
+    background: #fff;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.15);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+}
+
+.form-hint {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.required {
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+.form-error {
+    display: block;
+    font-size: 13px;
+    color: #e74c3c;
+    margin-top: 5px;
+    min-height: 18px;
+}
+
+.form-group.has-error input,
+.form-group.has-error textarea {
+    border-color: #e74c3c;
+}
+
+/* Загрузка файлов */
+.btn-upload {
+    background: #f0f4fa;
+    color: var(--color-primary);
+    border: 1px dashed var(--color-primary);
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background 0.2s;
+    width: 100%;
+}
+
+.btn-upload:hover {
+    background: #e8f0fe;
+}
+
+.uploaded-files {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.uploaded-file {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: #fafbfd;
+    border-radius: 8px;
+    border: 1px solid var(--color-border);
+    font-size: 13px;
+    color: var(--color-text);
+}
+
+.uploaded-file-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.uploaded-file-size {
+    color: var(--color-text-muted);
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+.btn-remove-file {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 5px;
+    margin-left: 10px;
+}
+
+/* Согласия */
+.checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--color-text-light);
+    cursor: pointer;
+    font-weight: 400;
+    line-height: 1.5;
+    margin-bottom: 15px;
+}
+
+.checkbox-label:last-of-type {
+    margin-bottom: 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin-top: 3px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}
+
+.checkbox-label a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.checkbox-label a:hover {
+    text-decoration: underline;
+}
+
+/* Кнопка отправки */
+.become-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.btn-submit-become {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    padding: 16px 60px;
+    border-radius: 50px;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: background 0.2s, transform 0.1s;
+    min-width: 280px;
+}
+
+.btn-submit-become:hover {
+    background: var(--color-primary-hover);
+}
+
+.btn-submit-become:active {
+    transform: scale(0.98);
+}
+
+.btn-submit-become:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* Сообщение */
+.form-message {
+    margin-top: 20px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-size: 15px;
+    text-align: center;
+    display: none;
+}
+
+.form-message.success {
+    background: #d4edda;
+    color: #155724;
+    display: block;
+}
+
+.form-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    display: block;
+}
+
+/* Адаптив */
+@media (max-width: 600px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .become-block {
+        padding: 20px;
+    }
+
+    .become-header h1 {
+        font-size: 22px;
+    }
+}

@@ -395,9 +395,10 @@ function handleClientPasswordChange() {
 // Кнопка «Стать психологом»
 // ============================================
 
-function handleBecomePsychologist() {
-    alert('Форма заявки на роль психолога появится в следующей задаче (#29).\n\nОна будет включать: специализацию, описание, стаж, цену, загрузку диплома и сертификатов.');
-}
+
+ function handleBecomePsychologist() {
+    window.location.href = 'become-psychologist.html';
+}   
 
 // ============================================
 // Инициализация

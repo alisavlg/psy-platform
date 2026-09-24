@@ -4,9 +4,6 @@
 
 console.log('[sessions.js] loaded');
 
-const SESSIONS_CLIENT_KEY = 'psyhelp_sessions_client';
-const SESSIONS_PSY_KEY = 'psyhelp_sessions_psychologist';
-
 const STATUS_LABELS = {
     confirmed: 'Подтверждена',
     completed: 'Проведена',
@@ -17,33 +14,47 @@ const STATUS_LABELS = {
 let sessionsTab = 'upcoming';
 
 // ============================================
-// Получение
+// Единые ключи по user.id
 // ============================================
 
-function getClientSessions() {
-    const data = localStorage.getItem(SESSIONS_CLIENT_KEY);
+function getCurrentUserId() {
+    try {
+        const u = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+        return u.id || 'demo-client';
+    } catch (e) { return 'demo-client'; }
+}
+
+function getSessionsKeyFor(userId) {
+    return 'psyhelp_sessions_' + userId;
+}
+
+function getEventsKeyFor(userId) {
+    return 'psyhelp_events_' + userId;
+}
+
+// ============================================
+// Хранилище
+// ============================================
+
+function readSessions(key) {
+    const data = localStorage.getItem(key);
     if (!data) return [];
     try {
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) ? parsed : [];
+        const p = JSON.parse(data);
+        return Array.isArray(p) ? p : [];
     } catch (e) { return []; }
+}
+
+function writeSessions(key, list) {
+    localStorage.setItem(key, JSON.stringify(list));
+}
+
+function getClientSessions() {
+    return readSessions(getSessionsKeyFor(getCurrentUserId()));
 }
 
 function saveClientSessions(list) {
-    localStorage.setItem(SESSIONS_CLIENT_KEY, JSON.stringify(list));
-}
-
-function getPsySessions() {
-    const data = localStorage.getItem(SESSIONS_PSY_KEY);
-    if (!data) return [];
-    try {
-        const parsed = JSON.parse(data);
-        return Array.isArray(parsed) ? parsed : [];
-    } catch (e) { return []; }
-}
-
-function savePsySessions(list) {
-    localStorage.setItem(SESSIONS_PSY_KEY, JSON.stringify(list));
+    writeSessions(getSessionsKeyFor(getCurrentUserId()), list);
 }
 
 // ============================================
@@ -79,7 +90,6 @@ function renderSessions(tab) {
     });
 
     const all = getClientSessions();
-
     all.sort(function (a, b) {
         return getSessionDateTime(a).getTime() - getSessionDateTime(b).getTime();
     });
@@ -112,6 +122,7 @@ function renderSessions(tab) {
     filtered.forEach(function (session) {
         const card = document.createElement('div');
         card.className = 'session-item';
+        card.setAttribute('data-session-id', session.id);
 
         const dt = getSessionDateTime(session);
         const dateFormatted = formatHumanDate(dt);
@@ -120,13 +131,11 @@ function renderSessions(tab) {
         const statusClass = session.status;
 
         let actionsHtml = '';
-
         if (sessionsTab === 'upcoming') {
             const now = new Date();
             const diffMinutes = (dt.getTime() - now.getTime()) / 60000;
             const canJoin = diffMinutes <= 5 && diffMinutes >= -60;
 
-            // Кнопка «Войти в комнату» — с ролью клиента
             actionsHtml +=
                 '<a class="session-btn session-btn-join" ' +
                     (canJoin ? '' : 'style="pointer-events:none;opacity:0.5;"') + ' ' +
@@ -171,21 +180,24 @@ function renderSessions(tab) {
             btn.addEventListener('click', function () {
                 const action = btn.dataset.action;
                 const id = btn.dataset.id;
-                if (action === 'join') joinSession(id);
                 if (action === 'cancel') openCancelModal(id);
             });
         });
 
         listEl.appendChild(card);
     });
-}
 
-// ============================================
-// Войти в комнату (fallback)
-// ============================================
-
-function joinSession(id) {
-    window.open('room.html?session=' + id + '&role=client', '_blank');
+    // Подсветка по ?highlight=
+    var urlParams = new URLSearchParams(window.location.search);
+    var highlightId = urlParams.get('highlight');
+    if (highlightId) {
+        var targetCard = listEl.querySelector('[data-session-id="' + highlightId + '"]');
+        if (targetCard) {
+            targetCard.classList.add('notif-highlight');
+            setTimeout(function () { targetCard.classList.remove('notif-highlight'); }, 2600);
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
 }
 
 // ============================================
@@ -206,7 +218,6 @@ function openCancelModal(id) {
 
     let refundPercent = 0;
     let refundText = '';
-
     if (hoursLeft >= 24) {
         refundPercent = 100;
         refundText = 'Возврат 100% — сессия отменяется заранее.';
@@ -219,11 +230,9 @@ function openCancelModal(id) {
     }
 
     const refundSum = Math.round(session.price * refundPercent / 100);
-
     const overlay = document.getElementById('cancelModalOverlay');
     const summaryEl = document.getElementById('cancelSummary');
     const reasonEl = document.getElementById('cancelReason');
-
     if (!overlay || !summaryEl) return;
 
     const dateFormatted = formatHumanDate(dt);
@@ -262,58 +271,91 @@ function confirmCancel() {
     if (!cancellingId) return;
 
     const reason = document.getElementById('cancelReason').value.trim();
+    const clientUserId = getCurrentUserId();
 
-    const clientSessions = getClientSessions();
+    const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
     const clientSession = clientSessions.find(function (s) { return s.id === cancellingId; });
     if (clientSession) {
         clientSession.status = 'cancelled';
         clientSession.cancelReason = reason;
         clientSession.cancelledAt = Date.now();
-        saveClientSessions(clientSessions);
+        writeSessions(getSessionsKeyFor(clientUserId), clientSessions);
     }
 
-    const psySessions = getPsySessions();
-    const psySession = psySessions.find(function (s) { return s.id === cancellingId; });
-    if (psySession) {
-        psySession.status = 'cancelled';
-        psySession.cancelReason = reason;
-        psySession.cancelledAt = Date.now();
-        savePsySessions(psySessions);
+    const psyUserId = clientSession && (clientSession.psychologistUserId || clientSession.psychologistId);
+    if (psyUserId) {
+        const psySessions = readSessions(getSessionsKeyFor(psyUserId));
+        const psySession = psySessions.find(function (s) { return s.id === cancellingId; });
+        if (psySession) {
+            psySession.status = 'cancelled';
+            psySession.cancelReason = reason;
+            psySession.cancelledAt = Date.now();
+            writeSessions(getSessionsKeyFor(psyUserId), psySessions);
+        }
+
+        restoreFreeSlotForPsy(psyUserId, clientSession);
+        removeSessionEventFromCalendar(psyUserId, clientSession);
     }
 
-    // Возвращаем слот в расписание психолога
-    if (clientSession && clientSession.psychologistId) {
-        const slotsKey = 'psyhelp_slots_' + clientSession.psychologistId;
-        const slotsData = localStorage.getItem(slotsKey);
-        let slots = {};
-        try {
-            slots = slotsData ? JSON.parse(slotsData) : {};
-            if (!slots || typeof slots !== 'object') slots = {};
-        } catch (e) { slots = {}; }
-
-        const parts = clientSession.date.split('-');
-        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-        const jsDay = d.getDay();
-        const isoDay = jsDay === 0 ? 7 : jsDay;
-        const slotKey = isoDay + '-' + clientSession.hour;
-        slots[slotKey] = true;
-        localStorage.setItem(slotsKey, JSON.stringify(slots));
-    }
-
-    removeEventFromClientCalendar(clientSession);
+    removeSessionEventFromCalendar(clientUserId, clientSession);
 
     closeCancelModal();
+    setTimeout(function () { renderSessions(); }, 50);
 
-    setTimeout(function () {
-        renderSessions();
-    }, 50);
+    // Уведомление психологу
+    if (clientSession && clientSession.psychologistUserId) {
+        var psyIdForNotif = clientSession.psychologistUserId;
+        var psyNotifsKey = 'psyhelp_notifications_' + psyIdForNotif;
+        try {
+            var psyList = JSON.parse(localStorage.getItem(psyNotifsKey)) || [];
+            if (!Array.isArray(psyList)) psyList = [];
+            psyList.unshift({
+                id: 'notif-' + Date.now() + '-cancel',
+                type: 'session_cancelled',
+                title: 'Сессия отменена клиентом',
+                text: 'Дата: ' + clientSession.date + ', ' + String(clientSession.hour).padStart(2, '0') + ':00' +
+                      (reason ? '. Причина: ' + reason : ''),
+                link: 'dashboard.html?section=sessions',
+                createdAt: Date.now(),
+                isRead: false
+            });
+            localStorage.setItem(psyNotifsKey, JSON.stringify(psyList));
+        } catch (e) {}
+    }
 
     alert('Сессия отменена.');
 }
 
-function removeEventFromClientCalendar(session) {
+function restoreFreeSlotForPsy(psyUserId, session) {
     if (!session) return;
-    const key = 'psyhelp_events_client';
+    const key = getEventsKeyFor(psyUserId);
+    const data = localStorage.getItem(key);
+    let events = [];
+    if (data) {
+        try {
+            const p = JSON.parse(data);
+            events = Array.isArray(p) ? p : [];
+        } catch (e) {}
+    }
+
+    const already = events.some(function (e) {
+        return e.category === 'free' && e.date === session.date && e.hour === session.hour;
+    });
+    if (already) return;
+
+    events.push({
+        id: 'restored-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        title: 'Свободно',
+        date: session.date,
+        hour: session.hour,
+        category: 'free'
+    });
+    localStorage.setItem(key, JSON.stringify(events));
+}
+
+function removeSessionEventFromCalendar(userId, session) {
+    if (!session) return;
+    const key = getEventsKeyFor(userId);
     const data = localStorage.getItem(key);
     if (!data) return;
     try {
