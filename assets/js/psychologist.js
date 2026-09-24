@@ -134,7 +134,6 @@ function renderProfile() {
     const stars = '★'.repeat(Math.round(currentPsy.rating)) + '☆'.repeat(5 - Math.round(currentPsy.rating));
 
     container.innerHTML =
-        // === Карточка психолога ===
         '<div class="psy-profile-card">' +
             '<div class="psy-profile-avatar">' + initials + '</div>' +
             '<div class="psy-profile-info">' +
@@ -150,7 +149,6 @@ function renderProfile() {
                     '<span class="psy-profile-reviews">' + currentPsy.rating + ' · ' + currentPsy.reviewsCount + ' отзывов</span>' +
                 '</div>' +
 
-                // === Кнопка «Написать» ===
                 '<div class="psy-profile-actions">' +
                     '<button type="button" class="psy-action-btn psy-action-write" id="writeToPsyBtn">' +
                         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
@@ -162,13 +160,11 @@ function renderProfile() {
             '</div>' +
         '</div>' +
 
-        // === О специалисте ===
         '<div class="psy-profile-section">' +
             '<h3>О специалисте</h3>' +
             '<p class="psy-profile-description">' + escapeHtml(currentPsy.description) + '</p>' +
         '</div>' +
 
-        // === Как записаться ===
         '<div class="psy-profile-section psy-how-to">' +
             '<h3>Как записаться на сессию</h3>' +
             '<ol class="how-to-steps">' +
@@ -188,7 +184,6 @@ function renderProfile() {
             '</ol>' +
         '</div>' +
 
-        // === Свободные слоты ===
         '<div class="psy-profile-section" id="slotsSection">' +
             '<h3>Свободные слоты</h3>' +
             '<div class="slots-toolbar">' +
@@ -201,7 +196,6 @@ function renderProfile() {
             '<div class="slots-container" id="psySlotsGrid"></div>' +
         '</div>';
 
-    // Обработчики фильтров
     container.querySelectorAll('.slot-filter').forEach(function (btn) {
         btn.addEventListener('click', function () {
             currentFilterDays = parseInt(btn.dataset.days);
@@ -212,7 +206,6 @@ function renderProfile() {
         });
     });
 
-    // Обработчик «Написать»
     const writeBtn = document.getElementById('writeToPsyBtn');
     if (writeBtn) {
         writeBtn.addEventListener('click', function () {
@@ -424,7 +417,9 @@ function confirmBooking() {
         topic: topic,
         price: currentPsy.price,
         status: 'confirmed',
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        remind24Sent: false,
+        remind1Sent: false
     };
 
     const clientSessions = readSessions(getSessionsKeyFor(clientUserId));
@@ -444,7 +439,9 @@ function confirmBooking() {
         topic: topic,
         price: booking.price,
         status: 'confirmed',
-        createdAt: booking.createdAt
+        createdAt: booking.createdAt,
+        remind24Sent: false,
+        remind1Sent: false
     });
     writeSessions(getSessionsKeyFor(psyUserId), psySessions);
 
@@ -480,17 +477,30 @@ function confirmBooking() {
     currentSlot = null;
     renderSlots();
 
-    
+    // ============================================
+    // УВЕДОМЛЕНИЯ
+    // ============================================
 
-        // Уведомление клиенту (уже своё ведро)
+    var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
+    var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
+    var psyName = currentPsy.firstName + ' ' + currentPsy.middleName;
+
     if (typeof window.Notifications !== 'undefined') {
+        // 1. Клиенту — в его ведро
         window.Notifications.add({
             type: 'session_booked',
             title: 'Сессия подтверждена',
-            text: currentPsy.firstName + ' ' + currentPsy.middleName + ': ' +
-                  formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00',
-            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
-            highlight: bookingId
+            text: psyName + ' — ' + dateTimeLabel + '. Стоимость: ' + priceLabel + '. ' +
+                  'Правила отмены: ≥48 ч — возврат 100%, 24–48 ч — 50%, <24 ч — без возврата.',
+            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId)
+        });
+
+        // 2. Психологу — в ЕГО ведро
+        window.Notifications.addForUser(psyUserId, {
+            type: 'session_booked',
+            title: 'Новая сессия',
+            text: clientFullName + ' записался на ' + dateTimeLabel + '. Тема: ' + topic + '.',
+            link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(bookingId)
         });
     }
 

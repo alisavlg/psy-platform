@@ -187,7 +187,6 @@ function renderSessions(tab) {
         listEl.appendChild(card);
     });
 
-    // Подсветка по ?highlight=
     var urlParams = new URLSearchParams(window.location.search);
     var highlightId = urlParams.get('highlight');
     if (highlightId) {
@@ -218,15 +217,15 @@ function openCancelModal(id) {
 
     let refundPercent = 0;
     let refundText = '';
-    if (hoursLeft >= 24) {
+    if (hoursLeft >= 48) {
         refundPercent = 100;
-        refundText = 'Возврат 100% — сессия отменяется заранее.';
-    } else if (hoursLeft >= 12) {
+        refundText = 'Возврат 100% — отмена более чем за 48 часов.';
+    } else if (hoursLeft >= 24) {
         refundPercent = 50;
-        refundText = 'Возврат 50% — до сессии меньше 24 часов.';
+        refundText = 'Возврат 50% — отмена менее чем за 48 часов.';
     } else {
         refundPercent = 0;
-        refundText = 'Возврат не производится — до сессии меньше 12 часов.';
+        refundText = 'Возврат не производится — отмена менее чем за 24 часа.';
     }
 
     const refundSum = Math.round(session.price * refundPercent / 100);
@@ -302,25 +301,26 @@ function confirmCancel() {
     closeCancelModal();
     setTimeout(function () { renderSessions(); }, 50);
 
-    // Уведомление психологу
-    if (clientSession && clientSession.psychologistUserId) {
-        var psyIdForNotif = clientSession.psychologistUserId;
-        var psyNotifsKey = 'psyhelp_notifications_' + psyIdForNotif;
-        try {
-            var psyList = JSON.parse(localStorage.getItem(psyNotifsKey)) || [];
-            if (!Array.isArray(psyList)) psyList = [];
-            psyList.unshift({
-                id: 'notif-' + Date.now() + '-cancel',
+    // Уведомления
+    if (clientSession) {
+        var dateLabel = clientSession.date + ' в ' + String(clientSession.hour).padStart(2, '0') + ':00';
+
+        // Расчёт возврата — чтобы указать в уведомлении
+        var sessionDT = getSessionDateTime(clientSession);
+        var hoursLeft = (sessionDT.getTime() - Date.now()) / 3600000;
+        var refundPercent = hoursLeft >= 48 ? 100 : (hoursLeft >= 24 ? 50 : 0);
+
+        if (typeof window.Notifications !== 'undefined' && psyUserId) {
+            // Психологу — в его ведро
+            window.Notifications.addForUser(psyUserId, {
                 type: 'session_cancelled',
                 title: 'Сессия отменена клиентом',
-                text: 'Дата: ' + clientSession.date + ', ' + String(clientSession.hour).padStart(2, '0') + ':00' +
-                      (reason ? '. Причина: ' + reason : ''),
-                link: 'dashboard.html?section=sessions',
-                createdAt: Date.now(),
-                isRead: false
+                text: 'Дата: ' + dateLabel + '. ' +
+                      (refundPercent > 0 ? 'Возврат клиенту: ' + refundPercent + '%. ' : 'Возврат: без возврата. ') +
+                      (reason ? 'Причина: ' + reason : ''),
+                link: 'dashboard.html?section=sessions'
             });
-            localStorage.setItem(psyNotifsKey, JSON.stringify(psyList));
-        } catch (e) {}
+        }
     }
 
     alert('Сессия отменена.');

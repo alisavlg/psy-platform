@@ -84,7 +84,8 @@ console.log('[notifications.js] loaded');
             application_needs_documents: '📄',
             session_booked: '📅',
             session_cancelled: '🚫',
-            session_reminder: '⏰'
+            session_reminder_24: '⏰',
+            session_reminder_1: '🔔'
         };
         return icons[type] || '🔔';
     }
@@ -93,7 +94,6 @@ console.log('[notifications.js] loaded');
         var actionsEl = document.querySelector('.topbar-actions');
         if (!actionsEl) return;
 
-        // Удаляем старую кнопку уведомлений
         var oldBtn = actionsEl.querySelector('.icon-btn[aria-label="Уведомления"]');
         if (oldBtn) oldBtn.remove();
 
@@ -178,18 +178,123 @@ console.log('[notifications.js] loaded');
         });
     }
 
+    // ============================================
+    // НАПОМИНАНИЯ О СЕССИЯХ
+    // за 24 часа и за 1 час
+    // ============================================
+
+    function addNotifForUser(userId, notif) {
+        var key = 'psyhelp_notifications_' + userId;
+        try {
+            var list = JSON.parse(localStorage.getItem(key)) || [];
+            if (!Array.isArray(list)) list = [];
+            list.unshift({
+                id: 'notif-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+                type: notif.type,
+                title: notif.title,
+                text: notif.text || '',
+                link: notif.link || '',
+                createdAt: Date.now(),
+                isRead: false
+            });
+            localStorage.setItem(key, JSON.stringify(list));
+        } catch (e) {}
+    }
+
+    function checkReminders() {
+        var userId = getUserId();
+        if (!userId || userId === 'anonymous') return;
+
+        var sessionsKey = 'psyhelp_sessions_' + userId;
+        var data = localStorage.getItem(sessionsKey);
+        if (!data) return;
+
+        var sessions;
+        try {
+            sessions = JSON.parse(data);
+            if (!Array.isArray(sessions)) return;
+        } catch (e) { return; }
+
+        var changed = false;
+        var now = Date.now();
+
+        sessions.forEach(function (s) {
+            if (s.status !== 'confirmed') return;
+            if (!s.date || s.hour === undefined) return;
+
+            var parts = s.date.split('-');
+            var sessionDate = new Date(
+                parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
+                s.hour, 0, 0
+            ).getTime();
+
+            var hoursLeft = (sessionDate - now) / 3600000;
+
+            // За 24 часа (24 >= hoursLeft > 1)
+            if (hoursLeft <= 24 && hoursLeft > 1 && !s.remind24Sent) {
+                var isClient = s.psychologistName && !s.clientName;
+                var who = '';
+                if (s.psychologistName) who = 'с ' + s.psychologistName;
+                else if (s.clientName) who = 'с ' + s.clientName;
+
+                addNotifForUser(userId, {
+                    type: 'session_reminder_24',
+                    title: 'Напоминание: сессия завтра',
+                    text: (who ? 'Сессия ' + who + ' — ' : 'Сессия — ') +
+                          formatDateHuman(s.date) + ' в ' + String(s.hour).padStart(2, '0') + ':00. ' +
+                          'Отмена менее чем за 24 часа — возврат 50%.',
+                    link: 'client.html?section=sessions&highlight=' + encodeURIComponent(s.id)
+                });
+                s.remind24Sent = true;
+                changed = true;
+            }
+
+            // За 1 час (1 >= hoursLeft > -1)
+            if (hoursLeft <= 1 && hoursLeft > -1 && !s.remind1Sent) {
+                addNotifForUser(userId, {
+                    type: 'session_reminder_1',
+                    title: 'Сессия через час',
+                    text: formatDateHuman(s.date) + ' в ' + String(s.hour).padStart(2, '0') + ':00. ' +
+                          'Отмена менее чем за час — без возврата.',
+                    link: 'client.html?section=sessions&highlight=' + encodeURIComponent(s.id)
+                });
+                s.remind1Sent = true;
+                changed = true;
+            }
+        });
+
+        if (changed) {
+            localStorage.setItem(sessionsKey, JSON.stringify(sessions));
+            render();
+        }
+    }
+
+    function formatDateHuman(dateStr) {
+        var months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+        var parts = dateStr.split('-');
+        var d = parseInt(parts[2]);
+        var m = parseInt(parts[1]) - 1;
+        return d + ' ' + months[m];
+    }
+
     window.Notifications = {
         add: add,
         getAll: getAll,
         markAllRead: markAllRead,
         markRead: markRead,
-        render: render
+        render: render,
+        addForUser: addNotifForUser,
+        checkReminders: checkReminders
     };
 
     function boot() {
         mountWidget();
         render();
-        setInterval(render, 5000);
+        checkReminders();
+        setInterval(function () {
+            render();
+            checkReminders();
+        }, 5 * 60 * 1000); // каждые 5 минут
     }
 
     if (document.readyState === 'loading') {
