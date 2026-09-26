@@ -61,6 +61,20 @@
         </div>
     </div>
 
+        <!-- Supabase -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        window.supa = createClient(
+            'https://ubbzkxxmgfvvyvfjfcmo.supabase.co',
+            'sb_publishable_miE5iopycXLfLa_XPektzQ_c-GanKnt'
+        );
+
+        console.log('[supabase] клиент создан');
+    </script>
     <script src="../assets/js/login.js"></script>
+
+
+
 </body>
 </html>

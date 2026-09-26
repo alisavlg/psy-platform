@@ -1,5 +1,5 @@
 // ============================================
-// Вход: валидация, отправка, редирект по ролям
+// Вход через Supabase
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -89,9 +89,16 @@ document.addEventListener('DOMContentLoaded', function () {
             : 'client.html?section=catalog';
     }
 
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
+    async function waitForSupa() {
+        for (var i = 0; i < 50; i++) {
+            if (window.supa) return true;
+            await new Promise(function (r) { setTimeout(r, 100); });
+        }
+        return false;
+    }
 
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
         if (!validateForm()) return;
 
         var submitBtn = document.getElementById('submitBtn');
@@ -99,45 +106,101 @@ document.addEventListener('DOMContentLoaded', function () {
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Входим...';
+        messageEl.className = 'form-message';
+        messageEl.textContent = '';
+
+        var ready = await waitForSupa();
+        if (!ready) {
+            messageEl.className = 'form-message error';
+            messageEl.textContent = 'Не удалось подключиться к серверу. Обновите страницу.';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Войти';
+            return;
+        }
 
         var email = document.getElementById('email').value.trim();
+        var password = document.getElementById('password').value;
 
-        setTimeout(function () {
-            var user = {};
-            try {
-                var raw = localStorage.getItem('psyhelp_user');
-                user = raw ? JSON.parse(raw) : {};
-            } catch (err) { user = {}; }
+        try {
+            console.log('[login] signIn...');
+            var signInResult = await window.supa.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
 
-            // Если аккаунта нет — отправляем на регистрацию
-            if (!user.id || !user.email) {
+            if (signInResult.error) {
+                console.error('[login] error:', signInResult.error);
+                var msg = signInResult.error.message || 'Неверный email или пароль';
+                if (msg.toLowerCase().indexOf('invalid') !== -1) {
+                    msg = 'Неверный email или пароль';
+                }
                 messageEl.className = 'form-message error';
-                messageEl.textContent = 'Аккаунт не найден. Сейчас перенаправим на регистрацию...';
-
-                setTimeout(function () {
-                    window.location.href = 'register.html';
-                }, 2000);
-                return;
-            }
-
-            // Если email не совпадает — ошибка
-            if (user.email.toLowerCase() !== email.toLowerCase()) {
-                messageEl.className = 'form-message error';
-                messageEl.textContent = 'Аккаунт с таким email не найден. Проверьте адрес или зарегистрируйтесь.';
+                messageEl.textContent = msg;
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Войти';
                 return;
             }
 
+            var authUser = signInResult.data.user;
+            console.log('[login] авторизован:', authUser.id);
+
+            // Загружаем профиль
+            var profileResult = await window.supa
+                .from('profiles')
+                .select('*')
+                .eq('id', authUser.id)
+                .single();
+
+            if (profileResult.error) {
+                console.error('[login] profile error:', profileResult.error);
+                messageEl.className = 'form-message error';
+                messageEl.textContent = 'Профиль не найден. Обратитесь в поддержку.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Войти';
+                return;
+            }
+
+            var profile = profileResult.data;
+
+            // Собираем psyhelp_user для совместимости с остальными скриптами
+            var userData = {
+                id: authUser.id,
+                code: profile.code || '',
+                email: authUser.email,
+                realFirstName: profile.real_first_name || '',
+                realMiddleName: profile.real_middle_name || '',
+                realLastName: profile.real_last_name || '',
+                displayFirstName: profile.display_first_name || '',
+                displayMiddleName: profile.display_middle_name || '',
+                phone: profile.phone || '',
+                timezone: profile.timezone || 'Europe/Moscow',
+                avatarUrl: profile.avatar_url || '',
+                roles: ['client'],
+                activeRole: 'client',
+                psychologistStatus: profile.psychologist_status || 'none',
+                isVerified: false,
+                registeredAt: profile.created_at ? new Date(profile.created_at).getTime() : Date.now(),
+                passwordChangedAt: Date.now()
+            };
+
+            localStorage.setItem('psyhelp_user', JSON.stringify(userData));
+
             messageEl.className = 'form-message success';
             messageEl.textContent = '✓ Вход выполнен. Перенаправляем...';
 
-            var redirectURL = getRedirectURL(user);
-            console.log('[login] роли:', user.roles, '→ редирект в:', redirectURL);
+            var redirectURL = getRedirectURL(userData);
+            console.log('[login] редирект в:', redirectURL);
 
             setTimeout(function () {
                 window.location.href = redirectURL;
             }, 1200);
-        }, 800);
+
+        } catch (err) {
+            console.error('[login] exception:', err);
+            messageEl.className = 'form-message error';
+            messageEl.textContent = 'Ошибка: ' + (err.message || 'попробуйте ещё раз');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Войти';
+        }
     });
 });

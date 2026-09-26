@@ -1,5 +1,5 @@
 // ============================================
-// Регистрация: валидация, генераторы, структура аккаунта
+// Регистрация через Supabase
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return pwd.split('').sort(function () { return Math.random() - 0.5; }).join('');
     }
 
-    // === Генераторы кода и id ===
+    // === Генератор кода пользователя ===
     function generateUserCode() {
         var letters = 'ACDEFHJKMNPRTUVWXY';
         var digits = '23456789';
@@ -99,10 +99,6 @@ document.addEventListener('DOMContentLoaded', function () {
             code += digits.charAt(Math.floor(Math.random() * digits.length));
         }
         return code;
-    }
-
-    function generateUserId() {
-        return 'u-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
     }
 
     // === Вспомогательные ===
@@ -135,7 +131,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return /^(\+7|8)\d{10}$/.test(cleaned);
     }
 
-    // === Валидация ===
     function validateForm() {
         var isValid = true;
 
@@ -191,8 +186,17 @@ document.addEventListener('DOMContentLoaded', function () {
         return isValid;
     }
 
+    // === Ждём, пока клиент Supabase загрузится ===
+    async function waitForSupa() {
+        for (var i = 0; i < 50; i++) {
+            if (window.supa) return true;
+            await new Promise(function (r) { setTimeout(r, 100); });
+        }
+        return false;
+    }
+
     // === Отправка ===
-    form.addEventListener('submit', function (e) {
+    form.addEventListener('submit', async function (e) {
         e.preventDefault();
         if (!validateForm()) return;
 
@@ -201,60 +205,134 @@ document.addEventListener('DOMContentLoaded', function () {
 
         submitBtn.disabled = true;
         submitBtn.textContent = 'Отправляем...';
+        messageEl.className = 'form-message';
+        messageEl.textContent = '';
 
+        // Ждём Supabase
+        var ready = await waitForSupa();
+        if (!ready) {
+            messageEl.className = 'form-message error';
+            messageEl.textContent = 'Не удалось подключиться к серверу. Обновите страницу.';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Зарегистрироваться';
+            return;
+        }
+
+        var email = document.getElementById('email').value.trim();
+        var password = passwordInput.value;
         var userCode = generateUserCode();
-        var userId = generateUserId();
 
-        // Реальные ФИО — для договора (не транслируются)
-        var realFirstName = document.getElementById('firstName').value.trim();
-        var realMiddleName = document.getElementById('middleName').value.trim();
-        var realLastName = document.getElementById('lastName').value.trim();
+        var firstName = document.getElementById('firstName').value.trim();
+        var middleName = document.getElementById('middleName').value.trim();
+        var lastName = document.getElementById('lastName').value.trim();
+        var phone = document.getElementById('phone').value.trim();
+        var timezone = document.getElementById('timezone').value;
 
-        var userData = {
-            id: userId,
-            code: userCode,
+        try {
+            // 1. Регистрация в auth
+            console.log('[register] signUp...');
+            var signUpResult = await window.supa.auth.signUp({
+                email: email,
+                password: password
+            });
 
-            // Реальные данные (не транслируются, кроме имени+отчества)
-            realFirstName: realFirstName,
-            realMiddleName: realMiddleName,
-            realLastName: realLastName,
+            if (signUpResult.error) {
+                console.error('[register] signUp error:', signUpResult.error);
 
-            // Транслируемое имя (пусто = используется имя+отчество из реальных)
-            displayFirstName: '',
-            displayMiddleName: '',
+                var msg = signUpResult.error.message || 'Ошибка регистрации';
+                if (msg.toLowerCase().indexOf('already') !== -1 ||
+                    msg.toLowerCase().indexOf('exists') !== -1) {
+                    msg = 'Пользователь с таким email уже зарегистрирован';
+                }
+                messageEl.className = 'form-message error';
+                messageEl.textContent = msg;
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Зарегистрироваться';
+                return;
+            }
 
-            avatarUrl: '',
+            // 2. Проверяем, что сессия создана (пользователь новый)
+            if (!signUpResult.data.session) {
+                // Email уже занят (Supabase не сообщает прямо, но сессии нет)
+                messageEl.className = 'form-message error';
+                messageEl.textContent = 'Пользователь с таким email уже зарегистрирован';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Зарегистрироваться';
+                return;
+            }
 
-            email: document.getElementById('email').value.trim(),
-            phone: document.getElementById('phone').value.trim(),
-            timezone: document.getElementById('timezone').value,
+            var userId = signUpResult.data.user.id;
+            console.log('[register] user создан:', userId);
 
-            // Роли
-            roles: ['client'],
-            activeRole: 'client',
-            psychologistStatus: 'none',
+            // 3. Создаём профиль
+            console.log('[register] создаём профиль...');
+            var profileResult = await window.supa.from('profiles').insert({
+                id: userId,
+                email: email,
+                code: userCode,
+                real_first_name: firstName,
+                real_middle_name: middleName,
+                real_last_name: lastName,
+                display_first_name: '',
+                display_middle_name: '',
+                phone: phone,
+                timezone: timezone,
+                avatar_url: '',
+                psychologist_status: 'none'
+            });
 
-            isVerified: false,
-            registeredAt: Date.now(),
-            passwordChangedAt: Date.now()
-        };
-        localStorage.setItem('psyhelp_user', JSON.stringify(userData));
+            if (profileResult.error) {
+                console.error('[register] profile error:', profileResult.error);
+                messageEl.className = 'form-message error';
+                messageEl.textContent = 'Аккаунт создан, но профиль не сохранился. Обратитесь в поддержку.';
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Зарегистрироваться';
+                return;
+            }
 
-        console.log('Регистрация, код:', userCode, 'роли:', userData.roles);
+            console.log('[register] профиль создан');
 
-        setTimeout(function () {
+            // 4. Сохраняем в localStorage для совместимости с остальными скриптами
+            var userData = {
+                id: userId,
+                code: userCode,
+                email: email,
+                realFirstName: firstName,
+                realMiddleName: middleName,
+                realLastName: lastName,
+                displayFirstName: '',
+                displayMiddleName: '',
+                phone: phone,
+                timezone: timezone,
+                avatarUrl: '',
+                roles: ['client'],
+                activeRole: 'client',
+                psychologistStatus: 'none',
+                isVerified: false,
+                registeredAt: Date.now(),
+                passwordChangedAt: Date.now()
+            };
+            localStorage.setItem('psyhelp_user', JSON.stringify(userData));
+
+            // 5. Успех
             messageEl.className = 'form-message success';
             messageEl.innerHTML =
                 '✓ Регистрация успешна!<br>' +
                 '<span style="font-size: 14px; opacity: 0.85;">' +
                     'Ваш код: <strong>' + userCode + '</strong>. Сохраните его.' +
                 '</span>';
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Зарегистрироваться';
+            submitBtn.textContent = 'Готово';
 
             setTimeout(function () {
                 window.location.href = 'client.html?section=catalog';
             }, 3000);
-        }, 1500);
+
+        } catch (err) {
+            console.error('[register] exception:', err);
+            messageEl.className = 'form-message error';
+            messageEl.textContent = 'Ошибка: ' + (err.message || 'попробуйте ещё раз');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Зарегистрироваться';
+        }
     });
 });
