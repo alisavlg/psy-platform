@@ -13,8 +13,12 @@
     <link rel="stylesheet" href="../assets/css/client.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/notifications.css">
+    
+
 </head>
 <body>
+
+    
     <div class="dashboard-layout">
 
         <aside class="sidebar">
@@ -438,6 +442,18 @@
     </div>
 
     <!-- Скрипты -->
+
+        <!-- Supabase -->
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        window.supa = createClient(
+            'https://ubbzkxxmgfvvyvfjfcmo.supabase.co',
+            'sb_publishable_miE5iopycXLfLa_XPektzQ_c-GanKnt'
+        );
+
+        console.log('[supabase] клиент создан');
+    </script>
     <script>window.CURRENT_USER = 'client';</script>
     <script src="../assets/js/user-menu.js"></script>
     <script src="../assets/js/notifications.js"></script>
