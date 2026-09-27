@@ -145,11 +145,11 @@ async function getSlotsFor(psy) {
             else if (e.category === 'free') free[k] = true;
         });
 
-        var result2 = {};
+        var freeKeys = {};
         Object.keys(free).forEach(function (k) {
-            if (!busy[k]) result2[k] = true;
+            if (!busy[k]) freeKeys[k] = true;
         });
-        return result2;
+        return freeKeys;
 
     } catch (err) {
         console.error('[psychologist] исключение:', err);
@@ -447,12 +447,45 @@ async function confirmBooking() {
         return;
     }
 
+    // === ПРОВЕРКА 1: не записываюсь к себе ===
     if (clientUserId === psyUserId) {
         alert('Нельзя записаться к самому себе.\n\nВыберите другого психолога в каталоге.');
         closeBookingModal();
         return;
     }
 
+    // === ПРОВЕРКА 2: у клиента на это время ничего нет ===
+    const bookedDate = new Date(currentSlot.date);
+    const bookedHour = currentSlot.hour;
+    const bookedDateStr = formatDateKey(bookedDate);
+
+    try {
+        var clientEventsResult = await window.supa
+            .from('events')
+            .select('id, category, title')
+            .eq('owner_id', clientUserId)
+            .eq('date', bookedDateStr)
+            .eq('hour', bookedHour);
+
+        if (clientEventsResult.error) {
+            console.error('[booking] check client events error:', clientEventsResult.error);
+        } else if (clientEventsResult.data && clientEventsResult.data.length > 0) {
+            var ev = clientEventsResult.data[0];
+            var what = ev.category === 'free'
+                ? 'У вас открыт слот для клиентов на это время.'
+                : 'У вас уже есть событие в планировщике на это время.';
+
+            alert(what + '\n\n' +
+                  'Одно время — одно событие.\n' +
+                  'Сначала снимите свой слот или выберите другое время.');
+            return;
+        }
+    } catch (err) {
+        console.error('[booking] exception check client:', err);
+        // при ошибке — идём дальше, не блокируем
+    }
+
+    // === ПРОВЕРКА 3: согласие с правилами ===
     const agreeEl = document.getElementById('agreeCancelRules');
     const agreeErrEl = document.getElementById('agreeCancelRulesError');
     if (!agreeEl || !agreeEl.checked) {
@@ -462,10 +495,7 @@ async function confirmBooking() {
         agreeErrEl.textContent = '';
     }
 
-    const bookedDate = new Date(currentSlot.date);
-    const bookedHour = currentSlot.hour;
-    const bookedDateStr = formatDateKey(bookedDate);
-
+    // === ПРОВЕРКА 4: имя и тема ===
     const nameEl = document.getElementById('bookingClientName');
     const clientFullName = nameEl ? capitalizeWords(nameEl.value.trim()) : '';
     const errEl = document.getElementById('bookingClientNameError');
@@ -486,9 +516,7 @@ async function confirmBooking() {
 
     const bookingId = 's-' + Date.now();
 
-    // ============================================
-    // 1. Атомарно удаляем free-слот из облака
-    // ============================================
+    // === ШАГ 1: атомарно удаляем free-слот психолога ===
     try {
         var delResult = await window.supa
             .from('events')
@@ -511,16 +539,13 @@ async function confirmBooking() {
             await renderSlots();
             return;
         }
-
     } catch (err) {
         console.error('[booking] exception delete:', err);
         alert('Ошибка бронирования: ' + (err.message || 'попробуйте ещё раз'));
         return;
     }
 
-    // ============================================
-    // 2. Создаём запись в sessions
-    // ============================================
+    // === ШАГ 2: создаём запись в sessions ===
     try {
         var sessionResult = await window.supa.from('sessions').insert({
             id: bookingId,
@@ -541,16 +566,13 @@ async function confirmBooking() {
             alert('Слот освобождён, но сессия не сохранилась. Обратитесь в поддержку.');
             return;
         }
-
     } catch (err) {
         console.error('[booking] exception session:', err);
         alert('Ошибка сохранения сессии: ' + (err.message || 'попробуйте ещё раз'));
         return;
     }
 
-    // ============================================
-    // 3. Событие в календаре психолога (если он есть)
-    // ============================================
+    // === ШАГ 3: событие в календаре психолога (если у него есть аккаунт) ===
     if (psyUserId) {
         try {
             var psyEventResult = await window.supa.from('events').insert({
@@ -568,16 +590,13 @@ async function confirmBooking() {
 
             if (psyEventResult.error) {
                 console.warn('[booking] psy event error:', psyEventResult.error);
-                // не критично — продолжаем
             }
         } catch (err) {
             console.warn('[booking] psy event exception:', err);
         }
     }
 
-    // ============================================
-    // 4. Событие в календаре клиента
-    // ============================================
+    // === ШАГ 4: событие в календаре клиента ===
     try {
         var clientEventResult = await window.supa.from('events').insert({
             owner_id: clientUserId,
@@ -592,15 +611,12 @@ async function confirmBooking() {
 
         if (clientEventResult.error) {
             console.warn('[booking] client event error:', clientEventResult.error);
-            // не критично — сессия уже создана
         }
     } catch (err) {
         console.warn('[booking] client event exception:', err);
     }
 
-    // ============================================
-    // 5. Уведомление клиенту (в localStorage, пока)
-    // ============================================
+    // === ШАГ 5: уведомление клиенту ===
     try {
         var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
         var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
@@ -624,9 +640,7 @@ async function confirmBooking() {
         console.warn('[booking] notification error:', e);
     }
 
-    // ============================================
-    // 6. Завершение
-    // ============================================
+    // === ШАГ 6: завершение ===
     closeBookingModal();
     currentSlot = null;
     await renderSlots();
