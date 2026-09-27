@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 timezone: profile.timezone || 'Europe/Moscow',
                 avatarUrl: profile.avatar_url || '',
                 roles: Array.isArray(profile.roles) ? profile.roles : ['client'],
-                activeRole: 'client',
+                activeRole: (Array.isArray(profile.roles) && profile.roles.indexOf('psychologist') !== -1) ? 'psychologist' : 'client',
                 psychologistStatus: profile.psychologist_status || 'none',
                 isVerified: false,
                 registeredAt: profile.created_at ? new Date(profile.created_at).getTime() : Date.now(),
