@@ -279,6 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 timezone: timezone,
                 avatar_url: '',
                 psychologist_status: 'none'
+                roles: ['client']
             });
 
             if (profileResult.error) {

@@ -74,7 +74,7 @@ async function loadProfileFromSupabase() {
             phone: p.phone || '',
             timezone: p.timezone || 'Europe/Moscow',
             avatarUrl: p.avatar_url || '',
-            roles: ['client'],
+            roles:  Array.isArray(p.roles) ? p.roles : ['client'],
             activeRole: 'client',
             psychologistStatus: p.psychologist_status || 'none',
             isVerified: false,

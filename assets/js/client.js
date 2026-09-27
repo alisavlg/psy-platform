@@ -7,6 +7,21 @@ console.log('[client.js] loaded');
 window.CURRENT_USER = window.CURRENT_USER || 'client';
 
 // ============================================
+// Ждём Supabase
+// ============================================
+
+async function waitForSupaClient(maxAttempts) {
+    return new Promise(function (resolve) {
+        var attempts = 0;
+        var timer = setInterval(function () {
+            attempts++;
+            if (window.supa) { clearInterval(timer); resolve(true); }
+            else if (attempts >= maxAttempts) { clearInterval(timer); resolve(false); }
+        }, 100);
+    });
+}
+
+// ============================================
 // Проверка авторизации и роли
 // ============================================
 
@@ -29,7 +44,6 @@ function checkClientAccess() {
 
     var roles = Array.isArray(user.roles) ? user.roles : [];
 
-    // Старый аккаунт без ролей — считаем клиентом
     if (roles.length === 0) {
         user.roles = ['client'];
         user.activeRole = 'client';
@@ -115,102 +129,62 @@ function renderClientSection() {
 }
 
 // ============================================
-// КАТАЛОГ ПСИХОЛОГОВ
+// КАТАЛОГ ПСИХОЛОГОВ — из Supabase
 // ============================================
 
-const PSY_REGISTRY_KEY = 'psyhelp_psychologists_registry';
-
-function getPsychologists() {
-    const data = localStorage.getItem(PSY_REGISTRY_KEY);
-    if (data) {
-        try { return JSON.parse(data); } catch (e) { console.error(e); }
-    }
-
-    const demo = [
-        {
-            id: 'psy-1',
-            firstName: 'Анна',
-            middleName: 'Сергеевна',
-            specialty: 'Тревога, отношения, самооценка',
-            description: 'Помогаю справляться с тревогой, строить здоровые отношения и повышать самооценку.',
-            experience: 8,
-            price: 3000,
-            rating: 4.8,
-            reviewsCount: 42,
-            isVerified: true,
-            photoUrl: ''
-        },
-        {
-            id: 'psy-2',
-            firstName: 'Иван',
-            middleName: 'Сергеевич',
-            specialty: 'Семейная терапия',
-            description: 'Работаю с парами и семьями. Помогаю наладить коммуникацию и вернуть доверие.',
-            experience: 12,
-            price: 4500,
-            rating: 4.9,
-            reviewsCount: 87,
-            isVerified: true,
-            photoUrl: ''
-        },
-        {
-            id: 'psy-3',
-            firstName: 'Мария',
-            middleName: 'Петровна',
-            specialty: 'Детская психология',
-            description: 'Работаю с детьми и подростками. Помогаю справляться с тревогой, адаптацией, поведением.',
-            experience: 6,
-            price: 2500,
-            rating: 4.7,
-            reviewsCount: 31,
-            isVerified: true,
-            photoUrl: ''
-        },
-        {
-            id: 'psy-4',
-            firstName: 'Ольга',
-            middleName: 'Викторовна',
-            specialty: 'Депрессия, самооценка',
-            description: 'КПТ-подход. Работаю с депрессивными состояниями, выгоранием, потерей смысла.',
-            experience: 15,
-            price: 5000,
-            rating: 5.0,
-            reviewsCount: 124,
-            isVerified: true,
-            photoUrl: ''
-        },
-        {
-            id: 'psy-5',
-            firstName: 'Дмитрий',
-            middleName: 'Андреевич',
-            specialty: 'Отношения, тревога',
-            description: 'Гештальт-подход. Помогаю разобраться в себе и построить гармоничные отношения.',
-            experience: 4,
-            price: 2000,
-            rating: 4.5,
-            reviewsCount: 18,
-            isVerified: true,
-            photoUrl: ''
-        }
-    ];
-    savePsychologists(demo);
-    return demo;
+function normalizePsychologist(row) {
+    return {
+        id: row.id,
+        userId: row.user_id || null,
+        firstName: row.first_name || '',
+        middleName: row.middle_name || '',
+        specialty: row.specialty || '',
+        description: row.description || '',
+        experience: row.experience || 0,
+        price: row.price || 0,
+        rating: Number(row.rating) || 0,
+        reviewsCount: row.reviews_count || 0,
+        isVerified: row.is_verified === true
+    };
 }
 
-function savePsychologists(list) {
-    localStorage.setItem(PSY_REGISTRY_KEY, JSON.stringify(list));
+async function fetchPsychologistsFromSupabase() {
+    if (!window.supa) {
+        console.warn('[client] supa не загружен');
+        return [];
+    }
+
+    try {
+        var result = await window.supa
+            .from('psychologist_profiles')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (result.error) {
+            console.error('[client] ошибка загрузки каталога:', result.error);
+            return [];
+        }
+
+        return (result.data || []).map(normalizePsychologist);
+
+    } catch (err) {
+        console.error('[client] исключение при загрузке:', err);
+        return [];
+    }
 }
 
 let catalogSearchQuery = '';
 let catalogSpecialty = '';
 let catalogMaxPrice = 0;
 
-function renderCatalog() {
+async function renderCatalog() {
     const listEl = document.getElementById('catalogList');
     const countEl = document.getElementById('catalogCount');
     if (!listEl) return;
 
-    const all = getPsychologists();
+    listEl.innerHTML = '<div class="catalog-empty"><p>Загрузка...</p></div>';
+
+    const all = await fetchPsychologistsFromSupabase();
 
     const filtered = all.filter(function (p) {
         if (catalogSearchQuery) {
@@ -292,8 +266,10 @@ function escapeHtml(text) {
 // Инициализация
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Проверка доступа
+document.addEventListener('DOMContentLoaded', async function () {
+    // Ждём Supabase
+    await waitForSupaClient(50);
+
     if (!checkClientAccess()) return;
 
     renderClientSection();

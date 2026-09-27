@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 phone: profile.phone || '',
                 timezone: profile.timezone || 'Europe/Moscow',
                 avatarUrl: profile.avatar_url || '',
-                roles: ['client'],
+                roles: Array.isArray(profile.roles) ? profile.roles : ['client'],
                 activeRole: 'client',
                 psychologistStatus: profile.psychologist_status || 'none',
                 isVerified: false,
