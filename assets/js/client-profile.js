@@ -1,5 +1,5 @@
 // ============================================
-// ПРОФИЛЬ КЛИЕНТА — данные аккаунта, аватар, безопасность
+// ПРОФИЛЬ КЛИЕНТА — данные из Supabase
 // ============================================
 
 console.log('[client-profile.js] loaded');
@@ -8,7 +8,7 @@ const CLIENT_USER_KEY = 'psyhelp_user';
 const PASSWORD_MAX_AGE_DAYS = 60;
 
 // ============================================
-// Хранилище
+// Хранилище (localStorage — кеш)
 // ============================================
 
 function getClientUser() {
@@ -22,6 +22,105 @@ function getClientUser() {
 
 function saveClientUser(user) {
     localStorage.setItem(CLIENT_USER_KEY, JSON.stringify(user));
+}
+
+// ============================================
+// Supabase — загрузка и сохранение
+// ============================================
+
+async function waitForSupa(maxAttempts) {
+    return new Promise(function (resolve) {
+        var attempts = 0;
+        var timer = setInterval(function () {
+            attempts++;
+            if (window.supa) { clearInterval(timer); resolve(true); }
+            else if (attempts >= maxAttempts) { clearInterval(timer); resolve(false); }
+        }, 100);
+    });
+}
+
+async function loadProfileFromSupabase() {
+    try {
+        var sessionResult = await window.supa.auth.getSession();
+        if (sessionResult.error || !sessionResult.data.session) {
+            console.warn('[client-profile] нет сессии');
+            return null;
+        }
+
+        var userId = sessionResult.data.session.user.id;
+        var authEmail = sessionResult.data.session.user.email;
+
+        var result = await window.supa
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (result.error || !result.data) {
+            console.error('[client-profile] не удалось загрузить профиль:', result.error);
+            return null;
+        }
+
+        var p = result.data;
+        var userData = {
+            id: userId,
+            code: p.code || '',
+            email: p.email || authEmail,
+            realFirstName: p.real_first_name || '',
+            realMiddleName: p.real_middle_name || '',
+            realLastName: p.real_last_name || '',
+            displayFirstName: p.display_first_name || '',
+            displayMiddleName: p.display_middle_name || '',
+            phone: p.phone || '',
+            timezone: p.timezone || 'Europe/Moscow',
+            avatarUrl: p.avatar_url || '',
+            roles: ['client'],
+            activeRole: 'client',
+            psychologistStatus: p.psychologist_status || 'none',
+            isVerified: false,
+            registeredAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
+            passwordChangedAt: Date.now()
+        };
+
+        saveClientUser(userData);
+        return userData;
+
+    } catch (err) {
+        console.error('[client-profile] исключение при загрузке:', err);
+        return null;
+    }
+}
+
+async function saveProfileToSupabase(data) {
+    try {
+        var sessionResult = await window.supa.auth.getSession();
+        if (sessionResult.error || !sessionResult.data.session) {
+            return { success: false, error: 'Нет активной сессии' };
+        }
+
+        var userId = sessionResult.data.session.user.id;
+
+        var result = await window.supa
+            .from('profiles')
+            .update({
+                display_first_name: data.displayFirstName || '',
+                display_middle_name: data.displayMiddleName || '',
+                phone: data.phone || '',
+                timezone: data.timezone || 'Europe/Moscow'
+            })
+            .eq('id', userId);
+
+        if (result.error) {
+            console.error('[client-profile] update error:', result.error);
+            return { success: false, error: result.error.message };
+        }
+
+        return { success: true };
+
+    } catch (err) {
+        console.error('[client-profile] exception:', err);
+        return { success: false, error: err.message || 'Ошибка' };
+    }
 }
 
 // ============================================
@@ -47,7 +146,6 @@ function getDisplayName(user) {
 function renderClientProfile() {
     const user = getClientUser();
 
-    // ФИО — реальные (read-only)
     const realF = document.getElementById('clientRealFirstName');
     const realM = document.getElementById('clientRealMiddleName');
     const realL = document.getElementById('clientRealLastName');
@@ -56,7 +154,6 @@ function renderClientProfile() {
     if (realM) realM.textContent = user.realMiddleName || '—';
     if (realL) realL.textContent = user.realLastName || '—';
 
-    // Бейдж — только роль клиента (никогда «Психолог проверен»)
     const badge = document.getElementById('clientVerifyBadge');
     if (badge) {
         const status = user.psychologistStatus || 'none';
@@ -69,7 +166,6 @@ function renderClientProfile() {
         }
     }
 
-    // Транслируемое имя
     const dispF = document.getElementById('displayFirstName');
     const dispM = document.getElementById('displayMiddleName');
     if (dispF) dispF.value = user.displayFirstName || '';
@@ -78,7 +174,6 @@ function renderClientProfile() {
     const preview = document.getElementById('displayNamePreview');
     if (preview) preview.textContent = getDisplayName(user);
 
-    // Аватар
     const avatarEl = document.getElementById('clientAvatarPreview');
     if (avatarEl) {
         if (user.avatarUrl) {
@@ -90,11 +185,9 @@ function renderClientProfile() {
         }
     }
 
-    // Код
     const codeEl = document.getElementById('clientUserCode');
     if (codeEl) codeEl.textContent = user.code || 'CL-0000';
 
-    // Контакты
     const emailEl = document.getElementById('clientEmail');
     if (emailEl) emailEl.value = user.email || '';
 
@@ -104,7 +197,6 @@ function renderClientProfile() {
     const tzEl = document.getElementById('clientTimezone');
     if (tzEl) tzEl.value = user.timezone || 'Europe/Moscow';
 
-    // Кнопка «Стать психологом»
     const becomeBlock = document.getElementById('becomePsychologistBlock');
     if (becomeBlock) {
         const status = user.psychologistStatus || 'none';
@@ -124,7 +216,6 @@ function renderClientProfile() {
         }
     }
 
-    // Статус пароля
     renderClientPasswordStatus(user);
 }
 
@@ -179,36 +270,23 @@ function renderClientPasswordStatus(user) {
 // Сохранение профиля
 // ============================================
 
-function handleClientProfileSave(e) {
+async function handleClientProfileSave(e) {
     e.preventDefault();
 
     const user = getClientUser();
 
     const dispF = document.getElementById('displayFirstName');
     const dispM = document.getElementById('displayMiddleName');
-    const emailEl = document.getElementById('clientEmail');
     const phoneEl = document.getElementById('clientPhone');
     const tzEl = document.getElementById('clientTimezone');
     const msgEl = document.getElementById('clientProfileMessage');
 
     const displayFirstName = dispF ? dispF.value.trim() : '';
     const displayMiddleName = dispM ? dispM.value.trim() : '';
-    const email = emailEl ? emailEl.value.trim() : '';
     const phone = phoneEl ? phoneEl.value.trim() : '';
     const timezone = tzEl ? tzEl.value : 'Europe/Moscow';
 
     let isValid = true;
-
-    const emailError = document.getElementById('clientEmailError');
-    if (!email) {
-        if (emailError) emailError.textContent = 'Введите email';
-        isValid = false;
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        if (emailError) emailError.textContent = 'Неверный формат email';
-        isValid = false;
-    } else if (emailError) {
-        emailError.textContent = '';
-    }
 
     const phoneError = document.getElementById('clientPhoneError');
     const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
@@ -224,9 +302,32 @@ function handleClientProfileSave(e) {
 
     if (!isValid) return;
 
+    if (msgEl) {
+        msgEl.className = 'form-message';
+        msgEl.textContent = 'Сохранение...';
+        msgEl.className = 'form-message';
+        msgEl.style.display = 'block';
+    }
+
+    // Сохраняем в Supabase
+    var result = await saveProfileToSupabase({
+        displayFirstName: displayFirstName,
+        displayMiddleName: displayMiddleName,
+        phone: phone,
+        timezone: timezone
+    });
+
+    if (!result.success) {
+        if (msgEl) {
+            msgEl.className = 'form-message error';
+            msgEl.textContent = 'Ошибка: ' + result.error;
+        }
+        return;
+    }
+
+    // Обновляем кеш localStorage
     user.displayFirstName = displayFirstName;
     user.displayMiddleName = displayMiddleName;
-    user.email = email;
     user.phone = phone;
     user.timezone = timezone;
     saveClientUser(user);
@@ -239,6 +340,7 @@ function handleClientProfileSave(e) {
         msgEl.textContent = '✓ Изменения сохранены';
         setTimeout(function () {
             msgEl.className = 'form-message';
+            msgEl.style.display = '';
         }, 3000);
     }
 
@@ -272,15 +374,15 @@ function copyClientCode() {
 }
 
 // ============================================
-// Загрузка аватара
+// Загрузка аватара (пока base64 в localStorage)
 // ============================================
 
 function handleAvatarUpload(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert('Файл больше 5 МБ. Выберите меньший.');
+    if (file.size > 2 * 1024 * 1024) {
+        alert('Файл больше 2 МБ. Выберите меньший.\n\n(Загрузка больших фото появится позже — через хранилище файлов.)');
         return;
     }
 
@@ -307,7 +409,7 @@ function handleAvatarUpload(e) {
 }
 
 // ============================================
-// Смена пароля
+// Смена пароля через Supabase
 // ============================================
 
 function toggleClientPasswordForm() {
@@ -335,7 +437,7 @@ function cancelClientPasswordChange() {
     if (msg) msg.className = 'change-password-message';
 }
 
-function handleClientPasswordChange() {
+async function handleClientPasswordChange() {
     const current = document.getElementById('clientCurrentPassword').value;
     const newPwd = document.getElementById('clientNewPassword').value;
     const newPwd2 = document.getElementById('clientNewPassword2').value;
@@ -375,36 +477,92 @@ function handleClientPasswordChange() {
 
     if (!isValid) return;
 
-    const user = getClientUser();
-    user.passwordChangedAt = Date.now();
-    saveClientUser(user);
+    // Проверяем текущий пароль через signInWithPassword
+    try {
+        var sessionResult = await window.supa.auth.getSession();
+        if (!sessionResult.data.session) {
+            if (msg) {
+                msg.className = 'change-password-message error';
+                msg.textContent = 'Нет активной сессии';
+            }
+            return;
+        }
 
-    if (msg) {
-        msg.className = 'change-password-message success';
-        msg.textContent = '✓ Пароль успешно изменён.';
+        var email = sessionResult.data.session.user.email;
+
+        // Проверка текущего пароля
+        var checkResult = await window.supa.auth.signInWithPassword({
+            email: email,
+            password: current
+        });
+
+        if (checkResult.error) {
+            showErr('clientCurrentPassword', 'Неверный текущий пароль');
+            return;
+        }
+
+        // Обновляем пароль
+        var updateResult = await window.supa.auth.updateUser({
+            password: newPwd
+        });
+
+        if (updateResult.error) {
+            if (msg) {
+                msg.className = 'change-password-message error';
+                msg.textContent = 'Ошибка: ' + updateResult.error.message;
+            }
+            return;
+        }
+
+        const user = getClientUser();
+        user.passwordChangedAt = Date.now();
+        saveClientUser(user);
+
+        if (msg) {
+            msg.className = 'change-password-message success';
+            msg.textContent = '✓ Пароль успешно изменён.';
+        }
+
+        renderClientPasswordStatus(user);
+
+        setTimeout(function () {
+            cancelClientPasswordChange();
+        }, 2000);
+
+    } catch (err) {
+        console.error('[client-profile] пароль — исключение:', err);
+        if (msg) {
+            msg.className = 'change-password-message error';
+            msg.textContent = 'Ошибка: ' + (err.message || 'попробуйте ещё раз');
+        }
     }
-
-    renderClientPasswordStatus(user);
-
-    setTimeout(function () {
-        cancelClientPasswordChange();
-    }, 2000);
 }
 
 // ============================================
 // Кнопка «Стать психологом»
 // ============================================
 
-
- function handleBecomePsychologist() {
+function handleBecomePsychologist() {
     window.location.href = 'become-psychologist.html';
-}   
+}
 
 // ============================================
 // Инициализация
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    // Сначала — загружаем свежий профиль из Supabase
+    var ready = await waitForSupa(50);
+    if (ready) {
+        await loadProfileFromSupabase();
+    } else {
+        console.warn('[client-profile] Supabase не загрузился, работаем с кешем');
+    }
+
+    // Рендер
+    renderClientProfile();
+
+    // Обработчики
     const form = document.getElementById('clientProfileForm');
     if (form) form.addEventListener('submit', handleClientProfileSave);
 
