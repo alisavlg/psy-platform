@@ -230,9 +230,7 @@ console.log('[notifications.js] loaded');
 
             var hoursLeft = (sessionDate - now) / 3600000;
 
-            // За 24 часа (24 >= hoursLeft > 1)
             if (hoursLeft <= 24 && hoursLeft > 1 && !s.remind24Sent) {
-                var isClient = s.psychologistName && !s.clientName;
                 var who = '';
                 if (s.psychologistName) who = 'с ' + s.psychologistName;
                 else if (s.clientName) who = 'с ' + s.clientName;
@@ -249,7 +247,6 @@ console.log('[notifications.js] loaded');
                 changed = true;
             }
 
-            // За 1 час (1 >= hoursLeft > -1)
             if (hoursLeft <= 1 && hoursLeft > -1 && !s.remind1Sent) {
                 addNotifForUser(userId, {
                     type: 'session_reminder_1',
@@ -287,14 +284,41 @@ console.log('[notifications.js] loaded');
         checkReminders: checkReminders
     };
 
+    // ============================================
+    // Инициализация
+    // ============================================
+
     function boot() {
         mountWidget();
         render();
         checkReminders();
+
+        // Обновляем раз в 10 секунд (было — 5 минут)
         setInterval(function () {
             render();
             checkReminders();
-        }, 5 * 60 * 1000); // каждые 5 минут
+        }, 10000);
+
+        // При возврате на вкладку — сразу проверяем
+        window.addEventListener('focus', function () {
+            render();
+            checkReminders();
+        });
+
+        // При переключении видимости вкладки — тоже
+        document.addEventListener('visibilitychange', function () {
+            if (document.visibilityState === 'visible') {
+                render();
+                checkReminders();
+            }
+        });
+
+        // Между вкладками того же браузера — синхронизация
+        window.addEventListener('storage', function (e) {
+            if (e.key && e.key.indexOf('psyhelp_notifications_') === 0) {
+                render();
+            }
+        });
     }
 
     if (document.readyState === 'loading') {

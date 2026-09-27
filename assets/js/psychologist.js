@@ -573,10 +573,10 @@ async function confirmBooking() {
     }
 
     // === ШАГ 3: событие в календаре психолога (если у него есть аккаунт) ===
-    if (psyUserId) {
-        try {
-            var psyEventResult = await window.supa.from('events').insert({
-                owner_id: psyUserId,
+    if (currentPsy.userId) {
+    try {
+        var psyEventResult = await window.supa.from('events').insert({
+            owner_id: currentPsy.userId,
                 psychologist_id: currentPsy.id,
                 title: 'Сессия: ' + shortClientName,
                 date: bookedDateStr,
