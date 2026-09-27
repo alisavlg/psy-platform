@@ -208,7 +208,6 @@ document.addEventListener('DOMContentLoaded', function () {
         messageEl.className = 'form-message';
         messageEl.textContent = '';
 
-        // Ждём Supabase
         var ready = await waitForSupa();
         if (!ready) {
             messageEl.className = 'form-message error';
@@ -229,7 +228,6 @@ document.addEventListener('DOMContentLoaded', function () {
         var timezone = document.getElementById('timezone').value;
 
         try {
-            // 1. Регистрация в auth
             console.log('[register] signUp...');
             var signUpResult = await window.supa.auth.signUp({
                 email: email,
@@ -251,9 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // 2. Проверяем, что сессия создана (пользователь новый)
             if (!signUpResult.data.session) {
-                // Email уже занят (Supabase не сообщает прямо, но сессии нет)
                 messageEl.className = 'form-message error';
                 messageEl.textContent = 'Пользователь с таким email уже зарегистрирован';
                 submitBtn.disabled = false;
@@ -264,7 +260,6 @@ document.addEventListener('DOMContentLoaded', function () {
             var userId = signUpResult.data.user.id;
             console.log('[register] user создан:', userId);
 
-            // 3. Создаём профиль
             console.log('[register] создаём профиль...');
             var profileResult = await window.supa.from('profiles').insert({
                 id: userId,
@@ -278,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 phone: phone,
                 timezone: timezone,
                 avatar_url: '',
-                psychologist_status: 'none'
+                psychologist_status: 'none',
                 roles: ['client']
             });
 
@@ -293,7 +288,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             console.log('[register] профиль создан');
 
-            // 4. Сохраняем в localStorage для совместимости с остальными скриптами
             var userData = {
                 id: userId,
                 code: userCode,
@@ -315,7 +309,6 @@ document.addEventListener('DOMContentLoaded', function () {
             };
             localStorage.setItem('psyhelp_user', JSON.stringify(userData));
 
-            // 5. Успех
             messageEl.className = 'form-message success';
             messageEl.innerHTML =
                 '✓ Регистрация успешна!<br>' +

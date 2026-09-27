@@ -639,6 +639,27 @@ async function confirmBooking() {
     } catch (e) {
         console.warn('[booking] notification error:', e);
     }
+    // === ШАГ 5b: уведомление психологу ===
+    if (psyUserId && psyUserId !== clientUserId) {
+        try {
+            var psyNotifKey = 'psyhelp_notifications_' + psyUserId;
+            var psyNotifList = JSON.parse(localStorage.getItem(psyNotifKey)) || [];
+            if (!Array.isArray(psyNotifList)) psyNotifList = [];
+            psyNotifList.unshift({
+                id: 'notif-' + Date.now() + '-book-psy',
+                type: 'session_booked',
+                title: 'Новая сессия',
+                text: clientFullName + ' записался на ' + dateTimeLabel + '. Тема: ' + topic + '.',
+                link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
+                createdAt: Date.now(),
+                isRead: false
+            });
+            localStorage.setItem(psyNotifKey, JSON.stringify(psyNotifList));
+        } catch (e) {
+            console.warn('[booking] psy notification error:', e);
+        }
+    }
+
 
     // === ШАГ 6: завершение ===
     closeBookingModal();
