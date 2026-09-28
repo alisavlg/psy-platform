@@ -188,7 +188,7 @@ async function renderPsySessions(tab) {
         if (psySessionsTab === 'upcoming' && session.status === 'confirmed') {
             var now = new Date();
             var diffMinutes = (now.getTime() - dt.getTime()) / 60000;
-            var canComplete = diffMinutes >= 0;
+            
             var canJoin = diffMinutes <= 5 && diffMinutes >= -120;
 
             actionsHtml +=
@@ -199,12 +199,7 @@ async function renderPsySessions(tab) {
                     (canJoin ? 'Войти в комнату' : 'Комната откроется за 5 мин') +
                 '</a>';
 
-            actionsHtml +=
-                '<button class="session-btn session-btn-complete" ' +
-                        (canComplete ? '' : 'disabled') + ' ' +
-                        'data-action="complete" data-id="' + session.id + '">' +
-                    (canComplete ? 'Проведена' : 'Начнётся ' + timeFormatted) +
-                '</button>';
+            
 
             actionsHtml +=
                 '<button class="session-btn session-btn-cancel" ' +
@@ -247,7 +242,7 @@ async function renderPsySessions(tab) {
             btn.addEventListener('click', function () {
                 var action = btn.dataset.action;
                 var id = btn.dataset.id;
-                if (action === 'complete') completeSession(id);
+                
                 if (action === 'chat') chatWithClient(id);
                 if (action === 'cancel') openPsyCancelModal(id);
             });
@@ -272,38 +267,6 @@ async function renderPsySessions(tab) {
 // Действия
 // ============================================
 
-async function completeSession(id) {
-    if (!confirm('Отметить сессию как проведённую?')) return;
-
-    try {
-        var result = await window.supa
-            .from('sessions')
-            .update({
-                status: 'completed',
-                completed_at: new Date().toISOString()
-            })
-            .eq('id', id);
-
-        if (result.error) {
-            console.error('[psy-sessions] complete error:', result.error);
-            alert('Ошибка: ' + result.error.message);
-            return;
-        }
-
-        // Убираем session-событие из календаря психолога
-        await window.supa
-            .from('events')
-            .delete()
-            .eq('session_id', id)
-            .eq('owner_id', getCurrentUserId());
-
-        await renderPsySessions();
-        alert('Сессия отмечена как проведённая.');
-    } catch (err) {
-        console.error('[psy-sessions] exception:', err);
-        alert('Ошибка: ' + (err.message || 'попробуйте ещё раз'));
-    }
-}
 
 function chatWithClient(id) {
     alert('💬 Чат появится в следующих обновлениях.\n\nДля связи используйте раздел «Сообщения».');

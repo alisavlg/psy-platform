@@ -14,10 +14,6 @@ const STATUS_LABELS = {
 let sessionsTab = 'upcoming';
 let cachedSessions = [];
 
-// ============================================
-// Supabase helper
-// ============================================
-
 async function waitForSupaSess(maxAttempts) {
     return new Promise(function (resolve) {
         var attempts = 0;
@@ -36,10 +32,6 @@ function getCurrentUserId() {
     } catch (e) { return null; }
 }
 
-// ============================================
-// Загрузка сессий клиента из Supabase
-// ============================================
-
 async function loadClientSessions() {
     var userId = getCurrentUserId();
     if (!userId || !window.supa) return [];
@@ -56,17 +48,9 @@ async function loadClientSessions() {
             console.error('[sessions] ошибка загрузки:', result.error);
             return [];
         }
-
         return result.data || [];
-    } catch (err) {
-        console.error('[sessions] исключение:', err);
-        return [];
-    }
+    } catch (err) { return []; }
 }
-
-// ============================================
-// Разделение upcoming / past
-// ============================================
 
 function getSessionDateTime(session) {
     var parts = session.date.split('-');
@@ -81,10 +65,6 @@ function isUpcoming(session) {
 function isPast(session) {
     return !isUpcoming(session);
 }
-
-// ============================================
-// Отрисовка
-// ============================================
 
 async function renderSessions(tab) {
     if (tab) sessionsTab = tab;
@@ -142,7 +122,8 @@ async function renderSessions(tab) {
         var statusClass = session.status;
 
         var actionsHtml = '';
-        if (sessionsTab === 'upcoming') {
+
+        if (sessionsTab === 'upcoming' && session.status === 'confirmed') {
             var now = new Date();
             var diffMinutes = (dt.getTime() - now.getTime()) / 60000;
             var canJoin = diffMinutes <= 5 && diffMinutes >= -60;
@@ -156,6 +137,12 @@ async function renderSessions(tab) {
                 '</a>' +
                 '<button class="session-btn session-btn-cancel" data-action="cancel" data-id="' + session.id + '">Отменить</button>' +
                 '<a class="session-btn session-btn-profile" href="psychologist.html?id=' + session.psychologist_id + '">Профиль</a>';
+        }
+
+        // В Истории — только ссылка на профиль психолога
+        if (sessionsTab === 'past' && session.status !== 'cancelled') {
+            actionsHtml +=
+                '<a class="session-btn session-btn-profile" href="psychologist.html?id=' + session.psychologist_id + '">Профиль психолога</a>';
         }
 
         card.innerHTML =
@@ -287,7 +274,6 @@ async function confirmCancel() {
     var hoursLeft = (dt.getTime() - Date.now()) / 3600000;
     var refundPercent = hoursLeft >= 48 ? 100 : (hoursLeft >= 24 ? 50 : 0);
 
-    // 1. Обновляем сессию
     try {
         var updateResult = await window.supa
             .from('sessions')
@@ -301,17 +287,14 @@ async function confirmCancel() {
             .eq('id', cancellingId);
 
         if (updateResult.error) {
-            console.error('[sessions] cancel error:', updateResult.error);
             alert('Ошибка отмены: ' + updateResult.error.message);
             return;
         }
     } catch (err) {
-        console.error('[sessions] exception:', err);
         alert('Ошибка отмены');
         return;
     }
 
-    // 2. Возвращаем free-слот в календарь психолога
     try {
         await window.supa.from('events').insert({
             owner_id: null,
@@ -321,41 +304,16 @@ async function confirmCancel() {
             hour: session.hour,
             category: 'free'
         });
-    } catch (err) {
-        console.warn('[sessions] restore slot error:', err);
-    }
+    } catch (err) {}
 
-    // 3. Удаляем session-событие из календаря клиента
     try {
-        await window.supa
-            .from('events')
-            .delete()
-            .eq('session_id', cancellingId)
-            .eq('owner_id', getCurrentUserId());
-    } catch (err) {
-        console.warn('[sessions] delete client event error:', err);
-    }
-
-    // 4. Удаляем session-событие из календаря психолога (если есть)
-    try {
-        await window.supa
-            .from('events')
-            .delete()
-            .eq('session_id', cancellingId)
-            .eq('psychologist_id', session.psychologist_id)
-            .neq('owner_id', getCurrentUserId());
-    } catch (err) {
-        console.warn('[sessions] delete psy event error:', err);
-    }
+        await window.supa.from('events').delete().eq('session_id', cancellingId);
+    } catch (err) {}
 
     closeCancelModal();
     await renderSessions();
     alert('Сессия отменена.');
 }
-
-// ============================================
-// Утилиты
-// ============================================
 
 function formatHumanDate(date) {
     var months = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
@@ -377,10 +335,6 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
-
-// ============================================
-// Инициализация
-// ============================================
 
 document.addEventListener('DOMContentLoaded', async function () {
     await waitForSupaSess(50);
