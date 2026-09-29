@@ -62,6 +62,25 @@ async function loadProfileFromSupabase() {
         }
 
         var p = result.data;
+                var p = result.data;
+
+        // Проверяем активную заявку на психолога
+        var appStatus = null;
+        try {
+            var appResult = await window.supa
+                .from('applications')
+                .select('status')
+                .eq('user_id', userId)
+                .in('status', ['pending', 'needs_changes'])
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (appResult.data && appResult.data.length > 0) {
+                appStatus = appResult.data[0].status;
+            }
+        } catch (e) {
+            console.warn('[client-profile] не удалось проверить заявку:', e);
+        }
+
         var userData = {
             id: userId,
             code: p.code || '',
@@ -76,7 +95,9 @@ async function loadProfileFromSupabase() {
             avatarUrl: p.avatar_url || '',
             roles:  Array.isArray(p.roles) ? p.roles : ['client'],
             activeRole: 'client',
-            psychologistStatus: p.psychologist_status || 'none',
+            psychologistStatus: (p.psychologist_status && p.psychologist_status !== 'none')
+                ? p.psychologist_status
+                : (appStatus || 'none'),
             isVerified: false,
             registeredAt: p.created_at ? new Date(p.created_at).getTime() : Date.now(),
             passwordChangedAt: Date.now()
@@ -197,28 +218,9 @@ function renderClientProfile() {
     const tzEl = document.getElementById('clientTimezone');
     if (tzEl) tzEl.value = user.timezone || 'Europe/Moscow';
 
-    const becomeBlock = document.getElementById('becomePsychologistBlock');
-    if (becomeBlock) {
-        const status = user.psychologistStatus || 'none';
-        const hasPsyRole = Array.isArray(user.roles) && user.roles.indexOf('psychologist') !== -1;
-
-        if (hasPsyRole) {
-            becomeBlock.style.display = 'none';
-        } else if (status === 'pending') {
-            becomeBlock.innerHTML =
-                '<div class="become-psy-pending">' +
-                    '⏳ <strong>Заявка на роль психолога отправлена.</strong><br>' +
-                    '<small>Мы проверяем документы. Это занимает 1–3 дня.</small>' +
-                '</div>';
-            becomeBlock.style.display = 'block';
-        } else {
-            becomeBlock.style.display = 'block';
-        }
-    }
+        // Блок «Стать психологом» ведёт become-block.js — не трогаем отсюда
 
     renderClientPasswordStatus(user);
-}
-
 // ============================================
 // Статус пароля
 // ============================================
@@ -542,9 +544,7 @@ async function handleClientPasswordChange() {
 // Кнопка «Стать психологом»
 // ============================================
 
-function handleBecomePsychologist() {
-    window.location.href = 'become-psychologist.html';
-}
+// handleBecomePsychologist — перенесён в become-block.js
 
 // ============================================
 // Инициализация
@@ -588,6 +588,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     const cancelBtn = document.getElementById('clientCancelPasswordBtn');
     if (cancelBtn) cancelBtn.addEventListener('click', cancelClientPasswordChange);
 
-    const becomeBtn = document.getElementById('becomePsychologistBtn');
-    if (becomeBtn) becomeBtn.addEventListener('click', handleBecomePsychologist);
+    
 });
+}

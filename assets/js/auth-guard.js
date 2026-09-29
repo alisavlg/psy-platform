@@ -9,7 +9,6 @@ console.log('[auth-guard.js] запуск проверки сессии');
 (function () {
     'use strict';
 
-    // Ждём загрузки клиента Supabase
     function waitForSupa(maxAttempts) {
         return new Promise(function (resolve) {
             var attempts = 0;
@@ -26,7 +25,6 @@ console.log('[auth-guard.js] запуск проверки сессии');
         });
     }
 
-    // Восстановить psyhelp_user из профиля Supabase
     async function restoreUserFromSupabase(authUser) {
         console.log('[auth-guard] восстанавливаем psyhelp_user из профиля');
 
@@ -65,13 +63,33 @@ console.log('[auth-guard.js] запуск проверки сессии');
         return userData;
     }
 
-    // Главная функция
+    // Проверка роли для admin.html
+    function checkAdminAccess() {
+        var page = window.location.pathname.split('/').pop();
+        if (page !== 'admin.html') return true;
+
+        var userRaw = localStorage.getItem('psyhelp_user');
+        var userData = null;
+        try { userData = userRaw ? JSON.parse(userRaw) : null; } catch (e) {}
+
+        var roles = (userData && Array.isArray(userData.roles)) ? userData.roles : [];
+        var hasAccess = roles.indexOf('owner') !== -1
+                     || roles.indexOf('moderator') !== -1
+                     || roles.indexOf('admin') !== -1;
+
+        if (!hasAccess) {
+            console.warn('[auth-guard] нет доступа к админке → client.html');
+            window.location.href = 'client.html?section=catalog';
+            return false;
+        }
+        return true;
+    }
+
     async function checkAuth() {
         var ready = await waitForSupa(50);
 
         if (!ready) {
             console.error('[auth-guard] Supabase не загрузился за 5 секунд');
-            // Не редиректим — пусть будет видно, что что-то не так
             return;
         }
 
@@ -100,12 +118,14 @@ console.log('[auth-guard.js] запуск проверки сессии');
             } catch (e) { currentUser = null; }
 
             if (!currentUser || currentUser.id !== session.user.id) {
-                // psyhelp_user отсутствует или от другого пользователя → восстановить
                 console.log('[auth-guard] psyhelp_user не соответствует сессии, восстанавливаем');
                 await restoreUserFromSupabase(session.user);
             } else {
                 console.log('[auth-guard] сессия валидна:', session.user.email);
             }
+
+            // Проверка роли для админки — после того, как psyhelp_user точно актуален
+            checkAdminAccess();
 
         } catch (err) {
             console.error('[auth-guard] исключение:', err);
