@@ -445,6 +445,16 @@ function formatHumanDate(date) {
 
 function getInitials(name) {
     if (!name) return '?';
+    
+    // Если это объект user — берём поля
+    if (typeof name !== 'string') {
+        var f = String(name.displayFirstName || name.realFirstName || '').charAt(0).toUpperCase();
+        var m = String(name.displayMiddleName || name.realMiddleName || '').charAt(0).toUpperCase();
+        if (f && m) return f + m;
+        if (f) return f;
+        return '?';
+    }
+    
     return name.split(' ')
         .filter(function (w) { return w.length > 0; })
         .map(function (w) { return w[0]; })
