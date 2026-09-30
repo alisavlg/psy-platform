@@ -376,30 +376,25 @@ async function confirmPsyCancel() {
         console.warn('[psy-sessions] delete events error:', err);
     }
 
-    // 4. Уведомление клиенту
+        // 4. Уведомление клиенту — в Supabase
     if (clientUserId) {
         try {
             var me = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
             var psyName = ((me.realFirstName || '') + ' ' + (me.realMiddleName || '')).trim() || 'Психолог';
-            var notifKey = 'psyhelp_notifications_' + clientUserId;
-            var notifList = JSON.parse(localStorage.getItem(notifKey)) || [];
-            if (!Array.isArray(notifList)) notifList = [];
-            notifList.unshift({
-                id: 'notif-' + Date.now() + '-cancel-psy',
+
+            await window.supa.from('notifications').insert({
+                user_id: clientUserId,
                 type: 'session_cancelled',
                 title: 'Сессия отменена психологом',
                 text: 'Психолог: ' + psyName + '. Дата: ' + session.date + ' в ' + String(session.hour).padStart(2, '0') + ':00. Возврат: 100%.' +
                       (reason ? ' Причина: ' + reason : ''),
-                link: 'client.html?section=sessions&highlight=' + encodeURIComponent(session.id),
-                createdAt: Date.now(),
-                isRead: false
+                link: 'client.html?section=sessions&highlight=' + encodeURIComponent(session.id)
             });
-            localStorage.setItem(notifKey, JSON.stringify(notifList));
+            console.log('[psy-sessions] notif client ok');
         } catch (e) {
             console.warn('[psy-sessions] notif client error:', e);
         }
     }
-
     closePsyCancelModal();
     await renderPsySessions();
     alert('Сессия отменена. Клиенту возврат 100%.');

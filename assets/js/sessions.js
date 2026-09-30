@@ -306,9 +306,37 @@ async function confirmCancel() {
         });
     } catch (err) {}
 
-    try {
+        try {
         await window.supa.from('events').delete().eq('session_id', cancellingId);
     } catch (err) {}
+
+    // Уведомление психологу — в Supabase
+    try {
+        var psyProf = await window.supa
+            .from('psychologist_profiles')
+            .select('user_id')
+            .eq('id', session.psychologist_id)
+            .single();
+
+        if (psyProf.data && psyProf.data.user_id) {
+            var me = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
+            var c1 = (me.displayFirstName || me.realFirstName || '').trim();
+            var c2 = (me.displayMiddleName || me.realMiddleName || '').trim();
+            var clientDisplayName = (c1 + ' ' + c2).trim() || 'Клиент';
+
+            await window.supa.from('notifications').insert({
+                user_id: psyProf.data.user_id,
+                type: 'session_cancelled',
+                title: 'Сессия отменена клиентом',
+                text: 'Клиент: ' + clientDisplayName + '. Дата: ' + session.date + ' в ' + String(session.hour).padStart(2, '0') + ':00.' +
+                      (reason ? ' Причина: ' + reason : ''),
+                link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(session.id)
+            });
+            console.log('[sessions] notif psy ok');
+        }
+    } catch (e) {
+        console.warn('[sessions] notif psy error:', e);
+    }
 
     closeCancelModal();
     await renderSessions();
