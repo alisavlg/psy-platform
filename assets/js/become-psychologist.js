@@ -6,6 +6,8 @@ console.log('[become-psychologist.js] loaded');
 
 var BECOME_USER_KEY = 'psyhelp_user';
 var existingApp = null;
+var uploadedPhoto = null;   // { file, dataUrl, name, size }
+var uploadedPhotoUrl = null; // URL в Storage после загрузки
 
 function waitForSupa(maxAttempts) {
     return new Promise(function (resolve) {
@@ -21,37 +23,128 @@ function waitForSupa(maxAttempts) {
 function getUser() {
     try { return JSON.parse(localStorage.getItem(BECOME_USER_KEY)) || {}; } catch (e) { return {}; }
 }
-
 function saveUser(user) {
     localStorage.setItem(BECOME_USER_KEY, JSON.stringify(user));
 }
-
 function escapeHtml(text) {
     var div = document.createElement('div');
     div.textContent = text == null ? '' : String(text);
     return div.innerHTML;
 }
 
-async function loadExistingApp(userId) {
-    console.log('[become] ищу заявку для user_id:', userId);
+// ============================================
+// Загрузка файла
+// ============================================
 
+function readFileAsDataURL(file) {
+    return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function (e) { resolve(e.target.result); };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' Б';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' КБ';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' МБ';
+}
+
+async function uploadToStorage(file, bucket, path) {
+    var result = await window.supa.storage
+        .from(bucket)
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (result.error) {
+        console.error('[become] storage error:', result.error);
+        return { success: false, error: result.error.message };
+    }
+
+    var urlRes = window.supa.storage.from(bucket).getPublicUrl(path);
+    return { success: true, url: urlRes.data.publicUrl };
+}
+
+// ============================================
+// Превью фото
+// ============================================
+
+function renderPhotoPreview() {
+    var box = document.getElementById('psyPhotoPreview');
+    if (!box) return;
+
+    if (!uploadedPhoto) {
+        box.innerHTML = '';
+        return;
+    }
+
+    box.innerHTML =
+        '<div class="uploaded-file" style="align-items:center;">' +
+            '<img src="' + uploadedPhoto.dataUrl + '" style="width:56px;height:56px;object-fit:cover;border-radius:8px;margin-right:12px;">' +
+            '<span class="uploaded-file-name">' + escapeHtml(uploadedPhoto.name) + '</span>' +
+            '<span class="uploaded-file-size">' + formatFileSize(uploadedPhoto.size) + '</span>' +
+            '<button type="button" class="btn-remove-file" id="removePhotoBtn" title="Удалить">✕</button>' +
+        '</div>';
+
+    var rmBtn = document.getElementById('removePhotoBtn');
+    if (rmBtn) {
+        rmBtn.onclick = function () {
+            uploadedPhoto = null;
+            uploadedPhotoUrl = null;
+            renderPhotoPreview();
+        };
+    }
+}
+
+async function handlePhotoSelect(e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Файл больше 5 МБ. Выберите меньший.');
+        e.target.value = '';
+        return;
+    }
+
+    if (['image/jpeg', 'image/png', 'image/webp'].indexOf(file.type) === -1) {
+        alert('Только JPG, PNG или WebP.');
+        e.target.value = '';
+        return;
+    }
+
+    try {
+        var dataUrl = await readFileAsDataURL(file);
+        uploadedPhoto = {
+            file: file,
+            dataUrl: dataUrl,
+            name: file.name,
+            size: file.size
+        };
+        renderPhotoPreview();
+        var err = document.getElementById('psyPhotoError');
+        if (err) err.textContent = '';
+    } catch (err) {
+        alert('Не удалось прочитать файл.');
+    }
+    e.target.value = '';
+}
+
+// ============================================
+// Загрузка существующей заявки
+// ============================================
+
+async function loadExistingApp(userId) {
     var result = await window.supa
         .from('applications')
         .select('*')
         .eq('user_id', userId)
         .limit(1);
 
-    console.log('[become] результат запроса:', result);
-
     if (result.error) {
-        console.error('[become] ошибка загрузки:', result.error);
+        console.error('[become] ошибка загрузки заявки:', result.error);
         return null;
     }
-    if (!result.data || result.data.length === 0) {
-        console.log('[become] заявок нет');
-        return null;
-    }
-    console.log('[become] заявка найдена:', result.data[0]);
+    if (!result.data || result.data.length === 0) return null;
     return result.data[0];
 }
 
@@ -60,9 +153,23 @@ function showBanner(app) {
     var header = document.getElementById('becomeHeader');
     if (!banner) return;
 
-    if (!app || app.status === 'pending') {
+        if (!app) {
         banner.style.display = 'none';
         if (header) header.style.display = '';
+        return;
+    }
+
+    if (app.status === 'pending') {
+        banner.innerHTML =
+            '<div style="background:#e7f1ff;border-left:4px solid #4a90e2;padding:16px 20px;border-radius:10px;margin-bottom:20px;">' +
+                '<h3 style="margin:0 0 8px;color:#2c5f9a;">⏳ Заявка на проверке</h3>' +
+                '<div style="color:#2c5f9a;font-size:14px;">' +
+                    'Мы проверяем данные в течение 1–3 рабочих дней.<br>' +
+                    'Если хотите что-то поправить — измените ниже и отправьте заново.' +
+                '</div>' +
+            '</div>';
+        banner.style.display = '';
+        if (header) header.style.display = 'none';
         return;
     }
 
@@ -93,13 +200,11 @@ function showBanner(app) {
 
     banner.innerHTML = html;
     banner.style.display = '';
-
     if (header) header.style.display = 'none';
 }
 
 function fillForm(app) {
     if (!app) return;
-    console.log('[become] заполняю форму из заявки');
 
     var spec = document.getElementById('psySpecialty');
     var exp = document.getElementById('psyExperience');
@@ -113,9 +218,37 @@ function fillForm(app) {
     if (about) about.value = app.about || '';
     if (price) price.value = app.price || '';
 
-    var submitBtn = document.getElementById('submitBecomeBtn');
-    if (submitBtn) submitBtn.textContent = 'Отправить на проверку заново';
+    // Существующее фото в Storage — показываем превью
+    if (app.avatar_url) {
+        uploadedPhotoUrl = app.avatar_url;
+        var box = document.getElementById('psyPhotoPreview');
+        if (box) {
+            box.innerHTML =
+                '<div class="uploaded-file" style="align-items:center;">' +
+                    '<img src="' + app.avatar_url + '" style="width:56px;height:56px;object-fit:cover;border-radius:8px;margin-right:12px;">' +
+                    '<span class="uploaded-file-name">Текущее фото</span>' +
+                    '<button type="button" class="btn-remove-file" id="removePhotoBtn" title="Удалить">✕</button>' +
+                '</div>';
+            var rmBtn = document.getElementById('removePhotoBtn');
+            if (rmBtn) rmBtn.onclick = function () {
+                uploadedPhoto = null;
+                uploadedPhotoUrl = null;
+                renderPhotoPreview();
+            };
+        }
+    }
+
+        var submitBtn = document.getElementById('submitBecomeBtn');
+    if (submitBtn) {
+        submitBtn.textContent = app.status === 'pending'
+            ? 'Сохранить изменения'
+            : 'Отправить на проверку заново';
+    }
 }
+
+// ============================================
+// Валидация
+// ============================================
 
 function showError(fieldId, message) {
     var errEl = document.getElementById(fieldId + 'Error');
@@ -126,7 +259,6 @@ function showError(fieldId, message) {
         if (group) group.classList.add('has-error');
     }
 }
-
 function clearError(fieldId) {
     var errEl = document.getElementById(fieldId + 'Error');
     var inputEl = document.getElementById(fieldId);
@@ -170,6 +302,15 @@ function validateForm() {
         isValid = false;
     } else clearError('psyPrice');
 
+    // Фото — обязательно
+    var photoError = document.getElementById('psyPhotoError');
+    if (!uploadedPhoto && !uploadedPhotoUrl) {
+        if (photoError) photoError.textContent = 'Загрузите фото профиля';
+        isValid = false;
+    } else if (photoError) {
+        photoError.textContent = '';
+    }
+
     var agreeRules = document.getElementById('agreeRules').checked;
     var agreeRulesError = document.getElementById('agreeRulesError');
     if (!agreeRules) {
@@ -186,6 +327,10 @@ function validateForm() {
 
     return isValid;
 }
+
+// ============================================
+// Отправка (INSERT или UPDATE через RPC)
+// ============================================
 
 async function handleSubmit(e) {
     e.preventDefault();
@@ -206,27 +351,48 @@ async function handleSubmit(e) {
     messageEl.className = 'form-message';
     messageEl.textContent = '';
 
+    // Если выбрано новое фото — загружаем в Storage
+    if (uploadedPhoto) {
+        submitBtn.textContent = 'Загружаем фото...';
+        var ext = uploadedPhoto.file.name.split('.').pop().toLowerCase() || 'jpg';
+        var path = user.id + '/application-' + Date.now() + '.' + ext;
+
+        var upRes = await uploadToStorage(uploadedPhoto.file, 'avatars', path);
+        if (!upRes.success) {
+            messageEl.className = 'form-message error';
+            messageEl.textContent = 'Ошибка загрузки фото: ' + upRes.error;
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+            return;
+        }
+        uploadedPhotoUrl = upRes.url;
+    }
+
     var specialty = document.getElementById('psySpecialty').value.trim();
     var experience = parseInt(document.getElementById('psyExperience').value);
     var description = document.getElementById('psyDescription').value.trim();
     var about = document.getElementById('psyAbout').value.trim();
     var price = parseInt(document.getElementById('psyPrice').value);
 
+    submitBtn.textContent = 'Сохраняем...';
+
     try {
-        var result;
+                var result;
 
         if (existingApp) {
-            console.log('[become] UPDATE через RPC');
-            result = await window.supa.rpc('resubmit_application', {
+            // Обновление существующей заявки — только через RPC
+            var rpcResult = await window.supa.rpc('resubmit_application', {
                 app_id: existingApp.id,
                 p_specialty: specialty,
                 p_experience: experience,
                 p_description: description,
                 p_about: about,
-                p_price: price
+                p_price: price,
+                p_avatar_url: uploadedPhotoUrl
             });
+            result = { data: null, error: rpcResult.error };
         } else {
-            console.log('[become] INSERT');
+            // INSERT
             var userName = 'Клиент';
             if (user.realFirstName) {
                 userName = user.realFirstName + (user.realMiddleName ? ' ' + user.realMiddleName : '');
@@ -241,6 +407,7 @@ async function handleSubmit(e) {
                 description: description,
                 about: about,
                 price: price,
+                avatar_url: uploadedPhotoUrl,
                 status: 'pending'
             }).select().single();
         }
@@ -278,30 +445,29 @@ async function handleSubmit(e) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', async function () {
-    console.log('[become] DOMContentLoaded');
+// ============================================
+// Инициализация
+// ============================================
 
+document.addEventListener('DOMContentLoaded', async function () {
     var ready = await waitForSupa(50);
-    console.log('[become] supa ready:', ready);
     if (!ready) {
         alert('Не удалось подключиться к серверу. Обновите страницу.');
         return;
     }
 
     var user = getUser();
-    console.log('[become] user:', user);
     if (!user.id) {
         window.location.href = 'login.html';
         return;
     }
 
+    // Уже психолог?
     var profileResult = await window.supa
         .from('profiles')
         .select('psychologist_status, roles')
         .eq('id', user.id)
         .single();
-
-    console.log('[become] profile:', profileResult);
 
     if (profileResult.data) {
         var roles = Array.isArray(profileResult.data.roles) ? profileResult.data.roles : [];
@@ -311,26 +477,27 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
     }
 
-    existingApp = await loadExistingApp(user.id);
+        existingApp = await loadExistingApp(user.id);
 
-    if (existingApp && existingApp.status === 'pending') {
-        var main = document.getElementById('becomeMain');
-        if (main) {
-            main.innerHTML =
-                '<div class="become-header">' +
-                    '<h1>Заявка на проверке</h1>' +
-                    '<p>Мы проверяем данные и свяжемся с вами в течение 1–3 рабочих дней.</p>' +
-                '</div>' +
-                '<div class="become-actions" style="margin-top:30px;">' +
-                    '<a href="client.html?section=profile" class="btn-back" style="text-decoration:none;">Вернуться в профиль</a>' +
-                '</div>';
-        }
-        return;
-    }
+    // Скрываем форму до готовности
+    var form = document.getElementById('becomeForm');
+    if (form) form.style.visibility = 'hidden';
 
     if (existingApp) {
+        // Показываем плашку по статусу + форму для редактирования
         showBanner(existingApp);
         fillForm(existingApp);
+    }
+
+    // Показываем форму
+    if (form) form.style.visibility = '';
+
+    // Обработчик загрузки фото
+    var photoBtn = document.getElementById('psyPhotoBtn');
+    var photoInput = document.getElementById('psyPhotoInput');
+    if (photoBtn && photoInput) {
+        photoBtn.addEventListener('click', function () { photoInput.click(); });
+        photoInput.addEventListener('change', handlePhotoSelect);
     }
 
     var form = document.getElementById('becomeForm');

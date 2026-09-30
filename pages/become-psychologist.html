@@ -43,6 +43,16 @@
                         </div>
                     </div>
 
+                                        <div class="form-group">
+                        <label>Фото профиля <span class="required">*</span></label>
+                        <p class="form-hint">Реальное фото — оно будет видно клиентам в каталоге. JPG, PNG или WebP, до 5 МБ.</p>
+                        <input type="file" id="psyPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                        <button type="button" class="btn-upload" id="psyPhotoBtn">📎 Загрузить фото</button>
+                        <div class="uploaded-files" id="psyPhotoPreview"></div>
+                        <span class="form-error" id="psyPhotoError"></span>
+                    </div>
+
+
                     <div class="form-group">
                         <label for="psyDescription">Описание (для публичного профиля) <span class="required">*</span></label>
                         <textarea id="psyDescription" rows="5" placeholder="Расскажите о своём подходе, методах, с чем работаете..." required></textarea>

@@ -4,18 +4,18 @@
 
 console.log('[client-profile.js] loaded');
 
-const CLIENT_USER_KEY = 'psyhelp_user';
-const PASSWORD_MAX_AGE_DAYS = 60;
+var CLIENT_USER_KEY = 'psyhelp_user';
+var PASSWORD_MAX_AGE_DAYS = 60;
 
 // ============================================
 // Хранилище (localStorage — кеш)
 // ============================================
 
 function getClientUser() {
-    const data = localStorage.getItem(CLIENT_USER_KEY);
+    var data = localStorage.getItem(CLIENT_USER_KEY);
     if (!data) return {};
     try {
-        const u = JSON.parse(data);
+        var u = JSON.parse(data);
         return u || {};
     } catch (e) { return {}; }
 }
@@ -25,10 +25,10 @@ function saveClientUser(user) {
 }
 
 // ============================================
-// Supabase — загрузка и сохранение
+// Supabase helper
 // ============================================
 
-async function waitForSupa(maxAttempts) {
+function waitForSupa(maxAttempts) {
     return new Promise(function (resolve) {
         var attempts = 0;
         var timer = setInterval(function () {
@@ -38,6 +38,10 @@ async function waitForSupa(maxAttempts) {
         }, 100);
     });
 }
+
+// ============================================
+// Загрузка профиля из Supabase
+// ============================================
 
 async function loadProfileFromSupabase() {
     try {
@@ -62,7 +66,6 @@ async function loadProfileFromSupabase() {
         }
 
         var p = result.data;
-                var p = result.data;
 
         // Проверяем активную заявку на психолога
         var appStatus = null;
@@ -71,7 +74,7 @@ async function loadProfileFromSupabase() {
                 .from('applications')
                 .select('status')
                 .eq('user_id', userId)
-                .in('status', ['pending', 'needs_changes'])
+                .in('status', ['pending', 'attention'])
                 .order('created_at', { ascending: false })
                 .limit(1);
             if (appResult.data && appResult.data.length > 0) {
@@ -93,7 +96,7 @@ async function loadProfileFromSupabase() {
             phone: p.phone || '',
             timezone: p.timezone || 'Europe/Moscow',
             avatarUrl: p.avatar_url || '',
-            roles:  Array.isArray(p.roles) ? p.roles : ['client'],
+            roles: Array.isArray(p.roles) ? p.roles : ['client'],
             activeRole: 'client',
             psychologistStatus: (p.psychologist_status && p.psychologist_status !== 'none')
                 ? p.psychologist_status
@@ -165,19 +168,19 @@ function getDisplayName(user) {
 // ============================================
 
 function renderClientProfile() {
-    const user = getClientUser();
+    var user = getClientUser();
 
-    const realF = document.getElementById('clientRealFirstName');
-    const realM = document.getElementById('clientRealMiddleName');
-    const realL = document.getElementById('clientRealLastName');
+    var realF = document.getElementById('clientRealFirstName');
+    var realM = document.getElementById('clientRealMiddleName');
+    var realL = document.getElementById('clientRealLastName');
 
     if (realF) realF.textContent = user.realFirstName || '—';
     if (realM) realM.textContent = user.realMiddleName || '—';
     if (realL) realL.textContent = user.realLastName || '—';
 
-    const badge = document.getElementById('clientVerifyBadge');
+    var badge = document.getElementById('clientVerifyBadge');
     if (badge) {
-        const status = user.psychologistStatus || 'none';
+        var status = user.psychologistStatus || 'none';
         if (status === 'pending') {
             badge.className = 'verify-badge pending';
             badge.textContent = '⏳ Заявка на психолога';
@@ -187,18 +190,20 @@ function renderClientProfile() {
         }
     }
 
-    const dispF = document.getElementById('displayFirstName');
-    const dispM = document.getElementById('displayMiddleName');
+    var dispF = document.getElementById('displayFirstName');
+    var dispM = document.getElementById('displayMiddleName');
     if (dispF) dispF.value = user.displayFirstName || '';
     if (dispM) dispM.value = user.displayMiddleName || '';
 
-    const preview = document.getElementById('displayNamePreview');
+    var preview = document.getElementById('displayNamePreview');
     if (preview) preview.textContent = getDisplayName(user);
 
-    const avatarEl = document.getElementById('clientAvatarPreview');
+    var avatarEl = document.getElementById('clientAvatarPreview');
     if (avatarEl) {
         if (user.avatarUrl) {
             avatarEl.style.backgroundImage = 'url(' + user.avatarUrl + ')';
+            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.style.backgroundPosition = 'center';
             avatarEl.textContent = '';
         } else {
             avatarEl.style.backgroundImage = '';
@@ -206,39 +211,41 @@ function renderClientProfile() {
         }
     }
 
-    const codeEl = document.getElementById('clientUserCode');
+    var codeEl = document.getElementById('clientUserCode');
     if (codeEl) codeEl.textContent = user.code || 'CL-0000';
 
-    const emailEl = document.getElementById('clientEmail');
+    var emailEl = document.getElementById('clientEmail');
     if (emailEl) emailEl.value = user.email || '';
 
-    const phoneEl = document.getElementById('clientPhone');
+    var phoneEl = document.getElementById('clientPhone');
     if (phoneEl) phoneEl.value = user.phone || '';
 
-    const tzEl = document.getElementById('clientTimezone');
+    var tzEl = document.getElementById('clientTimezone');
     if (tzEl) tzEl.value = user.timezone || 'Europe/Moscow';
 
-        // Блок «Стать психологом» ведёт become-block.js — не трогаем отсюда
+    // Блок «Стать психологом» ведёт become-block.js — не трогаем отсюда
 
     renderClientPasswordStatus(user);
+}
+
 // ============================================
 // Статус пароля
 // ============================================
 
 function renderClientPasswordStatus(user) {
-    const statusEl = document.getElementById('clientPasswordStatus');
-    const iconEl = document.getElementById('clientPasswordStatusIcon');
-    const titleEl = document.getElementById('clientPasswordStatusTitle');
-    const descEl = document.getElementById('clientPasswordStatusDesc');
-    const fillEl = document.getElementById('clientPasswordAgeFill');
-    const textEl = document.getElementById('clientPasswordAgeText');
+    var statusEl = document.getElementById('clientPasswordStatus');
+    var iconEl = document.getElementById('clientPasswordStatusIcon');
+    var titleEl = document.getElementById('clientPasswordStatusTitle');
+    var descEl = document.getElementById('clientPasswordStatusDesc');
+    var fillEl = document.getElementById('clientPasswordAgeFill');
+    var textEl = document.getElementById('clientPasswordAgeText');
 
     if (!statusEl) return;
 
-    const changedAt = user.passwordChangedAt || user.registeredAt || Date.now();
-    const daysPassed = Math.floor((Date.now() - changedAt) / 86400000);
-    const daysLeft = PASSWORD_MAX_AGE_DAYS - daysPassed;
-    const percent = Math.min(100, Math.max(0, (daysPassed / PASSWORD_MAX_AGE_DAYS) * 100));
+    var changedAt = user.passwordChangedAt || user.registeredAt || Date.now();
+    var daysPassed = Math.floor((Date.now() - changedAt) / 86400000);
+    var daysLeft = PASSWORD_MAX_AGE_DAYS - daysPassed;
+    var percent = Math.min(100, Math.max(0, (daysPassed / PASSWORD_MAX_AGE_DAYS) * 100));
 
     statusEl.className = 'password-status';
     fillEl.className = 'password-age-fill';
@@ -275,23 +282,23 @@ function renderClientPasswordStatus(user) {
 async function handleClientProfileSave(e) {
     e.preventDefault();
 
-    const user = getClientUser();
+    var user = getClientUser();
 
-    const dispF = document.getElementById('displayFirstName');
-    const dispM = document.getElementById('displayMiddleName');
-    const phoneEl = document.getElementById('clientPhone');
-    const tzEl = document.getElementById('clientTimezone');
-    const msgEl = document.getElementById('clientProfileMessage');
+    var dispF = document.getElementById('displayFirstName');
+    var dispM = document.getElementById('displayMiddleName');
+    var phoneEl = document.getElementById('clientPhone');
+    var tzEl = document.getElementById('clientTimezone');
+    var msgEl = document.getElementById('clientProfileMessage');
 
-    const displayFirstName = dispF ? dispF.value.trim() : '';
-    const displayMiddleName = dispM ? dispM.value.trim() : '';
-    const phone = phoneEl ? phoneEl.value.trim() : '';
-    const timezone = tzEl ? tzEl.value : 'Europe/Moscow';
+    var displayFirstName = dispF ? dispF.value.trim() : '';
+    var displayMiddleName = dispM ? dispM.value.trim() : '';
+    var phone = phoneEl ? phoneEl.value.trim() : '';
+    var timezone = tzEl ? tzEl.value : 'Europe/Moscow';
 
-    let isValid = true;
+    var isValid = true;
 
-    const phoneError = document.getElementById('clientPhoneError');
-    const cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
+    var phoneError = document.getElementById('clientPhoneError');
+    var cleanedPhone = phone.replace(/[\s\-\(\)]/g, '');
     if (!phone) {
         if (phoneError) phoneError.textContent = 'Введите телефон';
         isValid = false;
@@ -307,11 +314,9 @@ async function handleClientProfileSave(e) {
     if (msgEl) {
         msgEl.className = 'form-message';
         msgEl.textContent = 'Сохранение...';
-        msgEl.className = 'form-message';
         msgEl.style.display = 'block';
     }
 
-    // Сохраняем в Supabase
     var result = await saveProfileToSupabase({
         displayFirstName: displayFirstName,
         displayMiddleName: displayMiddleName,
@@ -327,14 +332,13 @@ async function handleClientProfileSave(e) {
         return;
     }
 
-    // Обновляем кеш localStorage
     user.displayFirstName = displayFirstName;
     user.displayMiddleName = displayMiddleName;
     user.phone = phone;
     user.timezone = timezone;
     saveClientUser(user);
 
-    const preview = document.getElementById('displayNamePreview');
+    var preview = document.getElementById('displayNamePreview');
     if (preview) preview.textContent = getDisplayName(user);
 
     if (msgEl) {
@@ -347,7 +351,7 @@ async function handleClientProfileSave(e) {
     }
 
     if (typeof renderUserMenu === 'function') {
-        const oldMenu = document.getElementById('userMenu');
+        var oldMenu = document.getElementById('userMenu');
         if (oldMenu) oldMenu.remove();
         renderUserMenu();
     }
@@ -358,11 +362,11 @@ async function handleClientProfileSave(e) {
 // ============================================
 
 function copyClientCode() {
-    const codeEl = document.getElementById('clientUserCode');
-    const btn = document.getElementById('copyCodeBtn');
+    var codeEl = document.getElementById('clientUserCode');
+    var btn = document.getElementById('copyCodeBtn');
     if (!codeEl || !btn) return;
 
-    const code = codeEl.textContent;
+    var code = codeEl.textContent;
     navigator.clipboard.writeText(code).then(function () {
         btn.classList.add('copied');
         btn.textContent = '✓ Скопировано';
@@ -376,38 +380,86 @@ function copyClientCode() {
 }
 
 // ============================================
-// Загрузка аватара (пока base64 в localStorage)
+// Загрузка аватара
 // ============================================
 
-function handleAvatarUpload(e) {
-    const file = e.target.files && e.target.files[0];
+async function handleAvatarUpload(e) {
+    var file = e.target.files && e.target.files[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-        alert('Файл больше 2 МБ. Выберите меньший.\n\n(Загрузка больших фото появится позже — через хранилище файлов.)');
+    if (file.size > 5 * 1024 * 1024) {
+        alert('Файл больше 5 МБ. Выберите меньший.');
+        e.target.value = '';
         return;
     }
 
-    const reader = new FileReader();
-    reader.onload = function (ev) {
-        const dataUrl = ev.target.result;
-        const user = getClientUser();
-        user.avatarUrl = dataUrl;
+    var allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (allowed.indexOf(file.type) === -1) {
+        alert('Только JPG, PNG или WebP.');
+        e.target.value = '';
+        return;
+    }
+
+    var user = getClientUser();
+    if (!user.id) return;
+
+    var ext = file.name.split('.').pop().toLowerCase() || 'jpg';
+    var path = user.id + '/avatar-' + Date.now() + '.' + ext;
+
+    var avatarEl = document.getElementById('clientAvatarPreview');
+    if (avatarEl) avatarEl.style.opacity = '0.5';
+
+    try {
+        var upRes = await window.supa.storage
+            .from('avatars')
+            .upload(path, file, { upsert: true, contentType: file.type });
+
+        if (upRes.error) {
+            console.error('[client-profile] storage error:', upRes.error);
+            alert('Ошибка загрузки: ' + upRes.error.message);
+            if (avatarEl) avatarEl.style.opacity = '';
+            return;
+        }
+
+        var urlRes = window.supa.storage.from('avatars').getPublicUrl(path);
+        var publicUrl = urlRes.data.publicUrl;
+
+        var updRes = await window.supa
+            .from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', user.id);
+
+        if (updRes.error) {
+            console.error('[client-profile] update error:', updRes.error);
+            alert('Не удалось сохранить ссылку: ' + updRes.error.message);
+            if (avatarEl) avatarEl.style.opacity = '';
+            return;
+        }
+
+        user.avatarUrl = publicUrl;
         saveClientUser(user);
 
-        const avatarEl = document.getElementById('clientAvatarPreview');
         if (avatarEl) {
-            avatarEl.style.backgroundImage = 'url(' + dataUrl + ')';
+            avatarEl.style.backgroundImage = 'url(' + publicUrl + ')';
+            avatarEl.style.backgroundSize = 'cover';
+            avatarEl.style.backgroundPosition = 'center';
             avatarEl.textContent = '';
+            avatarEl.style.opacity = '';
         }
 
         if (typeof renderUserMenu === 'function') {
-            const oldMenu = document.getElementById('userMenu');
+            var oldMenu = document.getElementById('userMenu');
             if (oldMenu) oldMenu.remove();
             renderUserMenu();
         }
-    };
-    reader.readAsDataURL(file);
+
+    } catch (err) {
+        console.error('[client-profile] exception:', err);
+        alert('Ошибка: ' + (err.message || 'попробуйте ещё раз'));
+        if (avatarEl) avatarEl.style.opacity = '';
+    }
+
+    e.target.value = '';
 }
 
 // ============================================
@@ -415,44 +467,44 @@ function handleAvatarUpload(e) {
 // ============================================
 
 function toggleClientPasswordForm() {
-    const form = document.getElementById('clientChangePasswordForm');
+    var form = document.getElementById('clientChangePasswordForm');
     if (form) form.classList.toggle('active');
 }
 
 function cancelClientPasswordChange() {
-    const form = document.getElementById('clientChangePasswordForm');
+    var form = document.getElementById('clientChangePasswordForm');
     if (form) form.classList.remove('active');
 
-    const cur = document.getElementById('clientCurrentPassword');
-    const np = document.getElementById('clientNewPassword');
-    const np2 = document.getElementById('clientNewPassword2');
+    var cur = document.getElementById('clientCurrentPassword');
+    var np = document.getElementById('clientNewPassword');
+    var np2 = document.getElementById('clientNewPassword2');
     if (cur) cur.value = '';
     if (np) np.value = '';
     if (np2) np2.value = '';
 
     ['clientCurrentPassword', 'clientNewPassword', 'clientNewPassword2'].forEach(function (id) {
-        const errEl = document.getElementById(id + 'Error');
+        var errEl = document.getElementById(id + 'Error');
         if (errEl) errEl.textContent = '';
     });
 
-    const msg = document.getElementById('clientChangePasswordMessage');
+    var msg = document.getElementById('clientChangePasswordMessage');
     if (msg) msg.className = 'change-password-message';
 }
 
 async function handleClientPasswordChange() {
-    const current = document.getElementById('clientCurrentPassword').value;
-    const newPwd = document.getElementById('clientNewPassword').value;
-    const newPwd2 = document.getElementById('clientNewPassword2').value;
-    const msg = document.getElementById('clientChangePasswordMessage');
+    var current = document.getElementById('clientCurrentPassword').value;
+    var newPwd = document.getElementById('clientNewPassword').value;
+    var newPwd2 = document.getElementById('clientNewPassword2').value;
+    var msg = document.getElementById('clientChangePasswordMessage');
 
-    let isValid = true;
+    var isValid = true;
 
     function showErr(id, text) {
-        const el = document.getElementById(id + 'Error');
+        var el = document.getElementById(id + 'Error');
         if (el) el.textContent = text;
     }
     function clearErr(id) {
-        const el = document.getElementById(id + 'Error');
+        var el = document.getElementById(id + 'Error');
         if (el) el.textContent = '';
     }
 
@@ -479,7 +531,6 @@ async function handleClientPasswordChange() {
 
     if (!isValid) return;
 
-    // Проверяем текущий пароль через signInWithPassword
     try {
         var sessionResult = await window.supa.auth.getSession();
         if (!sessionResult.data.session) {
@@ -492,7 +543,6 @@ async function handleClientPasswordChange() {
 
         var email = sessionResult.data.session.user.email;
 
-        // Проверка текущего пароля
         var checkResult = await window.supa.auth.signInWithPassword({
             email: email,
             password: current
@@ -503,7 +553,6 @@ async function handleClientPasswordChange() {
             return;
         }
 
-        // Обновляем пароль
         var updateResult = await window.supa.auth.updateUser({
             password: newPwd
         });
@@ -516,7 +565,7 @@ async function handleClientPasswordChange() {
             return;
         }
 
-        const user = getClientUser();
+        var user = getClientUser();
         user.passwordChangedAt = Date.now();
         saveClientUser(user);
 
@@ -541,17 +590,57 @@ async function handleClientPasswordChange() {
 }
 
 // ============================================
-// Кнопка «Стать психологом»
-// ============================================
-
-// handleBecomePsychologist — перенесён в become-block.js
-
-// ============================================
 // Инициализация
 // ============================================
 
+function bindClientProfileHandlers() {
+    console.log('[client-profile] bind handlers');
+
+    var form = document.getElementById('clientProfileForm');
+    if (form && !form.__bound) {
+        form.addEventListener('submit', handleClientProfileSave);
+        form.__bound = true;
+    }
+
+    var copyBtn = document.getElementById('copyCodeBtn');
+    if (copyBtn && !copyBtn.__bound) {
+        copyBtn.addEventListener('click', copyClientCode);
+        copyBtn.__bound = true;
+    }
+
+    var avatarInput = document.getElementById('clientAvatarInput');
+    var avatarBtn = document.getElementById('clientAvatarBtn');
+
+    if (avatarBtn && avatarInput && !avatarBtn.__bound) {
+        avatarBtn.onclick = function (e) {
+            e.preventDefault();
+            avatarInput.click();
+        };
+        avatarInput.onchange = handleAvatarUpload;
+        avatarBtn.__bound = true;
+        console.log('[client-profile] avatar btn bound');
+    }
+
+    var changeBtn = document.getElementById('clientChangePasswordBtn');
+    if (changeBtn && !changeBtn.__bound) {
+        changeBtn.addEventListener('click', toggleClientPasswordForm);
+        changeBtn.__bound = true;
+    }
+
+    var confirmBtn = document.getElementById('clientConfirmPasswordBtn');
+    if (confirmBtn && !confirmBtn.__bound) {
+        confirmBtn.addEventListener('click', handleClientPasswordChange);
+        confirmBtn.__bound = true;
+    }
+
+    var cancelBtn = document.getElementById('clientCancelPasswordBtn');
+    if (cancelBtn && !cancelBtn.__bound) {
+        cancelBtn.addEventListener('click', cancelClientPasswordChange);
+        cancelBtn.__bound = true;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async function () {
-    // Сначала — загружаем свежий профиль из Supabase
     var ready = await waitForSupa(50);
     if (ready) {
         await loadProfileFromSupabase();
@@ -559,35 +648,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.warn('[client-profile] Supabase не загрузился, работаем с кешем');
     }
 
-    // Рендер
     renderClientProfile();
-
-    // Обработчики
-    const form = document.getElementById('clientProfileForm');
-    if (form) form.addEventListener('submit', handleClientProfileSave);
-
-    const copyBtn = document.getElementById('copyCodeBtn');
-    if (copyBtn) copyBtn.addEventListener('click', copyClientCode);
-
-    const avatarInput = document.getElementById('clientAvatarInput');
-    if (avatarInput) avatarInput.addEventListener('change', handleAvatarUpload);
-
-    const avatarBtn = document.getElementById('clientAvatarBtn');
-    if (avatarBtn && avatarInput) {
-        avatarBtn.addEventListener('click', function () {
-            avatarInput.click();
-        });
-    }
-
-    const changeBtn = document.getElementById('clientChangePasswordBtn');
-    if (changeBtn) changeBtn.addEventListener('click', toggleClientPasswordForm);
-
-    const confirmBtn = document.getElementById('clientConfirmPasswordBtn');
-    if (confirmBtn) confirmBtn.addEventListener('click', handleClientPasswordChange);
-
-    const cancelBtn = document.getElementById('clientCancelPasswordBtn');
-    if (cancelBtn) cancelBtn.addEventListener('click', cancelClientPasswordChange);
-
-    
+    bindClientProfileHandlers();
 });
-}

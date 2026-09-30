@@ -132,6 +132,15 @@ function openAppModal(appId) {
     var body = document.getElementById('appModalBody');
     body.innerHTML =
         '<div class="admin-field">' +
+            var avatarHtml = a.avatar_url
+        ? '<img src="' + a.avatar_url + '" style="width:80px;height:80px;object-fit:cover;border-radius:12px;margin-bottom:12px;">'
+        : '<div style="width:80px;height:80px;border-radius:12px;background:#eee;display:inline-flex;align-items:center;justify-content:center;color:#999;font-size:12px;margin-bottom:12px;">нет фото</div>';
+
+    var body = document.getElementById('appModalBody');
+    body.innerHTML =
+        avatarHtml +
+        '<div class="admin-field">' +
+            '<div class="admin-field-label">Клиент</div>' +
             '<div class="admin-field-label">Клиент</div>' +
             '<div class="admin-field-value">' + escapeHtml(a.user_name || 'Клиент') +
                 ' <span style="color:#999;font-size:13px;">' + escapeHtml(a.user_code || '') + '</span></div>' +
