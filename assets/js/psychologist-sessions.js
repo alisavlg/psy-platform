@@ -103,7 +103,9 @@ function getSessionDateTime(session) {
 
 function isUpcomingPsy(session) {
     var dt = getSessionDateTime(session);
-    return dt > new Date() && session.status === 'confirmed';
+    var now = new Date();
+    var sessionEnd = new Date(dt.getTime() + 60 * 60000);
+    return sessionEnd > now && session.status === 'confirmed';
 }
 
 function isPastPsy(session) {
@@ -187,7 +189,7 @@ async function renderPsySessions(tab) {
 
         if (psySessionsTab === 'upcoming' && session.status === 'confirmed') {
             var now = new Date();
-            var diffMinutes = (now.getTime() - dt.getTime()) / 60000;
+            var diffMinutes = (dt.getTime() - now.getTime()) / 60000;
             
             var canJoin = diffMinutes <= 5 && diffMinutes >= -120;
 

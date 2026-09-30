@@ -59,7 +59,10 @@ function getSessionDateTime(session) {
 
 function isUpcoming(session) {
     var dt = getSessionDateTime(session);
-    return dt > new Date() && session.status === 'confirmed';
+    var now = new Date();
+    // Сессия считается активной в течение часа после начала
+    var sessionEnd = new Date(dt.getTime() + 60 * 60000);
+    return sessionEnd > now && session.status === 'confirmed';
 }
 
 function isPast(session) {
