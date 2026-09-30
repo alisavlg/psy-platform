@@ -1,5 +1,5 @@
 // ============================================
-// УВЕДОМЛЕНИЯ — единый модуль
+// УВЕДОМЛЕНИЯ — Supabase
 // ============================================
 
 console.log('[notifications.js] loaded');
@@ -7,58 +7,25 @@ console.log('[notifications.js] loaded');
 (function () {
     'use strict';
 
+    var cachedList = [];
+    var loaded = false;
+
     function getUserId() {
         try {
             var u = JSON.parse(localStorage.getItem('psyhelp_user')) || {};
-            return u.id || 'anonymous';
-        } catch (e) { return 'anonymous'; }
+            return u.id || null;
+        } catch (e) { return null; }
     }
 
-    function getKey() {
-        return 'psyhelp_notifications_' + getUserId();
-    }
-
-    function getAll() {
-        try {
-            var raw = localStorage.getItem(getKey());
-            var list = raw ? JSON.parse(raw) : [];
-            return Array.isArray(list) ? list : [];
-        } catch (e) { return []; }
-    }
-
-    function saveAll(list) {
-        localStorage.setItem(getKey(), JSON.stringify(list));
-    }
-
-    function add(data) {
-        if (!data || !data.type) return;
-        var list = getAll();
-        list.unshift({
-            id: 'notif-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-            type: data.type,
-            title: data.title || 'Уведомление',
-            text: data.text || '',
-            link: data.link || '',
-            createdAt: Date.now(),
-            isRead: false
+    async function waitForSupa(maxAttempts) {
+        return new Promise(function (resolve) {
+            var attempts = 0;
+            var timer = setInterval(function () {
+                attempts++;
+                if (window.supa) { clearInterval(timer); resolve(true); }
+                else if (attempts >= maxAttempts) { clearInterval(timer); resolve(false); }
+            }, 100);
         });
-        saveAll(list);
-        render();
-    }
-
-    function markAllRead() {
-        var list = getAll();
-        list.forEach(function (n) { n.isRead = true; });
-        saveAll(list);
-        render();
-    }
-
-    function markRead(id) {
-        var list = getAll();
-        var n = list.find(function (x) { return x.id === id; });
-        if (n) n.isRead = true;
-        saveAll(list);
-        render();
     }
 
     function escapeHtml(text) {
@@ -68,7 +35,7 @@ console.log('[notifications.js] loaded');
     }
 
     function timeAgo(ts) {
-        var diff = Math.floor((Date.now() - ts) / 1000);
+        var diff = Math.floor((Date.now() - new Date(ts).getTime()) / 1000);
         if (diff < 60) return 'только что';
         if (diff < 3600) return Math.floor(diff / 60) + ' мин назад';
         if (diff < 86400) return Math.floor(diff / 3600) + ' ч назад';
@@ -80,8 +47,7 @@ console.log('[notifications.js] loaded');
         var icons = {
             application_approved: '✅',
             application_rejected: '❌',
-            application_needs_changes: '✏️',
-            application_needs_documents: '📄',
+            application_attention: '⚠️',
             session_booked: '📅',
             session_cancelled: '🚫',
             session_reminder_24: '⏰',
@@ -90,21 +56,95 @@ console.log('[notifications.js] loaded');
         return icons[type] || '🔔';
     }
 
-    function mountWidget() {
+    // ============================================
+    // Загрузка из Supabase
+    // ============================================
+
+    async function loadAll() {
+        var userId = getUserId();
+        if (!userId || !window.supa) return [];
+
+        try {
+            var result = await window.supa
+                .from('notifications')
+                .select('*')
+                .eq('user_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(50);
+
+            if (result.error) {
+                console.error('[notifications] ошибка загрузки:', result.error);
+                return [];
+            }
+            return result.data || [];
+        } catch (err) {
+            console.error('[notifications] исключение:', err);
+            return [];
+        }
+    }
+
+    async function markAllReadDb() {
+        var userId = getUserId();
+        if (!userId || !window.supa) return;
+        await window.supa
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('user_id', userId)
+            .eq('is_read', false);
+    }
+
+    async function markReadDb(id) {
+        if (!window.supa) return;
+        await window.supa.from('notifications').update({ is_read: true }).eq('id', id);
+    }
+
+    // ============================================
+    // Создание уведомления
+    // ============================================
+
+    async function createNotification(userId, data) {
+        if (!userId || !window.supa) return null;
+
+        try {
+            var result = await window.supa.from('notifications').insert({
+                user_id: userId,
+                type: data.type || 'info',
+                title: data.title || 'Уведомление',
+                text: data.text || '',
+                link: data.link || ''
+            }).select().single();
+
+            if (result.error) {
+                console.error('[notifications] ошибка создания:', result.error);
+                return null;
+            }
+            return result.data;
+        } catch (err) {
+            console.error('[notifications] исключение создания:', err);
+            return null;
+        }
+    }
+
+    // ============================================
+    // Виджет
+    // ============================================
+
+        function mountWidget() {
         var actionsEl = document.querySelector('.topbar-actions');
         if (!actionsEl) return;
 
+        var old = actionsEl.querySelector('.notif-widget');
+        if (old) old.remove();
+
+        // Убираем статичную кнопку 🔔 из HTML
         var oldBtn = actionsEl.querySelector('.icon-btn[aria-label="Уведомления"]');
         if (oldBtn) oldBtn.remove();
-
-        var oldWidget = actionsEl.querySelector('.notif-widget');
-        if (oldWidget) oldWidget.remove();
 
         var html =
             '<div class="notif-widget" id="notifWidget">' +
                 '<button class="icon-btn notif-trigger" id="notifTrigger" type="button" aria-label="Уведомления">' +
                     '🔔' +
-                    '<span class="notif-badge" id="notifBadge"></span>' +
+                    '<span class="notif-badge" id="notifBadge" style="display:none;"></span>' +
                 '</button>' +
                 '<div class="notif-dropdown" id="notifDropdown">' +
                     '<div class="notif-header">' +
@@ -121,10 +161,14 @@ console.log('[notifications.js] loaded');
         var widget = document.getElementById('notifWidget');
         var markAllBtn = document.getElementById('notifMarkAll');
 
-        if (trigger && widget) {
-            trigger.addEventListener('click', function (e) {
+                if (trigger && widget) {
+            trigger.addEventListener('click', async function (e) {
                 e.stopPropagation();
+                var willOpen = !widget.classList.contains('open');
                 widget.classList.toggle('open');
+                if (willOpen) {
+                    await refresh();
+                }
             });
         }
 
@@ -133,9 +177,10 @@ console.log('[notifications.js] loaded');
         });
 
         if (markAllBtn) {
-            markAllBtn.addEventListener('click', function (e) {
+            markAllBtn.addEventListener('click', async function (e) {
                 e.stopPropagation();
-                markAllRead();
+                await markAllReadDb();
+                await refresh();
             });
         }
     }
@@ -145,142 +190,162 @@ console.log('[notifications.js] loaded');
         var listEl = document.getElementById('notifList');
         if (!badge || !listEl) return;
 
-        var list = getAll();
-        var unread = list.filter(function (n) { return !n.isRead; }).length;
-
-        badge.textContent = unread > 0 ? (unread > 9 ? '9+' : unread) : '';
+        var unread = cachedList.filter(function (n) { return !n.is_read; }).length;
+        badge.textContent = unread > 9 ? '9+' : unread;
         badge.style.display = unread > 0 ? '' : 'none';
 
-        if (list.length === 0) {
+        if (cachedList.length === 0) {
             listEl.innerHTML = '<div class="notif-empty">Уведомлений пока нет</div>';
             return;
         }
 
         var html = '';
-        list.forEach(function (n) {
-            var cls = 'notif-item' + (n.isRead ? '' : ' notif-unread');
-            html += '<div class="' + cls + '" data-id="' + escapeHtml(n.id) + '" data-link="' + escapeHtml(n.link) + '">' +
+        cachedList.forEach(function (n) {
+            var cls = 'notif-item' + (n.is_read ? '' : ' notif-unread');
+            html += '<div class="' + cls + '" data-id="' + escapeHtml(n.id) + '" data-link="' + escapeHtml(n.link || '') + '">' +
                 '<div class="notif-icon">' + iconFor(n.type) + '</div>' +
                 '<div class="notif-body">' +
                     '<div class="notif-title">' + escapeHtml(n.title) + '</div>' +
                     (n.text ? '<div class="notif-text">' + escapeHtml(n.text) + '</div>' : '') +
-                    '<div class="notif-time">' + timeAgo(n.createdAt) + '</div>' +
+                    '<div class="notif-time">' + timeAgo(n.created_at) + '</div>' +
                 '</div>' +
             '</div>';
         });
         listEl.innerHTML = html;
 
         listEl.querySelectorAll('.notif-item').forEach(function (item) {
-            item.addEventListener('click', function () {
-                markRead(item.dataset.id);
-                if (item.dataset.link) window.location.href = item.dataset.link;
+            item.addEventListener('click', async function () {
+                await markReadDb(item.dataset.id);
+                if (item.dataset.link) {
+                    window.location.href = item.dataset.link;
+                } else {
+                    await refresh();
+                }
             });
         });
     }
 
-    // ============================================
-    // НАПОМИНАНИЯ О СЕССИЯХ
-    // за 24 часа и за 1 час
-    // ============================================
-
-    function addNotifForUser(userId, notif) {
-        var key = 'psyhelp_notifications_' + userId;
-        try {
-            var list = JSON.parse(localStorage.getItem(key)) || [];
-            if (!Array.isArray(list)) list = [];
-            list.unshift({
-                id: 'notif-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
-                type: notif.type,
-                title: notif.title,
-                text: notif.text || '',
-                link: notif.link || '',
-                createdAt: Date.now(),
-                isRead: false
-            });
-            localStorage.setItem(key, JSON.stringify(list));
-        } catch (e) {}
+    async function refresh() {
+        cachedList = await loadAll();
+        render();
     }
 
-    function checkReminders() {
+    // ============================================
+    // Напоминания: за 24ч и за 1ч
+    // ============================================
+
+    async function checkReminders() {
         var userId = getUserId();
-        if (!userId || userId === 'anonymous') return;
+        if (!userId || !window.supa) return;
 
-        var sessionsKey = 'psyhelp_sessions_' + userId;
-        var data = localStorage.getItem(sessionsKey);
-        if (!data) return;
-
-        var sessions;
+        // Узнаём, психолог ли я
+        var myPsyProfileId = null;
         try {
-            sessions = JSON.parse(data);
-            if (!Array.isArray(sessions)) return;
-        } catch (e) { return; }
+            var profResult = await window.supa
+                .from('psychologist_profiles')
+                .select('id')
+                .eq('user_id', userId)
+                .limit(1);
+            if (profResult.data && profResult.data.length > 0) {
+                myPsyProfileId = profResult.data[0].id;
+            }
+        } catch (e) {}
 
-        var changed = false;
+        // Грузим мои сессии — как клиента и как психолога
+        var query = window.supa
+            .from('sessions')
+            .select('*')
+            .eq('status', 'confirmed');
+
+        if (myPsyProfileId) {
+            query = query.or('client_id.eq.' + userId + ',psychologist_id.eq.' + myPsyProfileId);
+        } else {
+            query = query.eq('client_id', userId);
+        }
+
+        var result = await query;
+        if (result.error || !result.data) return;
+
         var now = Date.now();
 
-        sessions.forEach(function (s) {
-            if (s.status !== 'confirmed') return;
-            if (!s.date || s.hour === undefined) return;
-
+        for (var i = 0; i < result.data.length; i++) {
+            var s = result.data[i];
             var parts = s.date.split('-');
-            var sessionDate = new Date(
+            var sessionTs = new Date(
                 parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]),
                 s.hour, 0, 0
             ).getTime();
+            var hoursLeft = (sessionTs - now) / 3600000;
 
-            var hoursLeft = (sessionDate - now) / 3600000;
+            var iAmClient = s.client_id === userId;
+            var iAmPsy = myPsyProfileId && s.psychologist_id === myPsyProfileId;
 
-            if (hoursLeft <= 24 && hoursLeft > 1 && !s.remind24Sent) {
-                var who = '';
-                if (s.psychologistName) who = 'с ' + s.psychologistName;
-                else if (s.clientName) who = 'с ' + s.clientName;
-
-                addNotifForUser(userId, {
-                    type: 'session_reminder_24',
-                    title: 'Напоминание: сессия завтра',
-                    text: (who ? 'Сессия ' + who + ' — ' : 'Сессия — ') +
-                          formatDateHuman(s.date) + ' в ' + String(s.hour).padStart(2, '0') + ':00. ' +
-                          'Отмена менее чем за 24 часа — возврат 50%.',
-                    link: 'client.html?section=sessions&highlight=' + encodeURIComponent(s.id)
-                });
-                s.remind24Sent = true;
-                changed = true;
+            // === КЛИЕНТ ===
+            if (iAmClient) {
+                if (hoursLeft <= 24 && hoursLeft > 1 && !s.remind_24_sent) {
+                    await createNotification(userId, {
+                        type: 'session_reminder_24',
+                        title: 'Напоминание: сессия завтра',
+                        text: 'Сессия с ' + (s.psychologist_name || 'психологом') + ' — ' +
+                              s.date + ' в ' + String(s.hour).padStart(2, '0') + ':00. ' +
+                              'Отмена менее чем за 24 часа — возврат 50%.',
+                        link: 'client.html?section=sessions&highlight=' + s.id
+                    });
+                    await window.supa.from('sessions').update({ remind_24_sent: true }).eq('id', s.id);
+                }
+                if (hoursLeft <= 1 && hoursLeft > -1 && !s.remind_1_sent) {
+                    await createNotification(userId, {
+                        type: 'session_reminder_1',
+                        title: 'Сессия через час',
+                        text: s.date + ' в ' + String(s.hour).padStart(2, '0') + ':00.',
+                        link: 'client.html?section=sessions&highlight=' + s.id
+                    });
+                    await window.supa.from('sessions').update({ remind_1_sent: true }).eq('id', s.id);
+                }
             }
 
-            if (hoursLeft <= 1 && hoursLeft > -1 && !s.remind1Sent) {
-                addNotifForUser(userId, {
-                    type: 'session_reminder_1',
-                    title: 'Сессия через час',
-                    text: formatDateHuman(s.date) + ' в ' + String(s.hour).padStart(2, '0') + ':00. ' +
-                          'Отмена менее чем за час — без возврата.',
-                    link: 'client.html?section=sessions&highlight=' + encodeURIComponent(s.id)
-                });
-                s.remind1Sent = true;
-                changed = true;
+            // === ПСИХОЛОГ ===
+            if (iAmPsy) {
+                if (hoursLeft <= 24 && hoursLeft > 1 && !s.remind_24_sent_psy) {
+                    await createNotification(userId, {
+                        type: 'session_reminder_24',
+                        title: 'Напоминание: сессия завтра',
+                        text: 'Сессия с ' + (s.client_name || 'клиентом') + ' — ' +
+                              s.date + ' в ' + String(s.hour).padStart(2, '0') + ':00.',
+                        link: 'dashboard.html?section=sessions&highlight=' + s.id
+                    });
+                    await window.supa.from('sessions').update({ remind_24_sent_psy: true }).eq('id', s.id);
+                }
+                if (hoursLeft <= 1 && hoursLeft > -1 && !s.remind_1_sent_psy) {
+                    await createNotification(userId, {
+                        type: 'session_reminder_1',
+                        title: 'Сессия через час',
+                        text: 'С ' + (s.client_name || 'клиентом') + ' — ' +
+                              s.date + ' в ' + String(s.hour).padStart(2, '0') + ':00.',
+                        link: 'dashboard.html?section=sessions&highlight=' + s.id
+                    });
+                    await window.supa.from('sessions').update({ remind_1_sent_psy: true }).eq('id', s.id);
+                }
             }
-        });
-
-        if (changed) {
-            localStorage.setItem(sessionsKey, JSON.stringify(sessions));
-            render();
         }
+
+        await refresh();
     }
 
-    function formatDateHuman(dateStr) {
-        var months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-        var parts = dateStr.split('-');
-        var d = parseInt(parts[2]);
-        var m = parseInt(parts[1]) - 1;
-        return d + ' ' + months[m];
-    }
+    // ============================================
+    // Экспорт
+    // ============================================
 
     window.Notifications = {
-        add: add,
-        getAll: getAll,
-        markAllRead: markAllRead,
-        markRead: markRead,
-        render: render,
-        addForUser: addNotifForUser,
+        add: function (data) {
+            var userId = getUserId();
+            if (!userId) return Promise.resolve(null);
+            return createNotification(userId, data);
+        },
+        addFor: function (userId, data) {
+            return createNotification(userId, data);
+        },
+        refresh: refresh,
         checkReminders: checkReminders
     };
 
@@ -288,35 +353,40 @@ console.log('[notifications.js] loaded');
     // Инициализация
     // ============================================
 
-    function boot() {
-        mountWidget();
-        render();
-        checkReminders();
+    async function boot() {
+        var ready = await waitForSupa(50);
+        if (!ready) {
+            console.warn('[notifications] Supabase не загрузился');
+            return;
+        }
 
-        // Обновляем раз в 10 секунд (было — 5 минут)
-        setInterval(function () {
-            render();
-            checkReminders();
+        mountWidget();
+        await refresh();
+        await checkReminders();
+
+                // Поллинг — раз в 10 секунд
+        setInterval(async function () {
+            await refresh();
         }, 10000);
 
-        // При возврате на вкладку — сразу проверяем
-        window.addEventListener('focus', function () {
-            render();
-            checkReminders();
+        // Напоминания — раз в минуту (тяжёлый запрос)
+        setInterval(async function () {
+            await checkReminders();
+        }, 60000);
+
+        // При возврате на страницу — сразу
+        window.addEventListener('pageshow', function () {
+            refresh();
         });
 
-        // При переключении видимости вкладки — тоже
+        // При возврате на вкладку
+        window.addEventListener('focus', async function () {
+            await refresh();
+        });
+
         document.addEventListener('visibilitychange', function () {
             if (document.visibilityState === 'visible') {
-                render();
-                checkReminders();
-            }
-        });
-
-        // Между вкладками того же браузера — синхронизация
-        window.addEventListener('storage', function (e) {
-            if (e.key && e.key.indexOf('psyhelp_notifications_') === 0) {
-                render();
+                refresh();
             }
         });
     }

@@ -897,44 +897,40 @@ async function confirmBooking() {
         console.warn('[booking] client event error:', err);
     }
 
-    // Уведомления (localStorage — пока)
-    try {
-        var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
-        var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
-        var psyName = currentPsy.firstName + ' ' + currentPsy.middleName;
+       // Уведомления в Supabase
+    var dateTimeLabel = formatHumanDate(bookedDate) + ' в ' + String(bookedHour).padStart(2, '0') + ':00';
+    var priceLabel = currentPsy.price.toLocaleString('ru-RU') + ' ₽';
+    var psyName = currentPsy.firstName + ' ' + currentPsy.middleName;
 
-        var clientNotifKey = 'psyhelp_notifications_' + clientUserId;
-        var clientNotifList = JSON.parse(localStorage.getItem(clientNotifKey)) || [];
-        if (!Array.isArray(clientNotifList)) clientNotifList = [];
-        clientNotifList.unshift({
-            id: 'notif-' + Date.now() + '-book-client',
+    // Клиенту
+    try {
+        await window.supa.from('notifications').insert({
+            user_id: clientUserId,
             type: 'session_booked',
             title: 'Сессия подтверждена',
             text: psyName + ' — ' + dateTimeLabel + '. Стоимость: ' + priceLabel + '. ' +
                   'Правила отмены: ≥48 ч — возврат 100%, 24–48 ч — 50%, <24 ч — без возврата.',
-            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
-            createdAt: Date.now(),
-            isRead: false
+            link: 'client.html?section=sessions&highlight=' + encodeURIComponent(bookingId)
         });
-        localStorage.setItem(clientNotifKey, JSON.stringify(clientNotifList));
-    } catch (e) {}
+        console.log('[booking] notif client ok');
+    } catch (e) {
+        console.warn('[booking] notif client error:', e);
+    }
 
-    if (psyUserId && psyUserId !== clientUserId) {
+    // Психологу — если у него есть аккаунт
+    if (currentPsy.userId && currentPsy.userId !== clientUserId) {
         try {
-            var psyNotifKey = 'psyhelp_notifications_' + psyUserId;
-            var psyNotifList = JSON.parse(localStorage.getItem(psyNotifKey)) || [];
-            if (!Array.isArray(psyNotifList)) psyNotifList = [];
-            psyNotifList.unshift({
-                id: 'notif-' + Date.now() + '-book-psy',
+            await window.supa.from('notifications').insert({
+                user_id: currentPsy.userId,
                 type: 'session_booked',
                 title: 'Новая сессия',
                 text: clientFullName + ' записался на ' + dateTimeLabel + '. Тема: ' + topic + '.',
-                link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(bookingId),
-                createdAt: Date.now(),
-                isRead: false
+                link: 'dashboard.html?section=sessions&highlight=' + encodeURIComponent(bookingId)
             });
-            localStorage.setItem(psyNotifKey, JSON.stringify(psyNotifList));
-        } catch (e) {}
+            console.log('[booking] notif psy ok');
+        } catch (e) {
+            console.warn('[booking] notif psy error:', e);
+        }
     }
 
     closeBookingModal();
