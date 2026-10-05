@@ -1,7 +1,7 @@
 # PsyHelp — Текущее состояние проекта
 
-**Дата обновления:** 28 сентября 2026
-**Текущий этап:** Этап 2 — переезд на Supabase (в процессе)
+**Дата обновления:** 5 октября 2026
+**Текущий этап:** Этап 2 — переезд на Supabase (завершается)
 
 ---
 
@@ -11,19 +11,18 @@
 2. Комфортно и психологу, и собственнику.
 3. Если продукт хорош — люди приходят сами.
 4. Не бежать впереди паровоза.
-5. Хочу получать результат — нормально, но не в ущерб качеству.
-6. Один человек = один набор данных (ключи по user.id).
-7. Один код — одно место (не дублировать).
-8. Сначала уточняем логику — потом пишем код.
-9. Сначала логика на localStorage, потом переезд на backend.
+5. Один человек = один набор данных (ключи по user.id).
+6. Один код — одно место.
+7. Сначала уточняем логику — потом пишем код.
 
 ---
 
 ## Архитектура
 
 - **Файлы сайта** — локально, у разработчика (Live Server).
-- **База данных** — Supabase (в облаке, Франкфурт).
-- **Связь** — через API (HTTP-запросы).
+- **База данных** — Supabase (Франкфурт).
+- **Видео** — Jitsi Meet (публичный сервер, лимит 5 мин на встраивание; для продакшена — свой сервер).
+- **Связь** — HTTP через Supabase JS.
 
 **Проект Supabase:**
 - URL: `https://ubbzkxxmgfvvyvfjfcmo.supabase.co`
@@ -31,162 +30,88 @@
 
 ---
 
-## Что уже в Supabase (работает по-настоящему)
+## Что работает в облаке
 
 ### Аутентификация
-- ✅ Регистрация — `supa.auth.signUp`
-- ✅ Вход — `supa.auth.signInWithPassword`
-- ✅ Выход — `supa.auth.signOut`
-- ✅ Проверка сессии — `auth-guard.js` на защищённых страницах
-- ✅ `client.html`, `dashboard.html`, `admin.html` — защищены
-- ✅ `psychologist.html`, `register.html`, `login.html` — публичные
+- Регистрация, вход, выход — Supabase Auth
+- Проверка сессии — `auth-guard.js` на `client.html`, `dashboard.html`, `admin.html`, `application-history.html`
+- Проверка роли для `admin.html` (только owner/admin/moderator)
 
-### Таблицы в Supabase
+### Таблицы Supabase
 
-**`profiles`** — пользователи:
-- `id` (uuid, ссылка на auth.users)
-- `email`, `code`, `real_first_name`, `real_middle_name`, `real_last_name`
-- `display_first_name`, `display_middle_name` (транслируемое имя)
-- `phone`, `timezone`, `avatar_url`
-- `psychologist_status` (none / pending / approved / rejected / needs_changes / needs_documents)
-- `roles` (jsonb: массив — client / psychologist / owner)
-- `created_at`
+**`profiles`** — пользователи (роли, ФИО, транслируемое имя, код, статус, аватар).
 
-**`psychologist_profiles`** — профили психологов:
-- `id`, `user_id` (может быть null — для демо)
-- `first_name`, `middle_name`, `specialty`, `description`
-- `experience`, `price`, `rating`, `reviews_count`, `is_verified`
-- `created_at`
+**`psychologist_profiles`** — психологи (специализация, стаж, цена, рейтинг, аватар). `user_id = null` для демо.
 
-**`events`** — события календаря:
-- `id`, `owner_id`, `psychologist_id`
-- `title`, `date`, `hour`, `category` (free / session / personal / work / health / study)
-- `session_id`, `client_id`, `client_code`, `client_name`
-- `psychologist_name`, `created_at`
+**`events`** — календарь (free / session / personal / work / health / study).
 
-**`sessions`** — бронирования:
-- `id` (text), `client_id`, `psychologist_id`, `psychologist_name`
-- `client_code`, `client_name`, `date`, `hour`, `topic`, `price`
-- `status` (confirmed / completed / cancelled / rescheduled)
-- `cancel_reason`, `cancelled_by`, `cancelled_at`, `refund_percent`
-- `remind_24_sent`, `remind_1_sent`, `created_at`, `completed_at`
+**`sessions`** — бронирования (status, refund, reminders).
 
-### RLS-политики
+**`reviews`** — отзывы. Триггер `update_psychologist_rating` пересчитывает рейтинг.
 
-- `profiles`: пользователь видит/редактирует только свой.
-- `psychologist_profiles`: каталог виден всем; психолог редактирует свой.
-- `events`: free-слоты видны всем; владелец видит свои; авторизованный может удалять/обновлять free-слоты (для бронирования).
-- `sessions`: клиент видит свои; психолог видит свои; создаёт — клиент; обновляют — оба.
+**`notifications`** — уведомления (сейчас в облаке).
 
-### Тестовые пользователи
+**`chats`** + **`messages`** — реальный мессенджер.
 
-- `test1@mail.ru` — Иван Иванович, роли `["client", "owner", "psychologist"]`.
-  Привязан к `psychologist_profiles` с `first_name = 'Иван', middle_name = 'Иванович'`.
-- `anna@mail.ru` — Анна Сергеевна, роль `["client"]`.
+**`applications`** — заявки на роль психолога (status: pending/approved/rejected/attention, moderator_comment, avatar_url).
 
-### Демо-психологи (без аккаунтов, `user_id = null`)
+**`application_events`** — история заявки. Триггер `log_application_event` пишет событие при каждом изменении `applications`.
 
-- Анна Сергеевна — тревога, отношения, самооценка
-- Иван Сергеевич — семейная терапия
-- Мария Петровна — детская психология
-- Ольга Викторовна — тревога, депрессия
+### Storage
+- **`avatars`** — публичный, для фото профиля (клиент + психолог).
+- **`documents`** — публичный, для дипломов (пока не используется).
 
----
+### Что работает по-настоящему
 
-## Что работает (полный цикл)
-
-1. Регистрация клиента → `auth.users` + `profiles`.
-2. Вход → сессия Supabase.
-3. Каталог психологов — из `psychologist_profiles`.
-4. Профиль психолога — из `psychologist_profiles`.
-5. Слоты — из `events` (free).
-6. Календарь психолога (`dashboard.html?section=calendar`):
-   - читает/пишет `events` в Supabase,
-   - «Заполнить будни / выходные» — массовая вставка,
-   - «Убрать все слоты» — удаление.
-7. Бронирование (`psychologist.js`):
-   - 4 проверки: не к себе, у клиента нет события, чекбокс согласия, имя/тема,
-   - атомарно удаляет free-слот из `events`,
-   - создаёт запись в `sessions`,
-   - создаёт session-событие у психолога (если есть `user_id`),
-   - создаёт session-событие у клиента,
-   - уведомление клиенту и психологу (в localStorage).
-8. «Мои сессии» клиента (`sessions.js`) — из `sessions` (фильтр по `client_id`).
-9. «Сессии» психолога (`psychologist-sessions.js`) — из `sessions` (фильтр по `psychologist_id`).
-10. Отмена сессии — обновляет `sessions.status = 'cancelled'`, возвращает free-слот, удаляет события.
-11. Уведомления (интерфейс) — localStorage, обновление раз в 10 секунд + при возврате на вкладку.
+1. Регистрация / вход / выход
+2. Каталог психологов
+3. Профиль психолога + бронирование
+4. Календарь (слоты)
+5. Мои сессии (клиент)
+6. Сессии психолога
+7. Отзывы с рейтингом
+8. Заявка на психолога + модерация + история
+9. Уведомления + напоминания 24ч/1ч
+10. Мессенджер с реальными чатами и бейджем
+11. Видеокомната (Jitsi)
+12. Загрузка фото в Storage
 
 ---
 
 ## Что осталось в localStorage (временно)
 
-| Блок | Ключ | Задача |
-|------|------|--------|
-| Уведомления | `psyhelp_notifications_<uid>` | Переезд в таблицу `notifications` |
-| Отзывы | — (сейчас заглушка) | Таблица `reviews` |
-| Заявка на психолога | `psyhelp_applications` | Таблица `applications` |
-| Задачи модерации | `psyhelp_tasks` | Таблица `tasks` |
-| Мессенджер | `psyhelp_messages_<uid>` | Таблицы `chats`, `messages` |
-| Аватары, документы | base64 в localStorage | Supabase Storage |
+| Ключ | Что |
+|------|-----|
+| `psyhelp_user` | Кеш профиля |
+| `psyhelp_clients` | Старая модель клиентов психолога (не переведена) |
+| `psyhelp_profile` | Старая модель профиля психолога (не переведена) |
 
 ---
 
-## Что дальше
+## Что осталось на потом
 
-### Ближайшие задачи (по приоритету)
+### В работе
 
-1. **Отзывы** — клиент оценивает психолога после проведённой сессии.
-   - Таблица `reviews`.
-   - Обновление `psychologist_profiles.rating` и `reviews_count`.
-   - Форма на профиле психолога.
-   - Отображение отзывов в профиле.
-
-2. **Заявка на роль психолога** — переход клиент → психолог.
-   - Таблица `applications`.
-   - Файлы в Supabase Storage.
-   - Админка: чтение заявок, делегирование, финальное решение.
-   - Автоматическое создание `psychologist_profiles` при одобрении.
-
-3. **Уведомления в облако** — таблица `notifications`.
-
-4. **Мессенджер** — реальный обмен между людьми.
-
-5. **Storage** — аватары, дипломы.
+- Отображение аватаров во всех местах (каталог, чат, меню, сессии) — частично
+- Файлы дипломов (документы) — Storage
+- Раздел «Клиенты» психолога — старая модель на localStorage
+- `profile.js` — личная страница психолога (частично переведена)
 
 ### После backend
 
-6. Хостинг (Supabase Hosting / Vercel).
-7. Домен.
-8. ЮKassa — реальные платежи.
-9. Email и SMS.
-
----
-
-## Известные ограничения
-
-| Ограничение | Решается |
-|-------------|----------|
-| Уведомления только в одном браузере | Перенос в Supabase |
-| Отзывы — заглушка | Задача «Отзывы» |
-| Мессенджер — макет | Задача «Мессенджер» + WebSocket |
-| Файлы — base64 | Supabase Storage |
-| Демо-психологи без аккаунтов | Регистрация реальных |
+- Хостинг + домен
+- ЮKassa — реальные платежи
+- Email / SMS
+- Свой сервер Jitsi (лимит 5 минут на публичном)
+- Мобильное приложение
 
 ---
 
 ## Документация
 
-- `architecture.md` — карта проекта: файлы, ключи, сценарии.
-- `state.md` — этот файл.
-- `changelog.md` — история изменений.
-- `theme-guide.md` — правила оформления.
-- `roles.md` — роли, права, делегирование.
-- `database.md` — схема БД (для backend).
-- `api.md` — эндпоинты API.
-- `requirements.md` — общие требования.
+- `architecture.md` — карта проекта
+- `state.md` — этот файл
+- `theme-guide.md` — правила CSS
+- `changelog.md` — история изменений
 
 **При старте нового чата:** `state.md` + `architecture.md` + `theme-guide.md`.
-
----
-
-*Обновляется после каждой завершённой задачи.*

@@ -1,9 +1,7 @@
 # PsyHelp — Архитектура проекта
 
-**Версия:** 2.0
-**Последнее обновление:** 28 сентября 2026
-
-Карта проекта: файлы, ключи, сценарии, backend.
+**Версия:** 3.0
+**Последнее обновление:** 5 октября 2026
 
 ---
 
@@ -11,204 +9,233 @@
 
 psy-platform/
 ├── assets/
-│   ├── css/          ← стили
-│   ├── js/           ← скрипты
-│   └── images/       ← изображения
-├── docs/             ← документация
-├── pages/            ← HTML-страницы
-├── index.html        ← главная
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── docs/
+├── pages/
+├── index.html
 ├── .gitignore
 └── README.md
 
-2. Верхний уровень архитектуры
+---
 
-[Файлы сайта]                 [База данных]
-У разработчика        ←→       Supabase
-(Live Server)                  (облако, Франкфурт)
+## 2. Страницы (`pages/`)
 
-Файлы сайта — HTML, CSS, JS. Живут локально у разработчика.
-База данных — Supabase. Хранит пользователей, психологов, события, сессии.
-Связь — HTTP-запросы через библиотеку Supabase JS.
+| Файл | Защита |
+|------|--------|
+| `login.html`, `register.html` | публичные |
+| `client.html` | auth-guard (роль client) |
+| `dashboard.html` | auth-guard (роль psychologist) |
+| `admin.html` | auth-guard (owner / admin / moderator) |
+| `application-history.html` | auth-guard |
+| `psychologist.html` | публичная |
+| `become-psychologist.html` | auth-guard |
+| `room.html` | публичная (по sessionId) |
+| `rules-cancel.html` | публичная |
 
-После этапа хостинга — файлы переедут на хостинг, база останется в Supabase.
+**Секции `client.html`:** catalog / sessions / messages / planner / profile.
+**Секции `dashboard.html`:** calendar / sessions / messages / requests / clients / profile / reports / settings.
 
-3. Страницы (pages/)
-Файл	Что это	Защита
-login.html	Вход	публичная
-register.html	Регистрация	публичная
-client.html	Кабинет клиента	auth-guard
-dashboard.html	Кабинет психолога	auth-guard
-psychologist.html	Профиль психолога	публичная
-become-psychologist.html	Заявка на психолога	(пока не готово)
-admin.html	Админка	auth-guard
-rules-cancel.html	Правила отмены	публичная
-room.html	Комната видеосвязи (заглушка)	—
+---
 
-Секции client.html: catalog / sessions / messages / planner / profile.
-Секции dashboard.html: calendar / sessions / messages / requests / clients / room / profile / reports / settings.
-4. Скрипты (assets/js/)
-4.1. Подключаются везде
-Файл	Что делает
-supabase.js	Создаёт клиент Supabase (сейчас подключается inline в HTML)
-auth-guard.js	Проверка сессии на защищённых страницах
-user-menu.js	Меню аватара, переключение кабинетов
-4.2. Аутентификация
-Файл	Что делает
-auth.js	Регистрация через Supabase
-login.js	Вход через Supabase
-forgot.js, reset.js	Восстановление пароля (не переведены)
-4.3. Кабинет клиента
-Файл	Что делает
-client.js	Каталог психологов из Supabase
-client-profile.js	Профиль клиента в Supabase
-psychologist.js	Профиль психолога + бронирование через Supabase
-sessions.js	Мои сессии из Supabase
-messenger.js	Мессенджер (макет)
-calendar.js	Календарь-планировщик через Supabase
-notifications.js	Уведомления (localStorage, пока)
-4.4. Кабинет психолога
-Файл	Что делает
-psychologist-sessions.js	Сессии психолога из Supabase
-requests.js	Заявки (старое, localStorage)
-clients.js	Клиенты (старое)
-profile.js	Личная страница (старое)
-reports.js	Отчёты (макет)
-settings.js	Настройки (макет)
-4.5. Админка
-Файл	Что делает
-admin.js	Заявки, задачи (localStorage, не переведён)
-checklist-templates.js	Шаблоны чек-листов
-5. Хранилище
-5.1. Supabase
+## 3. Скрипты (`assets/js/`)
 
-Таблицы:
+### Везде
 
-    profiles — пользователи (роли, ФИО, транслируемое имя, код, статус).
+| Файл | Что |
+|------|-----|
+| `auth-guard.js` | Проверка сессии + роли для админки |
+| `user-menu.js` | Меню аватара, переключение кабинетов |
+| `notifications.js` | Виджет уведомлений (Supabase) + напоминания |
 
-    psychologist_profiles — профили психологов.
+### Аутентификация
 
-    events — события календаря.
+| Файл | Что |
+|------|-----|
+| `auth.js` | Регистрация |
+| `login.js` | Вход |
 
-    sessions — бронирования.
+### Кабинет клиента
 
-Auth:
+| Файл | Что |
+|------|-----|
+| `client.js` | Каталог + роутер секций |
+| `client-profile.js` | Профиль клиента |
+| `psychologist.js` | Профиль психолога + бронирование + отзывы |
+| `sessions.js` | Мои сессии клиента |
+| `messenger.js` | Мессенджер (Supabase) |
+| `calendar.js` | Календарь (Supabase) |
+| `become-block.js` | Блок заявки в профиле клиента |
+| `become-psychologist.js` | Форма подачи заявки |
+| `application-history.js` | Страница истории заявки |
 
-    auth.users — учётные записи (email + password).
+### Кабинет психолога
 
-    JWT-сессия хранится в браузере под своим ключом.
+| Файл | Что |
+|------|-----|
+| `script.js` | Роутер секций дашборда + доступ |
+| `psychologist-sessions.js` | Сессии психолога |
+| `profile.js` | Личная страница психолога |
+| `clients.js` | Клиенты (старое, localStorage) |
+| `reports.js`, `settings.js` | Заглушки |
 
-5.2. localStorage (временно, что осталось)
-Ключ	Что хранит
-psyhelp_user	Кеш профиля для быстрого доступа (перезаписывается из Supabase при загрузке)
-psyhelp_notifications_uid	Уведомления (в интерфейсе)
-psyhelp_messages_uid	Мессенджер (макет)
-psyhelp_applications	Заявки на психолога (старое)
-psyhelp_tasks	Задачи модерации (старое)
+### Админка
 
-Принцип: ключ по user.id, не по роли.
-6. Роли
-Роль	Что может
-client	Искать, записываться, общаться
-psychologist	Проводить сессии, вести календарь
-moderator	Модерация (по задаче)
-admin	Управление (по задаче)
-owner	Всё
+| Файл | Что |
+|------|-----|
+| `admin.js` | Заявки + модерация (Supabase) |
+| `checklist-templates.js` | Шаблоны (не используется) |
 
-Хранятся в profiles.roles (jsonb массив).
+### Прочее
 
-Тестовые пользователи:
+| Файл | Что |
+|------|-----|
+| `room.js` | Видеокомната (Jitsi) |
+| `notifications.js` | Уведомления |
 
-    test1@mail.ru — ["client", "owner", "psychologist"]
+---
 
-    anna@mail.ru — ["client"]
+## 4. Хранилище
 
-7. Ключевые сценарии
-7.1. Регистрация
+### Supabase (всё основное)
 
-register.html → auth.js → supa.auth.signUp()
-  → INSERT в profiles (роли = ['client'])
-  → psyhelp_user в localStorage
-  → redirect client.html?section=catalog
+**Auth:**
+- `auth.users`
 
- 7.2. Вход
-text
+**Таблицы:**
+- `profiles`
+- `psychologist_profiles`
+- `events`
+- `sessions`
+- `reviews`
+- `notifications`
+- `chats`
+- `messages`
+- `applications`
+- `application_events`
 
-login.html → login.js → supa.auth.signInWithPassword()
-  → SELECT profiles → psyhelp_user в localStorage
-  → redirect по активной роли
+**Storage:**
+- `avatars` (public)
+- `documents` (public)
 
-7.3. Защита страниц
-text
+### localStorage (что осталось)
 
-Загрузка client.html / dashboard.html / admin.html
-  → auth-guard.js → supa.auth.getSession()
-  → если нет сессии → login.html
-  → если есть → psyhelp_user обновляется из profiles
+- `psyhelp_user` — кеш профиля
+- `psyhelp_clients` — старая модель клиентов психолога
+- `psyhelp_profile` — старая модель профиля психолога
 
-7.4. Слоты психолога
-text
+---
 
-dashboard.html?section=calendar
-  → calendar.js → loadEvents() из events
-  → создание/удаление слотов → INSERT/DELETE в events
+## 5. Роли
 
-7.5. Бронирование
-text
+| Роль | Что |
+|------|-----|
+| client | Каталог, сессии, чаты |
+| psychologist | Календарь, сессии, клиенты |
+| moderator | Модерация (задел) |
+| admin | Управление (задел) |
+| owner | Всё |
 
-psychologist.html → psychologist.js → confirmBooking()
-  → проверки (не к себе, нет своих событий)
-  → DELETE free из events
-  → INSERT в sessions
-  → INSERT session в events (у психолога, если есть user_id)
-  → INSERT session в events (у клиента)
-  → уведомления в localStorage
+`profiles.roles` — jsonb массив.
 
-7.6. Сессии клиента
-text
+**Тестовые пользователи:**
+- `test1@mail.ru` — Иван Иванович, `["client","owner","psychologist"]`
+- `anna@mail.ru` — Анна Сергеевна, `["client"]` + одобрена как психолог
 
-client.html?section=sessions
-  → sessions.js → SELECT из sessions WHERE client_id = я
+---
 
-7.7. Сессии психолога
-text
+## 6. Ключевые сценарии
 
-dashboard.html?section=sessions
-  → psychologist-sessions.js → SELECT из sessions WHERE psychologist_id = мой профиль
-  → «Проведена» → UPDATE status
-  → «Отменить» → UPDATE status + вернуть free-слот
+### Регистрация / вход
+supa.auth.signUp / signInWithPassword
+→ profiles
+→ psyhelp_user в localStorage
+→ redirect
 
-8. Тема оформления
+### Защита страниц
+auth-guard.js → supa.auth.getSession()
+→ если нет → login.html
+→ для admin.html — проверка ролей owner/admin/moderator
 
-Все настройки — в theme.css. Остальные CSS — используют переменные.
-Подробно — theme-guide.md.
-9. Что не переведено на backend
+### Слоты
+dashboard → calendar.js → events (Supabase)
 
-    Отзывы — заглушка.
+### Бронирование
+psychologist.js → confirmBooking()
+→ 4 проверки
+→ DELETE free из events
+→ INSERT sessions
+→ INSERT session events (психолог + клиент)
+→ INSERT notifications (клиент + психолог)
 
-    Уведомления — localStorage.
+### Отмена
+- Клиент: sessions.js → status=cancelled, вернуть free, удалить events, уведомить психолога
+- Психолог: psychologist-sessions.js → то же, уведомить клиента
 
-    Мессенджер — макет.
+### Отзывы
+Клиент → psychologist.js → submitReview()
+→ INSERT reviews
+→ триггер пересчитал рейтинг
+→ профиль психолога обновлён
 
-    Заявка на психолога — localStorage.
+### Заявка на психолога
+become-psychologist.html → become-psychologist.js
+→ INSERT applications (avatar_url в Storage)
+→ триггер log_application_event → application_events
 
-    Админка — localStorage.
+### Модерация
+admin.js → openAppModal → 3 кнопки
+→ RPC approve_application / reject_application / request_attention
+→ триггер пишет в application_events
+→ уведомление клиенту
 
-    Аватар, документы — base64.
+### Повторная подача
+become-psychologist.js → resubmit_application (RPC)
+→ UPDATE applications
+→ триггер пишет событие
 
-    Восстановление пароля — не работает с Supabase Auth.
+### История заявки
+application-history.html + application-history.js
+→ SELECT applications + application_events
 
-10. Документация
-Файл	Что внутри
-state.md	Что сделано, что в работе, что дальше
-architecture.md	Этот файл. Карта проекта
-changelog.md	История изменений
-theme-guide.md	Правила оформления
-roles.md	Роли, права, делегирование
-database.md	Схема БД (для backend)
-api.md	Эндпоинты API
-requirements.md	Требования к системе
+### Мессенджер
+messenger.js → polling 5 сек
+→ SELECT chats + messages
+→ INSERT messages
+→ badge непрочитанных в сайдбаре
 
-Что присылать при старте нового чата: state.md + architecture.md + theme-guide.md.
+### Видеокомната
+room.html → Jitsi Meet
+→ имя комнаты = psyhelp-{sessionId}
+→ только псевдонимы
 
-Обновляется при изменении архитектуры.
- 
+### Уведомления
+notifications.js → 30 сек polling
+→ reminders 24ч / 1ч
+
+---
+
+## 7. Тема оформления
+
+`theme.css` — переменные. Остальные CSS — только ссылки.
+
+---
+
+## 8. Что не переведено на backend
+
+- `clients.js` — старая модель клиентов психолога
+- `profile.js` — частично (личная страница психолога)
+- `psyhelp_clients`, `psyhelp_profile` в localStorage
+- `forgot.js`, `reset.js` — не работают с Supabase Auth
+
+---
+
+## 9. Документация
+
+- `state.md`
+- `architecture.md` (этот файл)
+- `theme-guide.md`
+- `changelog.md`
+
+**Что присылать при старте нового чата:** `state.md` + `architecture.md` + `theme-guide.md`.
