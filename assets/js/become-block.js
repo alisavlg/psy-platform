@@ -38,7 +38,7 @@ console.log('[become-block.js] loaded');
         try {
             var result = await window.supa
                 .from('applications')
-                .select('status, moderator_comment, specialty, experience, price, created_at')
+                .select('id, status, moderator_comment, specialty, experience, price, created_at')
                 .eq('user_id', user.id)
                 .maybeSingle();
 
@@ -50,6 +50,23 @@ console.log('[become-block.js] loaded');
         } catch (err) {
             console.error('[become-block] исключение:', err);
             return null;
+        }
+    }
+        async function loadAppHistory(appId) {
+        if (!appId || !window.supa) return [];
+        try {
+            var result = await window.supa
+                .from('application_events')
+                .select('status, comment, created_at')
+                .eq('application_id', appId)
+                .order('created_at', { ascending: true });
+            if (result.error) {
+                console.error('[become-block] history error:', result.error);
+                return [];
+            }
+            return result.data || [];
+        } catch (e) {
+            return [];
         }
     }
 
@@ -69,13 +86,10 @@ console.log('[become-block.js] loaded');
         var user = getUser();
         var roles = Array.isArray(user.roles) ? user.roles : [];
 
-        // Уже психолог — блок скрыт
-        if (roles.indexOf('psychologist') !== -1) {
-            block.style.display = 'none';
-            return;
-        }
-
+                // Блок виден всем, у кого есть заявка. Если нет заявки и нет роли — скрыт.
         block.style.display = '';
+
+       
 
         // Заявки нет
         if (!loaded || !cachedApp) {
@@ -91,14 +105,40 @@ console.log('[become-block.js] loaded');
 
         var status = cachedApp.status;
 
+                var historyHtml = '';
+        if (cachedApp.history && cachedApp.history.length > 1) {
+            historyHtml =
+                '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #e0e7ef;font-size:13px;color:#555;">' +
+                    '<div style="font-weight:600;margin-bottom:8px;">История заявки</div>' +
+                    cachedApp.history.map(function (h) {
+                        var d = new Date(h.created_at);
+                        var dateStr = d.toLocaleDateString('ru-RU') + ' ' +
+                            String(d.getHours()).padStart(2, '0') + ':' +
+                            String(d.getMinutes()).padStart(2, '0');
+                        var lbl = {
+                            pending: 'Подана',
+                            approved: 'Одобрена',
+                            rejected: 'Отклонена',
+                            attention: 'Требует внимания'
+                        }[h.status] || h.status;
+                        return '<div style="margin-bottom:6px;">' +
+                            '<span style="color:#4a90e2;font-weight:500;">' + dateStr + '</span> — ' +
+                            escapeHtml(lbl) +
+                            (h.comment ? '<div style="color:#777;margin-left:12px;">«' + escapeHtml(h.comment) + '»</div>' : '') +
+                        '</div>';
+                    }).join('') +
+                '</div>';
+        }
+
         if (status === 'pending') {
             block.innerHTML =
                 '<div class="become-psy-content">' +
                     '<h3>⏳ Заявка на проверке</h3>' +
                     '<p>Мы проверяем данные. Это занимает 1–3 рабочих дня.</p>' +
                     '<button type="button" class="btn-become-psy" data-become-go="1">Подробнее →</button>' +
+                    historyHtml +
                 '</div>';
-        } else if (status === 'attention') {
+                } else if (status === 'attention') {
             block.innerHTML =
                 '<div class="become-psy-content">' +
                     '<h3>⚠️ Требует внимания</h3>' +
@@ -106,6 +146,7 @@ console.log('[become-block.js] loaded');
                         ? '<div class="become-reason">' + escapeHtml(cachedApp.moderator_comment) + '</div>'
                         : '<p>Посмотрите комментарий модератора.</p>') +
                     '<button type="button" class="btn-become-psy" data-become-go="1">Подробнее →</button>' +
+                    historyHtml +
                 '</div>';
         } else if (status === 'rejected') {
             block.innerHTML =
@@ -115,12 +156,14 @@ console.log('[become-block.js] loaded');
                         ? '<div class="become-reason">' + escapeHtml(cachedApp.moderator_comment) + '</div>'
                         : '<p>Посмотрите комментарий модератора.</p>') +
                     '<button type="button" class="btn-become-psy" data-become-go="1">Подробнее →</button>' +
+                    historyHtml +
                 '</div>';
         } else if (status === 'approved') {
             block.innerHTML =
                 '<div class="become-psy-content">' +
                     '<h3>✅ Заявка одобрена</h3>' +
                     '<p>Перезайдите в аккаунт, чтобы увидеть кабинет психолога.</p>' +
+                    historyHtml +
                 '</div>';
         }
 
@@ -128,9 +171,12 @@ console.log('[become-block.js] loaded');
     }
 
     async function boot() {
-        var ready = await waitForSupa(50);
+                var ready = await waitForSupa(50);
         if (ready) {
             cachedApp = await loadActiveApp();
+            if (cachedApp && cachedApp.id) {
+                cachedApp.history = await loadAppHistory(cachedApp.id);
+            }
             loaded = true;
         }
         render();

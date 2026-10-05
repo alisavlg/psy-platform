@@ -148,6 +148,49 @@ async function loadExistingApp(userId) {
     return result.data[0];
 }
 
+async function loadAppHistory(appId) {
+    if (!appId || !window.supa) return [];
+    try {
+        var result = await window.supa
+            .from('application_events')
+            .select('status, comment, created_at')
+            .eq('application_id', appId)
+            .order('created_at', { ascending: true });
+        if (result.error) return [];
+        return result.data || [];
+    } catch (e) { return []; }
+}
+
+function renderHistoryBlock(history) {
+    if (!history || history.length <= 1) return '';
+
+    var html =
+        '<div class="become-block" style="margin-top:20px;">' +
+            '<h2>История заявки</h2>' +
+            '<div style="font-size:14px;">';
+
+    history.forEach(function (h) {
+        var d = new Date(h.created_at);
+        var dateStr = d.toLocaleDateString('ru-RU') + ' ' +
+            String(d.getHours()).padStart(2, '0') + ':' +
+            String(d.getMinutes()).padStart(2, '0');
+        var lbl = {
+            pending: 'Подана на проверку',
+            approved: 'Одобрена',
+            rejected: 'Отклонена',
+            attention: 'Требует внимания'
+        }[h.status] || h.status;
+        html +=
+            '<div style="padding:10px 0;border-bottom:1px solid #eee;">' +
+                '<div><span style="color:#4a90e2;font-weight:600;">' + dateStr + '</span> — ' + escapeHtml(lbl) + '</div>' +
+                (h.comment ? '<div style="color:#666;margin-top:4px;">«' + escapeHtml(h.comment) + '»</div>' : '') +
+            '</div>';
+    });
+
+    html += '</div></div>';
+    return html;
+}
+
 function showBanner(app) {
     var banner = document.getElementById('becomeStatusBanner');
     var header = document.getElementById('becomeHeader');
@@ -483,10 +526,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     var form = document.getElementById('becomeForm');
     if (form) form.style.visibility = 'hidden';
 
-    if (existingApp) {
-        // Показываем плашку по статусу + форму для редактирования
+        if (existingApp) {
         showBanner(existingApp);
         fillForm(existingApp);
+
+        // История заявки — внизу страницы
+        var history = await loadAppHistory(existingApp.id);
+        var main = document.getElementById('becomeMain');
+        if (main && history.length > 1) {
+            main.insertAdjacentHTML('beforeend', renderHistoryBlock(history));
+        }
     }
 
     // Показываем форму

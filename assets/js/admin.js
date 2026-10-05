@@ -28,7 +28,7 @@ function statusLabel(s) {
     }[s] || s;
 }
 
-async function waitForSupa(maxAttempts) {
+function waitForSupaAdmin(maxAttempts) {
     return new Promise(function (resolve) {
         var attempts = 0;
         var timer = setInterval(function () {
@@ -129,18 +129,14 @@ function openAppModal(appId) {
         });
     }
 
-    var body = document.getElementById('appModalBody');
-    body.innerHTML =
-        '<div class="admin-field">' +
-            var avatarHtml = a.avatar_url
-        ? '<img src="' + a.avatar_url + '" style="width:80px;height:80px;object-fit:cover;border-radius:12px;margin-bottom:12px;">'
-        : '<div style="width:80px;height:80px;border-radius:12px;background:#eee;display:inline-flex;align-items:center;justify-content:center;color:#999;font-size:12px;margin-bottom:12px;">нет фото</div>';
+    var avatarHtml = a.avatar_url
+        ? '<img src="' + a.avatar_url + '" style="width:96px;height:96px;object-fit:cover;border-radius:12px;margin-bottom:16px;">'
+        : '<div style="width:96px;height:96px;border-radius:12px;background:#eee;display:inline-flex;align-items:center;justify-content:center;color:#999;font-size:12px;margin-bottom:16px;">нет фото</div>';
 
     var body = document.getElementById('appModalBody');
     body.innerHTML =
         avatarHtml +
         '<div class="admin-field">' +
-            '<div class="admin-field-label">Клиент</div>' +
             '<div class="admin-field-label">Клиент</div>' +
             '<div class="admin-field-value">' + escapeHtml(a.user_name || 'Клиент') +
                 ' <span style="color:#999;font-size:13px;">' + escapeHtml(a.user_code || '') + '</span></div>' +
@@ -171,6 +167,45 @@ function openAppModal(appId) {
                 escapeHtml(a.moderator_comment || '') +
             '</textarea>' +
         '</div>';
+    
+        // История заявки — подгружаем асинхронно
+    (async function () {
+        var histRes = await window.supa
+            .from('application_events')
+            .select('status, comment, created_at, author_id')
+            .eq('application_id', appId)
+            .order('created_at', { ascending: true });
+
+        if (histRes.error || !histRes.data || histRes.data.length <= 1) return;
+
+        var html =
+            '<div class="admin-field" style="margin-top:20px;border-top:1px solid #ddd;padding-top:16px;">' +
+                '<div class="admin-field-label">История заявки</div>' +
+                '<div style="font-size:13px;color:#555;">';
+
+        histRes.data.forEach(function (h) {
+            var d = new Date(h.created_at);
+            var dateStr = d.toLocaleDateString('ru-RU') + ' ' +
+                String(d.getHours()).padStart(2, '0') + ':' +
+                String(d.getMinutes()).padStart(2, '0');
+            var lbl = {
+                pending: 'Подана',
+                approved: 'Одобрена',
+                rejected: 'Отклонена',
+                attention: 'Требует внимания'
+            }[h.status] || h.status;
+            html +=
+                '<div style="padding:8px 0;border-bottom:1px solid #eee;">' +
+                    '<div><strong>' + dateStr + '</strong> — ' + escapeHtml(lbl) + '</div>' +
+                    (h.comment ? '<div style="color:#777;margin-top:4px;">«' + escapeHtml(h.comment) + '»</div>' : '') +
+                '</div>';
+        });
+
+        html += '</div></div>';
+
+        var bodyEl = document.getElementById('appModalBody');
+        if (bodyEl) bodyEl.insertAdjacentHTML('beforeend', html);
+    })();    
 
     var actions = document.getElementById('appModalActions');
     actions.innerHTML =
@@ -218,6 +253,45 @@ async function handleDecision(action) {
             return;
         }
 
+        // Уведомление клиенту
+        var app = currentApps.find(function (x) { return x.id === currentAppId; });
+        if (app && app.user_id && typeof window.Notifications !== 'undefined') {
+            var notifMap = {
+                approve: {
+                    type: 'application_approved',
+                    title: 'Заявка одобрена',
+                    text: 'Ваша заявка на роль психолога одобрена. Кабинет психолога активирован.',
+                    link: 'dashboard.html?section=calendar'
+                },
+                reject: {
+                    type: 'application_rejected',
+                    title: 'Заявка отклонена',
+                    text: comment || 'Посмотрите комментарий в профиле.',
+                    link: 'become-psychologist.html'
+                },
+                attention: {
+                    type: 'application_attention',
+                    title: 'Требует внимания',
+                    text: comment || 'Посмотрите комментарий в профиле.',
+                    link: 'become-psychologist.html'
+                }
+            };
+            var notif = notifMap[action];
+            if (notif) {
+                try {
+                    await window.supa.from('notifications').insert({
+                        user_id: app.user_id,
+                        type: notif.type,
+                        title: notif.title,
+                        text: notif.text,
+                        link: notif.link
+                    });
+                } catch (e) {
+                    console.warn('[admin] notification error:', e);
+                }
+            }
+        }
+
         closeAppModal();
         await reload();
     } catch (err) {
@@ -232,7 +306,7 @@ async function reload() {
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-    var ready = await waitForSupa(50);
+    var ready = await waitForSupaAdmin(50);
     if (!ready) {
         alert('Не удалось подключиться к серверу.');
         return;
@@ -248,6 +322,11 @@ document.addEventListener('DOMContentLoaded', async function () {
     // Скрыть role-switcher
     var rs = document.querySelector('.role-switcher');
     if (rs) rs.style.display = 'none';
+
+    // Убедиться, что вкладка «Заявки» активна
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(function (item) {
+        item.classList.toggle('active', item.dataset.tab === 'applications');
+    });
 
     await reload();
 });

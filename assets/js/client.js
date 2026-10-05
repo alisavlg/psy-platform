@@ -144,7 +144,8 @@ function normalizePsychologist(row) {
         price: row.price || 0,
         rating: Number(row.rating) || 0,
         reviewsCount: row.reviews_count || 0,
-        isVerified: row.is_verified === true
+        isVerified: row.is_verified === true,
+        avatarUrl: row.avatar_url || ''
     };
 }
 
@@ -213,12 +214,19 @@ async function renderCatalog() {
         const card = document.createElement('div');
         card.className = 'psy-card';
 
-        const initials = getInitials(psy.firstName + ' ' + psy.middleName);
+                const initials = getInitials(psy.firstName + ' ' + psy.middleName);
         const fullName = psy.firstName + ' ' + psy.middleName;
         const stars = '★'.repeat(Math.round(psy.rating)) + '☆'.repeat(5 - Math.round(psy.rating));
 
+        var avatarHtml;
+        if (psy.avatarUrl) {
+            avatarHtml = '<div class="psy-card-avatar" style="background-image:url(' + psy.avatarUrl + ');background-size:cover;background-position:center;"></div>';
+        } else {
+            avatarHtml = '<div class="psy-card-avatar">' + initials + '</div>';
+        }
+
         card.innerHTML =
-            '<div class="psy-card-avatar">' + initials + '</div>' +
+            avatarHtml +
             '<div class="psy-card-body">' +
                 '<div class="psy-card-header">' +
                     '<h3 class="psy-card-name">' + escapeHtml(fullName) + '</h3>' +
