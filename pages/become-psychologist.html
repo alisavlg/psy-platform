@@ -16,7 +16,7 @@
             <div class="become-logo">PsyHelp</div>
         </header>
 
-                <main class="become-main" id="becomeMain">
+        <main class="become-main" id="becomeMain">
 
             <div id="becomeStatusBanner" style="display:none;"></div>
 
@@ -43,15 +43,14 @@
                         </div>
                     </div>
 
-                                        <div class="form-group">
+                    <div class="form-group">
                         <label>Фото профиля <span class="required">*</span></label>
-                        <p class="form-hint">Реальное фото — оно будет видно клиентам в каталоге. JPG, PNG или WebP, до 5 МБ.</p>
+                        <p class="form-hint">Реальное фото — оно будет видно клиентам в каталоге. JPG, PNG или WebP, до 3 МБ. Большие фото сжимаются автоматически.</p>
                         <input type="file" id="psyPhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
                         <button type="button" class="btn-upload" id="psyPhotoBtn">📎 Загрузить фото</button>
                         <div class="uploaded-files" id="psyPhotoPreview"></div>
                         <span class="form-error" id="psyPhotoError"></span>
                     </div>
-
 
                     <div class="form-group">
                         <label for="psyDescription">Описание (для публичного профиля) <span class="required">*</span></label>
@@ -68,6 +67,12 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="psyQualifications">Квалификация и достижения</label>
+                        <textarea id="psyQualifications" rows="5" placeholder="Супервизии, личная терапия, награды, конкурсы, публикации, профессиональные достижения..."></textarea>
+                        <p class="form-hint">Всё, что подтверждает ваш профессиональный уровень. Видят модераторы и собственник.</p>
+                    </div>
+
+                    <div class="form-group">
                         <label for="psyPrice">Цена за сессию (₽) <span class="required">*</span></label>
                         <input type="number" id="psyPrice" min="500" placeholder="3000" required>
                         <p class="form-hint">Вы сможете изменить её позже в настройках.</p>
@@ -76,7 +81,74 @@
                 </section>
 
                 <section class="become-block">
-                    <h2>2. Согласия</h2>
+                    <h2>2. Документы</h2>
+                    <p style="font-size:13px;color:#777;margin-bottom:16px;">
+                        Принимаются JPG, PNG, PDF. Большие фото сжимаются автоматически. Каждый файл — до 3 МБ.
+                    </p>
+
+                    <!-- ДИПЛОМЫ -->
+                    <div class="docs-group">
+                        <div class="docs-group-header">
+                            <div>
+                                <div class="docs-group-title">📜 Дипломы об образовании <span class="required">*</span></div>
+                                <div class="docs-group-hint">До 5 файлов · общий размер до 5 МБ · обязательны</div>
+                            </div>
+                            <div class="docs-group-counter" id="diplomasCounter">0 / 5 файлов · 0 Б / 5 МБ</div>
+                        </div>
+                        <input type="file" id="diplomasInput" accept="image/jpeg,image/png,image/webp,application/pdf" multiple style="display:none;">
+                        <button type="button" class="btn-upload" id="diplomasBtn">📎 Добавить дипломы</button>
+                        <div class="uploaded-files" id="diplomasPreview"></div>
+                        <span class="form-error" id="diplomasError"></span>
+                    </div>
+
+                    <!-- СЕРТИФИКАТЫ -->
+                    <div class="docs-group">
+                        <div class="docs-group-header">
+                            <div>
+                                <div class="docs-group-title">🏆 Сертификаты и повышение квалификации</div>
+                                <div class="docs-group-hint">До 10 файлов · общий размер до 10 МБ</div>
+                            </div>
+                            <div class="docs-group-counter" id="certificatesCounter">0 / 10 файлов · 0 Б / 10 МБ</div>
+                        </div>
+                        <input type="file" id="certificatesInput" accept="image/jpeg,image/png,image/webp,application/pdf" multiple style="display:none;">
+                        <button type="button" class="btn-upload" id="certificatesBtn">📎 Добавить сертификаты</button>
+                        <div class="uploaded-files" id="certificatesPreview"></div>
+                        <span class="form-error" id="certificatesError"></span>
+                    </div>
+
+                    <!-- ПРАКТИКА -->
+                    <div class="docs-group">
+                        <div class="docs-group-header">
+                            <div>
+                                <div class="docs-group-title">🧠 Подтверждение практики</div>
+                                <div class="docs-group-hint">Супервизии, личная терапия — до 5 файлов · до 10 МБ</div>
+                            </div>
+                            <div class="docs-group-counter" id="practiceCounter">0 / 5 файлов · 0 Б / 10 МБ</div>
+                        </div>
+                        <input type="file" id="practiceInput" accept="image/jpeg,image/png,image/webp,application/pdf" multiple style="display:none;">
+                        <button type="button" class="btn-upload" id="practiceBtn">📎 Добавить документы практики</button>
+                        <div class="uploaded-files" id="practicePreview"></div>
+                        <span class="form-error" id="practiceError"></span>
+                    </div>
+
+                    <!-- ДРУГОЕ -->
+                    <div class="docs-group">
+                        <div class="docs-group-header">
+                            <div>
+                                <div class="docs-group-title">📎 Другие документы</div>
+                                <div class="docs-group-hint">Награды, конкурсы, публикации — до 10 файлов · до 10 МБ</div>
+                            </div>
+                            <div class="docs-group-counter" id="otherCounter">0 / 10 файлов · 0 Б / 10 МБ</div>
+                        </div>
+                        <input type="file" id="otherInput" accept="image/jpeg,image/png,image/webp,application/pdf" multiple style="display:none;">
+                        <button type="button" class="btn-upload" id="otherBtn">📎 Добавить документы</button>
+                        <div class="uploaded-files" id="otherPreview"></div>
+                        <span class="form-error" id="otherError"></span>
+                    </div>
+                </section>
+
+                <section class="become-block">
+                    <h2>3. Согласия</h2>
 
                     <label class="checkbox-label">
                         <input type="checkbox" id="agreeRules">

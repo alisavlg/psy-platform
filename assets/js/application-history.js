@@ -130,6 +130,17 @@ function render(app, history) {
                 '</div>' +
             '</div>' +
         '</div>';
+        // Кнопка «Редактировать» — если статус позволяет
+    if (app.status === 'pending' || app.status === 'attention' || app.status === 'rejected') {
+        var btnLabel = app.status === 'rejected' ? 'Подать заново' : 'Редактировать заявку';
+        html +=
+            '<div style="margin-bottom:20px;">' +
+                '<a href="become-psychologist.html" style="display:inline-block;background:#4a90e2;color:#fff;padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:600;">' +
+                    btnLabel + ' →' +
+                '</a>' +
+            '</div>';
+    }
+
 
     // Таймлайн
     html +=

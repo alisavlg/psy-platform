@@ -161,6 +161,16 @@ function openAppModal(appId) {
             '<div class="admin-field-label">О себе (для модератора)</div>' +
             '<div class="admin-field-value">' + escapeHtml(a.about || '—') + '</div>' +
         '</div>' +
+                (a.qualifications
+            ? '<div class="admin-field">' +
+                '<div class="admin-field-label">Квалификация и достижения</div>' +
+                '<div class="admin-field-value">' + escapeHtml(a.qualifications) + '</div>' +
+              '</div>'
+            : '') +
+        '<div class="admin-field">' +
+            '<div class="admin-field-label">Документы</div>' +
+            '<div class="admin-field-value" id="appModalDocs"></div>' +
+        '</div>' +
         '<div class="admin-field">' +
             '<div class="admin-field-label">Комментарий клиенту (обязателен при отклонении / доработке)</div>' +
             '<textarea id="appModalComment" class="admin-reject-reason" placeholder="Что не так, что нужно исправить или догрузить...">' +
@@ -205,7 +215,56 @@ function openAppModal(appId) {
 
         var bodyEl = document.getElementById('appModalBody');
         if (bodyEl) bodyEl.insertAdjacentHTML('beforeend', html);
-    })();    
+    })(); 
+    
+        // Документы — рисуем отдельно
+    (function renderDocs() {
+        var docsEl = document.getElementById('appModalDocs');
+        if (!docsEl) return;
+
+        var docs = a.documents;
+        if (!Array.isArray(docs)) {
+            try { docs = JSON.parse(a.documents || '[]'); } catch (e) { docs = []; }
+        }
+        if (!docs || docs.length === 0) {
+            docsEl.innerHTML = '<span style="color:#999;">Нет документов</span>';
+            return;
+        }
+
+        var groupLabels = {
+            diplomas:     '📜 Дипломы',
+            certificates: '🏆 Сертификаты',
+            practice:     '🧠 Практика',
+            other:        '📎 Другое'
+        };
+
+        var grouped = { diplomas: [], certificates: [], practice: [], other: [] };
+        docs.forEach(function (d) {
+            if (grouped[d.type]) grouped[d.type].push(d);
+        });
+
+        var html = '';
+        Object.keys(grouped).forEach(function (cat) {
+            var arr = grouped[cat];
+            if (arr.length === 0) return;
+            html += '<div style="margin-bottom:12px;">' +
+                '<div style="font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">' +
+                    groupLabels[cat] + ' (' + arr.length + ')' +
+                '</div>';
+            arr.forEach(function (d) {
+                var isPdf = (d.name || '').toLowerCase().endsWith('.pdf');
+                html +=
+                    '<a href="' + d.url + '" target="_blank" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f8f9fb;border-radius:8px;margin-bottom:6px;text-decoration:none;color:#333;font-size:13px;">' +
+                        '<span style="font-size:18px;">' + (isPdf ? '📄' : '🖼') + '</span>' +
+                        '<span style="flex:1;">' + escapeHtml(d.name || 'Документ') + '</span>' +
+                        '<span style="color:#999;font-size:12px;">' + ((d.size || 0) / 1024).toFixed(0) + ' КБ</span>' +
+                    '</a>';
+            });
+            html += '</div>';
+        });
+
+        docsEl.innerHTML = html;
+    })();
 
     var actions = document.getElementById('appModalActions');
     actions.innerHTML =

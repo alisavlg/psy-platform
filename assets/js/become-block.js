@@ -73,9 +73,9 @@ console.log('[become-block.js] loaded');
     function bind() {
         var block = document.getElementById('becomePsychologistBlock');
         if (!block) return;
-        var btn = block.querySelector('[data-become-go]');
+                var btn = block.querySelector('[data-become-go]');
         if (btn) {
-            btn.onclick = function () { window.location.href = 'become-psychologist.html'; };
+            btn.onclick = function () { window.location.href = 'application-history.html'; };
         }
     }
 
@@ -104,38 +104,16 @@ console.log('[become-block.js] loaded');
         }
 
         var status = cachedApp.status;
+        var historyHtml = '';
 
-                var historyHtml = '';
-        if (cachedApp.history && cachedApp.history.length > 1) {
-            historyHtml =
-                '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #e0e7ef;font-size:13px;color:#555;">' +
-                    '<div style="font-weight:600;margin-bottom:8px;">История заявки</div>' +
-                    cachedApp.history.map(function (h) {
-                        var d = new Date(h.created_at);
-                        var dateStr = d.toLocaleDateString('ru-RU') + ' ' +
-                            String(d.getHours()).padStart(2, '0') + ':' +
-                            String(d.getMinutes()).padStart(2, '0');
-                        var lbl = {
-                            pending: 'Подана',
-                            approved: 'Одобрена',
-                            rejected: 'Отклонена',
-                            attention: 'Требует внимания'
-                        }[h.status] || h.status;
-                        return '<div style="margin-bottom:6px;">' +
-                            '<span style="color:#4a90e2;font-weight:500;">' + dateStr + '</span> — ' +
-                            escapeHtml(lbl) +
-                            (h.comment ? '<div style="color:#777;margin-left:12px;">«' + escapeHtml(h.comment) + '»</div>' : '') +
-                        '</div>';
-                    }).join('') +
-                '</div>';
-        }
+                
 
         if (status === 'pending') {
             block.innerHTML =
                 '<div class="become-psy-content">' +
                     '<h3>⏳ Заявка на проверке</h3>' +
                     '<p>Мы проверяем данные. Это занимает 1–3 рабочих дня.</p>' +
-                    '<button type="button" class="btn-become-psy" data-become-go="1">Подробнее →</button>' +
+                    '<button type="button" class="btn-become-psy" data-become-go="1">История заявки →</button>' +
                     historyHtml +
                 '</div>';
                 } else if (status === 'attention') {
@@ -145,7 +123,7 @@ console.log('[become-block.js] loaded');
                     (cachedApp.moderator_comment
                         ? '<div class="become-reason">' + escapeHtml(cachedApp.moderator_comment) + '</div>'
                         : '<p>Посмотрите комментарий модератора.</p>') +
-                    '<button type="button" class="btn-become-psy" data-become-go="1">Подробнее →</button>' +
+                    '<button type="button" class="btn-become-psy" data-become-go="1">История заявки →</button>' +
                     historyHtml +
                 '</div>';
         } else if (status === 'rejected') {
@@ -155,7 +133,7 @@ console.log('[become-block.js] loaded');
                     (cachedApp.moderator_comment
                         ? '<div class="become-reason">' + escapeHtml(cachedApp.moderator_comment) + '</div>'
                         : '<p>Посмотрите комментарий модератора.</p>') +
-                    '<button type="button" class="btn-become-psy" data-become-go="1">Подробнее →</button>' +
+                    '<button type="button" class="btn-become-psy" data-become-go="1">История заявки →</button>' +
                     historyHtml +
                 '</div>';
         } else if (status === 'approved') {
