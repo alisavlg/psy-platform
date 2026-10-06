@@ -214,9 +214,9 @@ function openAppModal(appId) {
     
         // История заявки — подгружаем асинхронно
     (async function () {
-        var histRes = await window.supa
+                var histRes = await window.supa
             .from('application_events')
-            .select('status, comment, created_at, author_id')
+            .select('status, comment, created_at, author_id, author_role, snapshot')
             .eq('application_id', appId)
             .order('created_at', { ascending: true });
 
@@ -227,7 +227,7 @@ function openAppModal(appId) {
                 '<div class="admin-field-label">История заявки</div>' +
                 '<div style="font-size:13px;color:#555;">';
 
-        histRes.data.forEach(function (h) {
+                histRes.data.forEach(function (h) {
             var d = new Date(h.created_at);
             var dateStr = d.toLocaleDateString('ru-RU') + ' ' +
                 String(d.getHours()).padStart(2, '0') + ':' +
@@ -238,10 +238,21 @@ function openAppModal(appId) {
                 rejected: 'Отклонена',
                 attention: 'Требует внимания'
             }[h.status] || h.status;
+            var roleLbl = {
+                client: 'Клиент',
+                owner: 'Собственник',
+                admin: 'Администратор',
+                moderator: 'Модератор',
+                system: 'Система'
+            }[h.author_role] || '';
+
             html +=
                 '<div style="padding:8px 0;border-bottom:1px solid #eee;">' +
-                    '<div><strong>' + dateStr + '</strong> — ' + escapeHtml(lbl) + '</div>' +
+                    '<div><strong>' + dateStr + '</strong> — ' + escapeHtml(lbl) +
+                        (roleLbl ? ' <span style="color:#999;font-size:12px;">(' + escapeHtml(roleLbl) + ')</span>' : '') +
+                    '</div>' +
                     (h.comment ? '<div style="color:#777;margin-top:4px;">«' + escapeHtml(h.comment) + '»</div>' : '') +
+                    renderAdminSnapshot(h.snapshot) +
                 '</div>';
         });
 
@@ -392,6 +403,79 @@ async function handleDecision(action) {
         alert('Ошибка: ' + (err.message || 'попробуйте ещё раз'));
     }
 }
+function renderAdminSnapshot(snapshot) {
+    if (!snapshot) return '';
+
+    var snap = snapshot;
+    if (typeof snap === 'string') {
+        try { snap = JSON.parse(snap); } catch (e) { return ''; }
+    }
+    if (!snap || typeof snap !== 'object') return '';
+
+    var hasDocs = Array.isArray(snap.documents) && snap.documents.length > 0;
+    var inner = '';
+
+    if (snap.avatar_url) {
+        inner += '<img src="' + snap.avatar_url + '" style="width:48px;height:48px;object-fit:cover;border-radius:50%;margin-bottom:8px;">';
+    }
+
+    inner += '<div style="font-size:13px;color:#333;line-height:1.6;">';
+    if (snap.specialty) inner += '<div><strong>Специализация:</strong> ' + escapeHtml(snap.specialty) + '</div>';
+    if (snap.experience !== undefined) inner += '<div><strong>Стаж:</strong> ' + snap.experience + ' лет</div>';
+    if (snap.price !== undefined) inner += '<div><strong>Цена:</strong> ' + snap.price + ' ₽</div>';
+    inner += '</div>';
+
+    if (snap.qualifications) {
+        inner += '<details style="margin-top:6px;font-size:12px;">' +
+            '<summary style="cursor:pointer;color:#4a90e2;">Квалификация и достижения</summary>' +
+            '<div style="margin-top:4px;white-space:pre-wrap;">' + escapeHtml(snap.qualifications) + '</div>' +
+        '</details>';
+    }
+
+    if (snap.about) {
+        inner += '<details style="margin-top:4px;font-size:12px;">' +
+            '<summary style="cursor:pointer;color:#4a90e2;">О себе (для модератора)</summary>' +
+            '<div style="margin-top:4px;white-space:pre-wrap;">' + escapeHtml(snap.about) + '</div>' +
+        '</details>';
+    }
+
+    if (hasDocs) {
+        var groupLabels = {
+            diplomas:     '📜 Дипломы',
+            certificates: '🏆 Сертификаты',
+            practice:     '🧠 Практика',
+            other:        '📎 Другое'
+        };
+        var grouped = { diplomas: [], certificates: [], practice: [], other: [] };
+        snap.documents.forEach(function (d) {
+            if (grouped[d.type]) grouped[d.type].push(d);
+        });
+
+        inner += '<div style="margin-top:8px;">' +
+            '<div style="font-weight:600;font-size:12px;color:#333;margin-bottom:4px;">Документы (' + snap.documents.length + ')</div>';
+
+        Object.keys(grouped).forEach(function (cat) {
+            var arr = grouped[cat];
+            if (arr.length === 0) return;
+            inner += '<div style="font-size:11px;color:#777;margin-top:4px;">' + groupLabels[cat] + '</div>';
+            arr.forEach(function (d) {
+                var isPdf = (d.name || '').toLowerCase().endsWith('.pdf');
+                inner +=
+                    '<a href="' + d.url + '" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:4px 8px;background:#fff;border:1px solid #e0e7ef;border-radius:6px;margin:2px 4px 2px 0;text-decoration:none;color:#333;font-size:11px;">' +
+                        '<span>' + (isPdf ? '📄' : '🖼') + '</span>' +
+                        '<span>' + escapeHtml(d.name || 'Документ') + '</span>' +
+                    '</a>';
+            });
+        });
+        inner += '</div>';
+    }
+
+    return '<details style="margin-top:8px;padding:8px 12px;background:#f8f9fb;border-radius:8px;">' +
+        '<summary style="cursor:pointer;font-size:12px;font-weight:600;color:#4a90e2;">Что было подано на этом этапе</summary>' +
+        '<div style="margin-top:8px;">' + inner + '</div>' +
+    '</details>';
+}
+
 
 async function reload() {
     currentApps = await loadApplications();

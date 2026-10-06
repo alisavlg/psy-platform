@@ -82,6 +82,93 @@ async function loadHistory(appId) {
     }
     return result.data || [];
 }
+// ============================================
+// Снимок заявки в событии — раскрывающийся блок
+// ============================================
+
+function renderSnapshotDetails(snapshot) {
+    if (!snapshot) return '';
+
+    var snap = snapshot;
+    if (typeof snap === 'string') {
+        try { snap = JSON.parse(snap); } catch (e) { return ''; }
+    }
+    if (!snap || typeof snap !== 'object') return '';
+
+    var hasDocs = Array.isArray(snap.documents) && snap.documents.length > 0;
+
+    var inner = '';
+
+    if (snap.avatar_url) {
+        inner += '<img src="' + snap.avatar_url + '" style="width:64px;height:64px;object-fit:cover;border-radius:50%;margin-bottom:12px;">';
+    }
+
+    inner += '<div style="font-size:14px;color:#333;line-height:1.6;">';
+    if (snap.specialty) inner += '<div><strong>Специализация:</strong> ' + escapeHtmlHist(snap.specialty) + '</div>';
+    if (snap.experience !== undefined && snap.experience !== null) inner += '<div><strong>Стаж:</strong> ' + snap.experience + ' лет</div>';
+    if (snap.price !== undefined && snap.price !== null) inner += '<div><strong>Цена сессии:</strong> ' + snap.price + ' ₽</div>';
+    inner += '</div>';
+
+    if (snap.qualifications) {
+        inner += '<div style="margin-top:10px;font-size:13px;color:#555;">' +
+            '<strong style="display:block;margin-bottom:4px;">Квалификация и достижения:</strong>' +
+            '<div style="white-space:pre-wrap;">' + escapeHtmlHist(snap.qualifications) + '</div>' +
+        '</div>';
+    }
+
+    if (snap.about) {
+        inner += '<details style="margin-top:10px;font-size:13px;color:#555;">' +
+            '<summary style="cursor:pointer;color:#4a90e2;">О себе (для модератора)</summary>' +
+            '<div style="margin-top:6px;white-space:pre-wrap;">' + escapeHtmlHist(snap.about) + '</div>' +
+        '</details>';
+    }
+
+    if (snap.description) {
+        inner += '<details style="margin-top:6px;font-size:13px;color:#555;">' +
+            '<summary style="cursor:pointer;color:#4a90e2;">Описание для каталога</summary>' +
+            '<div style="margin-top:6px;white-space:pre-wrap;">' + escapeHtmlHist(snap.description) + '</div>' +
+        '</details>';
+    }
+
+    if (hasDocs) {
+        var groupLabels = {
+            diplomas:     '📜 Дипломы',
+            certificates: '🏆 Сертификаты',
+            practice:     '🧠 Практика',
+            other:        '📎 Другое'
+        };
+        var grouped = { diplomas: [], certificates: [], practice: [], other: [] };
+        snap.documents.forEach(function (d) {
+            if (grouped[d.type]) grouped[d.type].push(d);
+        });
+
+        inner += '<div style="margin-top:10px;">' +
+            '<div style="font-weight:600;font-size:13px;color:#333;margin-bottom:6px;">Документы (' + snap.documents.length + ')</div>';
+
+        Object.keys(grouped).forEach(function (cat) {
+            var arr = grouped[cat];
+            if (arr.length === 0) return;
+            inner += '<div style="margin-bottom:8px;">' +
+                '<div style="font-size:12px;color:#777;margin-bottom:4px;">' + groupLabels[cat] + '</div>';
+            arr.forEach(function (d) {
+                var isPdf = (d.name || '').toLowerCase().endsWith('.pdf');
+                inner +=
+                    '<a href="' + d.url + '" target="_blank" style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid #e0e7ef;border-radius:6px;margin-bottom:4px;text-decoration:none;color:#333;font-size:12px;">' +
+                        '<span>' + (isPdf ? '📄' : '🖼') + '</span>' +
+                        '<span style="flex:1;">' + escapeHtmlHist(d.name || 'Документ') + '</span>' +
+                    '</a>';
+            });
+            inner += '</div>';
+        });
+        inner += '</div>';
+    }
+
+    return '<details style="margin-top:12px;padding:12px 14px;background:#f8f9fb;border-radius:10px;">' +
+        '<summary style="cursor:pointer;font-size:13px;font-weight:600;color:#4a90e2;">Что было подано на этом этапе</summary>' +
+        '<div style="margin-top:12px;">' + inner + '</div>' +
+    '</details>';
+}
+
 
 function render(app, history) {
     var el = document.getElementById('historyContent');
@@ -147,7 +234,7 @@ function render(app, history) {
         '<div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">' +
             '<h2 style="font-size:18px;margin:0 0 20px;color:#333;">Хронология</h2>';
 
-    if (history.length === 0) {
+       if (history.length === 0) {
         html += '<p style="color:#888;">События пока не записаны.</p>';
     } else {
         html += '<div style="position:relative;">';
@@ -171,6 +258,7 @@ function render(app, history) {
                     (h.comment
                         ? '<div style="margin-top:8px;padding:10px 14px;background:#f8f9fb;border-radius:8px;color:#555;font-size:14px;white-space:pre-wrap;">' + escapeHtmlHist(h.comment) + '</div>'
                         : '') +
+                    renderSnapshotDetails(h.snapshot) +
                 '</div>';
         });
         html += '</div>';
