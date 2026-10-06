@@ -6,6 +6,7 @@ console.log('[admin.js] loaded');
 
 var currentApps = [];
 var currentAppId = null;
+var currentFilter = 'active'; // active | approved | rejected | all
 
 function escapeHtml(text) {
     var div = document.createElement('div');
@@ -41,11 +42,21 @@ function waitForSupaAdmin(maxAttempts) {
 
 async function loadApplications() {
     try {
-        var result = await window.supa
+        var query = window.supa
             .from('applications')
             .select('*')
-            .in('status', ['pending', 'attention'])
             .order('created_at', { ascending: false });
+
+        if (currentFilter === 'active') {
+            query = query.in('status', ['pending', 'attention']);
+        } else if (currentFilter === 'approved') {
+            query = query.eq('status', 'approved');
+        } else if (currentFilter === 'rejected') {
+            query = query.eq('status', 'rejected');
+        }
+        // для 'all' — без фильтра
+
+        var result = await query;
 
         if (result.error) {
             console.error('[admin] ошибка загрузки:', result.error);
@@ -68,12 +79,22 @@ function render() {
         badge.textContent = pending || '';
     }
 
+    // Панель фильтров
+    var filterBar =
+        '<div class="admin-filters" id="adminFilters">' +
+            '<button class="admin-filter-btn' + (currentFilter === 'active'   ? ' active' : '') + '" data-filter="active">Активные</button>' +
+            '<button class="admin-filter-btn' + (currentFilter === 'approved' ? ' active' : '') + '" data-filter="approved">Одобренные</button>' +
+            '<button class="admin-filter-btn' + (currentFilter === 'rejected' ? ' active' : '') + '" data-filter="rejected">Отклонённые</button>' +
+            '<button class="admin-filter-btn' + (currentFilter === 'all'      ? ' active' : '') + '" data-filter="all">Все</button>' +
+        '</div>';
+
     if (currentApps.length === 0) {
-        listEl.innerHTML = '<div class="admin-empty">Активных заявок нет.</div>';
+        listEl.innerHTML = filterBar + '<div class="admin-empty">Заявок нет.</div>';
+        bindFilterButtons();
         return;
     }
 
-    var html = '<div class="admin-list">';
+    var html = filterBar + '<div class="admin-list">';
     currentApps.forEach(function (a) {
         html +=
             '<div class="admin-card ' + a.status + '">' +
@@ -96,10 +117,23 @@ function render() {
     html += '</div>';
     listEl.innerHTML = html;
 
-    listEl.querySelectorAll('[data-action="open"]').forEach(function (btn) {
+        listEl.querySelectorAll('[data-action="open"]').forEach(function (btn) {
         btn.addEventListener('click', function () {
             openAppModal(btn.dataset.id);
         });
+    });
+
+    bindFilterButtons();
+}
+
+function bindFilterButtons() {
+    document.querySelectorAll('.admin-filter-btn').forEach(function (btn) {
+        btn.onclick = function () {
+            var newFilter = btn.dataset.filter;
+            if (newFilter === currentFilter) return;
+            currentFilter = newFilter;
+            reload();
+        };
     });
 }
 

@@ -136,12 +136,12 @@ console.log('[become-block.js] loaded');
                     '<button type="button" class="btn-become-psy" data-become-go="1">История заявки →</button>' +
                     historyHtml +
                 '</div>';
-        } else if (status === 'approved') {
+                } else if (status === 'approved') {
             block.innerHTML =
                 '<div class="become-psy-content">' +
                     '<h3>✅ Заявка одобрена</h3>' +
                     '<p>Перезайдите в аккаунт, чтобы увидеть кабинет психолога.</p>' +
-                    historyHtml +
+                    '<button type="button" class="btn-become-psy" data-become-go="1" style="margin-top:12px;">История заявки →</button>' +
                 '</div>';
         }
 
