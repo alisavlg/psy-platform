@@ -247,9 +247,10 @@
                             </div>
 
                             <form class="profile-edit-form" id="profileForm" novalidate>
-                                <div class="profile-edit-photo-block">
+                                                                <div class="profile-edit-photo-block">
                                     <div class="profile-edit-photo" id="profilePhotoPreview">Фото</div>
-                                    <button type="button" class="btn-photo">Загрузить фото</button>
+                                    <input type="file" id="profilePhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
+                                    <button type="button" class="btn-photo" id="profilePhotoBtn">Загрузить фото</button>
                                     <p class="form-hint">JPG или PNG, до 5 МБ</p>
                                 </div>
 
