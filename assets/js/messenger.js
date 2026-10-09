@@ -156,7 +156,7 @@ async function m_findOrCreateChat(psyId) {
 
     var psyRes = await window.supa
         .from('psychologist_profiles')
-        .select('id, user_id, first_name, middle_name')
+        .select('id, user_id, first_name, middle_name, avatar_url')
         .eq('id', psyId)
         .single();
 
@@ -182,11 +182,20 @@ async function m_findOrCreateChat(psyId) {
 
     var psyName = ((psy.first_name || '') + ' ' + (psy.middle_name || '')).trim() || 'Психолог';
 
+        // Берём аватар клиента из его сессии (он видит себя)
+    var clientAvatar = '';
+    try {
+        var meRes = await window.supa.from('profiles').select('avatar_url').eq('id', m_myUser.id).single();
+        if (meRes.data) clientAvatar = meRes.data.avatar_url || '';
+    } catch (e) {}
+
     var insertRes = await window.supa.from('chats').insert({
         client_id: m_myUser.id,
         psychologist_id: psyId,
         client_display_name: clientDisplayName,
         psychologist_display_name: psyName,
+        client_avatar: clientAvatar,
+        psychologist_avatar: psy.avatar_url || '',
         last_message_at: new Date().toISOString()
     }).select().single();
 
@@ -228,7 +237,28 @@ async function m_markChatRead(chatId) {
         .neq('author_id', m_myUser.id);
     m_unreadCounts[chatId] = 0;
 }
+// ============================================
+// Подгрузка аватаров собеседников
+// ============================================
 
+async function m_loadAvatarsForChats(chats) {
+    // Теперь аватары хранятся прямо в chats — ничего подгружать не надо
+    // Функция оставлена для совместимости, просто копирует поля
+    chats.forEach(function (c) {
+        c.psychologist_avatar = c.psychologist_avatar || '';
+        c.client_avatar = c.client_avatar || '';
+    });
+}
+
+    
+
+function m_avatarHtml(avatarUrl, initials, extraClass) {
+    var cls = extraClass || 'chat-avatar';
+    if (avatarUrl) {
+        return '<div class="' + cls + '" style="background-image:url(' + avatarUrl + ');background-size:cover;background-position:center;"></div>';
+    }
+    return '<div class="' + cls + '">' + initials + '</div>';
+}
 // ============================================
 // Отрисовка списка чатов
 // ============================================
@@ -252,16 +282,24 @@ function m_renderChatsList() {
             ? (chat.client_display_name || 'Клиент')
             : (chat.psychologist_display_name || 'Психолог');
 
-        var initials = m_getInitials(name);
+                var initials = m_getInitials(name);
         var preview = chat.last_message_text || 'Нет сообщений';
         var timeStr = m_formatChatTime(chat.last_message_at);
         var unread = m_unreadCounts[chat.id] || 0;
+
+        // Чей аватар показываем
+        var avatarUrl = '';
+        if (isPsyView) {
+            avatarUrl = chat.client_avatar || '';
+        } else {
+            avatarUrl = chat.psychologist_avatar || '';
+        }
 
         var item = document.createElement('div');
         item.className = 'chat-item' + (chat.id === m_currentChatId ? ' active' : '');
 
         item.innerHTML =
-            '<div class="chat-avatar">' + initials + '</div>' +
+            m_avatarHtml(avatarUrl, initials, 'chat-avatar') +
             '<div class="chat-item-info">' +
                 '<div class="chat-item-name">' + m_escapeHtml(name) + '</div>' +
                 '<div class="chat-item-preview">' + m_escapeHtml(preview) + '</div>' +
@@ -304,8 +342,15 @@ function m_renderChatWindow() {
         : (chat.psychologist_display_name || 'Психолог');
     var roleLabel = isPsyView ? 'Клиент' : 'Психолог';
 
-    var initials = m_getInitials(name);
+        var initials = m_getInitials(name);
     var isEmpty = m_currentMessages.length === 0;
+
+    var headerAvatarUrl = '';
+    if (isPsyView) {
+        headerAvatarUrl = chat.client_avatar || '';
+    } else {
+        headerAvatarUrl = chat.psychologist_avatar || '';
+    }
 
     var messagesHtml = '';
     if (isEmpty) {
@@ -337,8 +382,8 @@ function m_renderChatWindow() {
             : 'Напишите сообщение...');
 
     windowEl.innerHTML =
-        '<div class="chat-window-header">' +
-            '<div class="chat-window-avatar">' + initials + '</div>' +
+                '<div class="chat-window-header">' +
+            m_avatarHtml(headerAvatarUrl, initials, 'chat-window-avatar') +
             '<div>' +
                 '<div class="chat-window-name">' + m_escapeHtml(name) + '</div>' +
                 '<div class="chat-window-role">' + roleLabel + '</div>' +
@@ -377,6 +422,8 @@ async function m_openChat(chatId) {
 
     m_currentMessages = await m_loadMessages(chatId);
     await m_markChatRead(chatId);
+
+    await m_loadAvatarsForChats(m_cachedChats);
 
     m_renderChatsList();
     m_renderChatWindow();
@@ -484,8 +531,9 @@ async function renderMessenger() {
         m_currentChatId = chatId;
     }
 
-    m_cachedChats = await m_loadChats();
+        m_cachedChats = await m_loadChats();
     await m_loadUnreadCounts();
+    await m_loadAvatarsForChats(m_cachedChats);
 
     if (m_currentChatId) {
         m_currentMessages = await m_loadMessages(m_currentChatId);
