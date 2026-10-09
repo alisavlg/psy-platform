@@ -23,7 +23,6 @@ function saveUser(user) {
     localStorage.setItem(USER_MENU_KEY, JSON.stringify(user));
 }
 
-// Сохраняем активную роль при переключении
 function saveActiveRole(role) {
     const user = getUser();
     if (!user.id) return;
@@ -32,7 +31,6 @@ function saveActiveRole(role) {
     console.log('[user-menu] activeRole сохранён:', role);
 }
 
-// Генератор кода
 function generateUserCode() {
     const letters = 'ACDEFHJKMNPRTUVWXY';
     const digits = '23456789';
@@ -51,13 +49,12 @@ function generateUserId() {
 }
 
 // ============================================
-// Миграция старых аккаунтов + заполнение
+// Миграция
 // ============================================
 
 function migrateUser(user) {
     let changed = false;
 
-    // Старый аккаунт с firstName/middleName/lastName → новые поля
     if (user.firstName && !user.realFirstName) {
         user.realFirstName = user.firstName;
         user.realMiddleName = user.middleName || '';
@@ -85,10 +82,9 @@ function migrateUser(user) {
 }
 
 // ============================================
-// Транслируемое имя
+// Имя / инициалы
 // ============================================
 
-// Возвращает "Имя Отчество" — либо display, либо real
 function getDisplayName(user) {
     var f = (user.displayFirstName || '').trim();
     var m = (user.displayMiddleName || '').trim();
@@ -96,7 +92,6 @@ function getDisplayName(user) {
     if (f && m) return f + ' ' + m;
     if (f) return f;
 
-    // Fallback — реальное имя + отчество
     var rf = (user.realFirstName || '').trim();
     var rm = (user.realMiddleName || '').trim();
     if (rf && rm) return rf + ' ' + rm;
@@ -105,7 +100,6 @@ function getDisplayName(user) {
     return 'Пользователь';
 }
 
-// Инициалы для аватара
 function getInitials(user) {
     var f = (user.displayFirstName || user.realFirstName || '').charAt(0).toUpperCase();
     var m = (user.displayMiddleName || user.realMiddleName || '').charAt(0).toUpperCase();
@@ -121,10 +115,56 @@ function escapeHtmlUser(text) {
 }
 
 // ============================================
+// Подгружаем аватар из Supabase
+// ============================================
+
+function getAvatarFromSupabase(user) {
+    if (!user.id || !window.supa) return Promise.resolve('');
+
+    var currentRole = window.CURRENT_USER || 'client';
+
+    if (currentRole === 'psychologist') {
+        return window.supa
+            .from('psychologist_profiles')
+            .select('avatar_url')
+            .eq('user_id', user.id)
+            .limit(1)
+            .then(function (r) {
+                if (r.data && r.data.length > 0 && r.data[0].avatar_url) {
+                    return r.data[0].avatar_url;
+                }
+                return window.supa.from('profiles').select('avatar_url').eq('id', user.id).single()
+                    .then(function (r2) {
+                        return (r2.data && r2.data.avatar_url) || '';
+                    });
+            })
+            .catch(function () { return ''; });
+    } else {
+        return window.supa
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single()
+            .then(function (r) {
+                return (r.data && r.data.avatar_url) || '';
+            })
+            .catch(function () { return ''; });
+    }
+}
+
+// Рисует аватар — фото или инициалы
+function avatarInnerHtml(avatarUrl, initials) {
+    if (avatarUrl) {
+        return '<div class="user-avatar" style="background-image:url(' + avatarUrl + ');background-size:cover;background-position:center;"></div>';
+    }
+    return '<div class="user-avatar">' + initials + '</div>';
+}
+
+// ============================================
 // Отрисовка меню
 // ============================================
 
-function renderUserMenu() {
+async function renderUserMenu() {
     console.log('[user-menu] renderUserMenu запущен, CURRENT_USER =', window.CURRENT_USER);
 
     const actionsEl = document.querySelector('.topbar-actions');
@@ -132,7 +172,6 @@ function renderUserMenu() {
         console.error('[user-menu] .topbar-actions НЕ НАЙДЕН');
         return;
     }
-    console.log('[user-menu] topbar-actions найден');
 
     var user = getUser();
     if (!user.realFirstName && !user.email) {
@@ -148,6 +187,21 @@ function renderUserMenu() {
     const code = user.code || '—';
     const roles = Array.isArray(user.roles) ? user.roles : [];
     const currentRole = window.CURRENT_USER || 'client';
+
+    // Подгружаем актуальный аватар из Supabase
+    var avatarUrl = await getAvatarFromSupabase(user);
+    if (avatarUrl) {
+        user.avatarUrl = avatarUrl;
+        saveUser(user);
+    } else {
+        avatarUrl = user.avatarUrl || '';
+    }
+
+    var avatarHtml = avatarInnerHtml(avatarUrl, initials);
+
+    // Удаляем старое меню
+    var oldMenu = document.getElementById('userMenu');
+    if (oldMenu) oldMenu.remove();
 
     let roleItemsHtml = '';
 
@@ -183,7 +237,7 @@ function renderUserMenu() {
     const menuHtml =
         '<div class="user-menu" id="userMenu">' +
             '<button class="user-menu-trigger" id="userMenuTrigger" type="button" aria-label="Меню пользователя">' +
-                '<div class="user-avatar">' + initials + '</div>' +
+                avatarHtml +
                 '<svg class="user-menu-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">' +
                     '<polyline points="6 9 12 15 18 9"></polyline>' +
                 '</svg>' +
@@ -191,7 +245,7 @@ function renderUserMenu() {
             '<div class="user-menu-dropdown" id="userMenuDropdown">' +
 
                 '<div class="user-menu-info">' +
-                    '<div class="user-avatar">' + initials + '</div>' +
+                    avatarHtml +
                     '<div class="user-menu-info-text">' +
                         '<div class="user-menu-name">' + escapeHtmlUser(displayName) + '</div>' +
                         '<div class="user-menu-code">' + escapeHtmlUser(code) + '</div>' +
@@ -225,6 +279,7 @@ function renderUserMenu() {
             '</div>' +
         '</div>';
 
+    // Удаляем старый статичный аватар из topbar
     const oldAvatar = actionsEl.querySelector('.user-avatar');
     if (oldAvatar && !oldAvatar.closest('.user-menu')) {
         oldAvatar.remove();
