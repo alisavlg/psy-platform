@@ -69,7 +69,9 @@ async function loadMyPsychologistProfile() {
 // Загрузка сессий психолога
 // ============================================
 
-async function loadPsySessions() {
+
+
+    async function loadPsySessions() {
     if (!myPsyProfileId || !window.supa) return [];
 
     try {
@@ -85,7 +87,38 @@ async function loadPsySessions() {
             return [];
         }
 
-        return result.data || [];
+        var sessions = result.data || [];
+
+        // Подгружаем аватары клиентов через chats
+        if (sessions.length > 0) {
+            var clientIds = [];
+            sessions.forEach(function (s) {
+                if (s.client_id && clientIds.indexOf(s.client_id) === -1) {
+                    clientIds.push(s.client_id);
+                }
+            });
+
+            if (clientIds.length > 0) {
+                var chatsRes = await window.supa
+                    .from('chats')
+                    .select('client_id, client_avatar')
+                    .in('client_id', clientIds);
+
+                if (chatsRes.data) {
+                    var map = {};
+                    chatsRes.data.forEach(function (c) {
+                        if (c.client_avatar && !map[c.client_id]) {
+                            map[c.client_id] = c.client_avatar;
+                        }
+                    });
+                    sessions.forEach(function (s) {
+                        s.client_avatar = map[s.client_id] || '';
+                    });
+                }
+            }
+        }
+
+        return sessions;
     } catch (err) {
         console.error('[psy-sessions] исключение:', err);
         return [];
@@ -211,10 +244,17 @@ async function renderPsySessions(tab) {
         actionsHtml +=
             '<button class="session-btn session-btn-chat" data-action="chat" data-id="' + session.id + '">Написать в чат</button>';
 
+                var avatarHtml;
+        if (session.client_avatar) {
+            avatarHtml = '<div class="session-card-avatar" style="background-image:url(' + session.client_avatar + ');background-size:cover;background-position:center;"></div>';
+        } else {
+            avatarHtml = '<div class="session-card-avatar">' + getInitials(clientName) + '</div>';
+        }
+
         card.innerHTML =
             '<div class="session-card-header">' +
                 '<div class="session-card-psy">' +
-                    '<div class="session-card-avatar">' + getInitials(clientName) + '</div>' +
+                    avatarHtml +
                     '<div>' +
                         '<div class="session-card-psy-name">' + escapeHtml(clientName) + '</div>' +
                         '<div class="session-card-psy-role">Код: ' + escapeHtml(clientCode) + '</div>' +
