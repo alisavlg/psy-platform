@@ -48,7 +48,35 @@ async function loadClientSessions() {
             console.error('[sessions] ошибка загрузки:', result.error);
             return [];
         }
-        return result.data || [];
+
+        var sessions = result.data || [];
+
+        // Подгружаем аватары психологов
+        if (sessions.length > 0) {
+            var psyIds = [];
+            sessions.forEach(function (s) {
+                if (s.psychologist_id && psyIds.indexOf(s.psychologist_id) === -1) {
+                    psyIds.push(s.psychologist_id);
+                }
+            });
+
+            if (psyIds.length > 0) {
+                var psyRes = await window.supa
+                    .from('psychologist_profiles')
+                    .select('id, avatar_url')
+                    .in('id', psyIds);
+
+                if (psyRes.data) {
+                    var map = {};
+                    psyRes.data.forEach(function (p) { map[p.id] = p.avatar_url || ''; });
+                    sessions.forEach(function (s) {
+                        s.psychologist_avatar = map[s.psychologist_id] || '';
+                    });
+                }
+            }
+        }
+
+        return sessions;
     } catch (err) { return []; }
 }
 
@@ -148,10 +176,17 @@ async function renderSessions(tab) {
                 '<a class="session-btn session-btn-profile" href="psychologist.html?id=' + session.psychologist_id + '">Профиль психолога</a>';
         }
 
+                var avatarHtml;
+        if (session.psychologist_avatar) {
+            avatarHtml = '<div class="session-card-avatar" style="background-image:url(' + session.psychologist_avatar + ');background-size:cover;background-position:center;"></div>';
+        } else {
+            avatarHtml = '<div class="session-card-avatar">' + getInitials(session.psychologist_name) + '</div>';
+        }
+
         card.innerHTML =
             '<div class="session-card-header">' +
                 '<div class="session-card-psy">' +
-                    '<div class="session-card-avatar">' + getInitials(session.psychologist_name) + '</div>' +
+                    avatarHtml +
                     '<div>' +
                         '<div class="session-card-psy-name">' + escapeHtml(session.psychologist_name) + '</div>' +
                         '<div class="session-card-psy-role">Психолог</div>' +
@@ -353,6 +388,7 @@ function formatHumanDate(date) {
 
 function getInitials(name) {
     if (!name) return '?';
+    if (typeof name !== 'string') name = String(name);
     return name.split(' ')
         .filter(function (w) { return w.length > 0; })
         .map(function (w) { return w[0]; })

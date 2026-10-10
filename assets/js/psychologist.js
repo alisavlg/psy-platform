@@ -42,7 +42,8 @@ function normalizePsychologist(row) {
         price: row.price || 0,
         rating: Number(row.rating) || 0,
         reviewsCount: row.reviews_count || 0,
-        isVerified: row.is_verified === true
+        isVerified: row.is_verified === true,
+        avatarUrl: row.avatar_url || ''
     };
 }
 
@@ -313,9 +314,16 @@ async function renderProfile() {
 
     document.title = currentPsy.firstName + ' ' + currentPsy.middleName + ' | PsyHelp';
 
-    const initials = getInitials(currentPsy.firstName + ' ' + currentPsy.middleName);
+        const initials = getInitials(currentPsy.firstName + ' ' + currentPsy.middleName);
     const fullName = currentPsy.firstName + ' ' + currentPsy.middleName;
     const stars = '★'.repeat(Math.round(currentPsy.rating)) + '☆'.repeat(5 - Math.round(currentPsy.rating));
+
+    var avatarHtml;
+    if (currentPsy.avatarUrl) {
+        avatarHtml = '<div class="psy-profile-avatar" style="background-image:url(' + currentPsy.avatarUrl + ');background-size:cover;background-position:center;"></div>';
+    } else {
+        avatarHtml = '<div class="psy-profile-avatar">' + initials + '</div>';
+    }
 
         var myUserId = getCurrentUserId();
     var alreadyReviewed = myUserId && cachedReviews.some(function (r) {
@@ -340,9 +348,9 @@ async function renderProfile() {
             '</button>';
     }
 
-    container.innerHTML =
+        container.innerHTML =
         '<div class="psy-profile-card">' +
-            '<div class="psy-profile-avatar">' + initials + '</div>' +
+            avatarHtml +
             '<div class="psy-profile-info">' +
                 '<h1 class="psy-profile-name">' + escapeHtml(fullName) + '</h1>' +
                 (currentPsy.isVerified ? '<span class="psy-profile-badge">✓ Проверен</span>' : '') +
