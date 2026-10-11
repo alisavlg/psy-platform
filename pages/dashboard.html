@@ -12,7 +12,6 @@
     <link rel="stylesheet" href="../assets/css/settings.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/notifications.css">
-    
 </head>
 <body>
     <div class="dashboard-layout">
@@ -46,25 +45,6 @@
                     </svg>
                     Сообщения
                 </a>
-
-                <a href="dashboard.html?section=requests" class="nav-item">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
-                        <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
-                    </svg>
-                    Заявки
-                </a>
-
-                <a href="dashboard.html?section=clients" class="nav-item">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="9" cy="7" r="4"></circle>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                    </svg>
-                    Клиенты
-                </a>
-
 
                 <a href="dashboard.html?section=profile" class="nav-item">
                     <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -189,29 +169,6 @@
                         </div>
                     </div>
 
-                    <!-- ЗАЯВКИ -->
-                    <div id="requestsSection" style="display:none;">
-                        <div class="requests-toolbar">
-                            <div class="requests-tabs">
-                                <button class="tab-btn active" data-tab="new">Новые <span class="tab-count" id="countNew">0</span></button>
-                                <button class="tab-btn" data-tab="accepted">Принятые <span class="tab-count" id="countAccepted">0</span></button>
-                                <button class="tab-btn" data-tab="declined">Отклонённые <span class="tab-count" id="countDeclined">0</span></button>
-                            </div>
-                        </div>
-                        <div class="requests-list" id="requestsList"></div>
-                    </div>
-
-                    <!-- КЛИЕНТЫ -->
-                    <div id="clientsSection" style="display:none;">
-                        <div class="clients-toolbar">
-                            <div class="clients-search">
-                                <input type="text" id="clientsSearch" placeholder="Поиск по имени...">
-                            </div>
-                            <div class="clients-count" id="clientsCount">Всего: 0</div>
-                        </div>
-                        <div class="clients-list" id="clientsList"></div>
-                    </div>
-
                     <!-- ЛИЧНАЯ СТРАНИЦА -->
                     <div id="profileSection" style="display:none;">
                         <div class="profile-edit-container">
@@ -247,7 +204,7 @@
                             </div>
 
                             <form class="profile-edit-form" id="profileForm" novalidate>
-                                                                <div class="profile-edit-photo-block">
+                                <div class="profile-edit-photo-block">
                                     <div class="profile-edit-photo" id="profilePhotoPreview">Фото</div>
                                     <input type="file" id="profilePhotoInput" accept="image/jpeg,image/png,image/webp" style="display:none;">
                                     <button type="button" class="btn-photo" id="profilePhotoBtn">Загрузить фото</button>
@@ -542,8 +499,7 @@
         </div>
     </div>
 
-    
-        <!-- МОДАЛЬНОЕ ОКНО: ОТМЕНА СЕССИИ (психолог) -->
+    <!-- МОДАЛЬНОЕ ОКНО: ОТМЕНА СЕССИИ (психолог) -->
     <div class="modal-overlay" id="cancelModalOverlay">
         <div class="modal">
             <h3>Отмена сессии</h3>
@@ -560,7 +516,8 @@
             </div>
         </div>
     </div>
-        <!-- Supabase -->
+
+    <!-- Supabase -->
     <script type="module">
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -580,8 +537,6 @@
     <script src="../assets/js/calendar.js"></script>
     <script src="../assets/js/psychologist-sessions.js"></script>
     <script src="../assets/js/messenger.js"></script>
-    <script src="../assets/js/requests.js"></script>
-    <script src="../assets/js/clients.js"></script>
     <script src="../assets/js/profile.js"></script>
     <script src="../assets/js/reports.js"></script>
     <script src="../assets/js/settings.js"></script>

@@ -514,24 +514,39 @@ async function renderMessenger() {
         return;
     }
 
+    // 1. Сначала загружаем все чаты — чтобы найти чат по clientId
+    m_cachedChats = await m_loadChats();
+
     var params = new URLSearchParams(window.location.search);
     var psyId = params.get('psyId');
     var chatId = params.get('chat');
+    var clientId = params.get('clientId');
 
+    // 2. Психолог открывает чат по clientId из раздела «Сессии»
+    if (clientId && !m_currentChatId) {
+        var foundChat = m_cachedChats.find(function (c) { return c.client_id === clientId; });
+        if (foundChat) {
+            m_currentChatId = foundChat.id;
+            var url = new URL(window.location.href);
+            url.searchParams.delete('clientId');
+            window.history.replaceState({}, '', url);
+        }
+    }
+
+    // 3. Клиент открывает чат с психологом по psyId
     if (psyId && !m_currentChatId) {
         var chat = await m_findOrCreateChat(psyId);
         if (chat) {
             m_currentChatId = chat.id;
-            var url = new URL(window.location.href);
-            url.searchParams.delete('psyId');
-            url.searchParams.delete('chat');
-            window.history.replaceState({}, '', url);
+            var url2 = new URL(window.location.href);
+            url2.searchParams.delete('psyId');
+            url2.searchParams.delete('chat');
+            window.history.replaceState({}, '', url2);
         }
     } else if (chatId && !m_currentChatId) {
         m_currentChatId = chatId;
     }
 
-        m_cachedChats = await m_loadChats();
     await m_loadUnreadCounts();
     await m_loadAvatarsForChats(m_cachedChats);
 

@@ -11,7 +11,6 @@ window.CURRENT_USER = window.CURRENT_USER || 'psychologist';
 function checkPsychologistAccess() {
     var raw = localStorage.getItem('psyhelp_user');
 
-    // Не авторизован — на вход
     if (!raw) {
         console.log('[script.js] не авторизован → login.html');
         window.location.href = 'login.html';
@@ -28,7 +27,6 @@ function checkPsychologistAccess() {
 
     var roles = Array.isArray(user.roles) ? user.roles : [];
 
-    // Старый аккаунт без ролей — считаем клиентом
     if (roles.length === 0) {
         user.roles = ['client'];
         user.activeRole = 'client';
@@ -36,7 +34,6 @@ function checkPsychologistAccess() {
         roles = ['client'];
     }
 
-    // Нет роли психолога — редирект в клиентский кабинет
     if (roles.indexOf('psychologist') === -1) {
         console.log('[script.js] нет роли психолога → client.html');
         window.location.href = 'client.html?section=catalog';
@@ -54,8 +51,6 @@ const sections = {
     calendar: { title: 'Календарь', isCalendar: true },
     sessions: { title: 'Мои сессии', isSessions: true },
     messages: { title: 'Сообщения', isMessages: true },
-    requests: { title: 'Заявки на запись', isRequests: true },
-    clients:  { title: 'Клиенты', isClients: true },
     profile:  { title: 'Личная страница', isProfile: true },
     reports:  { title: 'Отчёты', isReports: true },
     settings: { title: 'Настройки', isSettings: true }
@@ -87,8 +82,8 @@ function renderSection() {
         }
     });
 
-    const ids = ['calendarSection', 'sessionsSection', 'messagesSection', 'requestsSection',
-                 'clientsSection', 'profileSection', 'reportsSection', 'settingsSection',
+    const ids = ['calendarSection', 'sessionsSection', 'messagesSection',
+                 'profileSection', 'reportsSection', 'settingsSection',
                  'placeholderSection'];
 
     const elements = {};
@@ -115,17 +110,6 @@ function renderSection() {
             elements.messagesSection.style.display = 'block';
             if (typeof renderMessenger === 'function') renderMessenger();
         }
-    } else if (section.isRequests) {
-        if (elements.requestsSection) {
-            elements.requestsSection.style.display = 'block';
-            if (typeof renderRequests === 'function') renderRequests('new');
-        }
-    } else if (section.isClients) {
-        if (elements.clientsSection) {
-            elements.clientsSection.style.display = 'block';
-            if (typeof renderClients === 'function') renderClients();
-        }
-    
     } else if (section.isProfile) {
         if (elements.profileSection) {
             elements.profileSection.style.display = 'block';
@@ -152,8 +136,6 @@ function renderSection() {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Сначала проверяем доступ. Если не прошёл — функция сама сделает редирект.
     if (!checkPsychologistAccess()) return;
-
     renderSection();
 });

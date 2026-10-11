@@ -310,8 +310,10 @@ async function renderPsySessions(tab) {
 // ============================================
 
 
-function chatWithClient(id) {
-    alert('💬 Чат появится в следующих обновлениях.\n\nДля связи используйте раздел «Сообщения».');
+function chatWithClient(sessionId) {
+    var session = cachedPsySessions.find(function (s) { return s.id === sessionId; });
+    if (!session || !session.client_id) return;
+    window.location.href = 'dashboard.html?section=messages&clientId=' + encodeURIComponent(session.client_id);
 }
 
 // ============================================
