@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="../assets/css/calendar.css">
     <link rel="stylesheet" href="../assets/css/messenger.css">
     <link rel="stylesheet" href="../assets/css/sessions.css">
-    <link rel="stylesheet" href="../assets/css/settings.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/notifications.css">
 </head>
@@ -61,14 +60,6 @@
                         <line x1="6" y1="20" x2="6" y2="16"></line>
                     </svg>
                     Отчёты
-                </a>
-
-                <a href="dashboard.html?section=settings" class="nav-item">
-                    <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
-                    Настройки
                 </a>
 
             </nav>
@@ -236,6 +227,24 @@
                                     </div>
                                 </div>
 
+                                <div class="form-group">
+                                    <label for="profileTimezone">Часовой пояс</label>
+                                    <select id="profileTimezone">
+                                        <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
+                                        <option value="Europe/Moscow">Москва (UTC+3)</option>
+                                        <option value="Europe/Samara">Самара (UTC+4)</option>
+                                        <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
+                                        <option value="Asia/Omsk">Омск (UTC+6)</option>
+                                        <option value="Asia/Krasnoyarsk">Красноярск (UTC+7)</option>
+                                        <option value="Asia/Irkutsk">Иркутск (UTC+8)</option>
+                                        <option value="Asia/Yakutsk">Якутск (UTC+9)</option>
+                                        <option value="Asia/Vladivostok">Владивосток (UTC+10)</option>
+                                        <option value="Asia/Magadan">Магадан (UTC+11)</option>
+                                        <option value="Asia/Kamchatka">Камчатка (UTC+12)</option>
+                                    </select>
+                                    <p class="form-hint">Влияет на отображение времени сессий.</p>
+                                </div>
+
                                 <div class="profile-edit-actions">
                                     <button type="submit" class="btn-save-profile" id="saveProfileBtn">Сохранить изменения</button>
                                     <a href="../index.html" target="_blank" class="btn-preview">Посмотреть на сайте ↗</a>
@@ -326,89 +335,6 @@
                         </div>
 
                         <div class="payments-list" id="paymentsList"></div>
-                    </div>
-
-                    <!-- НАСТРОЙКИ -->
-                    <div id="settingsSection" style="display:none;">
-                        <div class="settings-container">
-
-                            <div class="settings-header">
-                                <h2>Настройки</h2>
-                                <p>Часовой пояс, уведомления и язык интерфейса</p>
-                            </div>
-
-                            <form class="settings-form" id="settingsForm" novalidate>
-
-                                <div class="settings-block">
-                                    <h3>Часовой пояс</h3>
-                                    <p class="settings-hint">Влияет на отображение времени сессий в вашем календаре.</p>
-
-                                    <div class="form-group">
-                                        <label for="settingsTimezone">Ваш часовой пояс</label>
-                                        <select id="settingsTimezone">
-                                            <option value="Europe/Kaliningrad">Калининград (UTC+2)</option>
-                                            <option value="Europe/Moscow">Москва (UTC+3)</option>
-                                            <option value="Europe/Samara">Самара (UTC+4)</option>
-                                            <option value="Asia/Yekaterinburg">Екатеринбург (UTC+5)</option>
-                                            <option value="Asia/Omsk">Омск (UTC+6)</option>
-                                            <option value="Asia/Krasnoyarsk">Красноярск (UTC+7)</option>
-                                            <option value="Asia/Irkutsk">Иркутск (UTC+8)</option>
-                                            <option value="Asia/Yakutsk">Якутск (UTC+9)</option>
-                                            <option value="Asia/Vladivostok">Владивосток (UTC+10)</option>
-                                            <option value="Asia/Magadan">Магадан (UTC+11)</option>
-                                            <option value="Asia/Kamchatka">Камчатка (UTC+12)</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="settings-block">
-                                    <h3>Уведомления</h3>
-                                    <p class="settings-hint">Как вы хотите получать напоминания о сессиях и заявках.</p>
-
-                                    <label class="settings-toggle">
-                                        <input type="checkbox" id="notifyEmail" checked>
-                                        <span class="settings-toggle-text">
-                                            <strong>Email</strong>
-                                            <small>Письма о новых заявках и напоминания о сессиях</small>
-                                        </span>
-                                    </label>
-
-                                    <label class="settings-toggle">
-                                        <input type="checkbox" id="notifySms" checked>
-                                        <span class="settings-toggle-text">
-                                            <strong>SMS</strong>
-                                            <small>Напоминания за 1 час до сессии</small>
-                                        </span>
-                                    </label>
-
-                                    <label class="settings-toggle">
-                                        <input type="checkbox" id="notifyPush">
-                                        <span class="settings-toggle-text">
-                                            <strong>Push-уведомления</strong>
-                                            <small>Уведомления в браузере (требуется разрешение)</small>
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div class="settings-block">
-                                    <h3>Язык интерфейса</h3>
-                                    <p class="settings-hint">Другие языки появятся позже.</p>
-
-                                    <div class="form-group">
-                                        <label for="settingsLanguage">Язык</label>
-                                        <select id="settingsLanguage">
-                                            <option value="ru">Русский</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="settings-actions">
-                                    <button type="submit" class="btn-save-settings" id="saveSettingsBtn">Сохранить изменения</button>
-                                    <div class="form-message" id="settingsMessage"></div>
-                                </div>
-
-                            </form>
-                        </div>
                     </div>
 
                     <!-- ЗАГЛУШКА -->
@@ -539,6 +465,5 @@
     <script src="../assets/js/messenger.js"></script>
     <script src="../assets/js/profile.js"></script>
     <script src="../assets/js/reports.js"></script>
-    <script src="../assets/js/settings.js"></script>
 </body>
 </html>

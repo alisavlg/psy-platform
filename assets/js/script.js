@@ -52,8 +52,7 @@ const sections = {
     sessions: { title: 'Мои сессии', isSessions: true },
     messages: { title: 'Сообщения', isMessages: true },
     profile:  { title: 'Личная страница', isProfile: true },
-    reports:  { title: 'Отчёты', isReports: true },
-    settings: { title: 'Настройки', isSettings: true }
+    reports:  { title: 'Отчёты', isReports: true }
 };
 
 function getSectionFromURL() {
@@ -83,7 +82,7 @@ function renderSection() {
     });
 
     const ids = ['calendarSection', 'sessionsSection', 'messagesSection',
-                 'profileSection', 'reportsSection', 'settingsSection',
+                 'profileSection', 'reportsSection',
                  'placeholderSection'];
 
     const elements = {};
@@ -119,11 +118,6 @@ function renderSection() {
         if (elements.reportsSection) {
             elements.reportsSection.style.display = 'block';
             if (typeof renderReports === 'function') renderReports('month');
-        }
-    } else if (section.isSettings) {
-        if (elements.settingsSection) {
-            elements.settingsSection.style.display = 'block';
-            if (typeof renderSettingsForm === 'function') renderSettingsForm();
         }
     } else {
         elements.placeholderSection.style.display = 'block';

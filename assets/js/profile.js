@@ -53,9 +53,21 @@ async function loadPsyProfile() {
     }
 
     psyProfileId = result.data.id;
+
+    // Часовой пояс хранится в profiles
+    try {
+        var profRes = await window.supa
+            .from('profiles')
+            .select('timezone')
+            .eq('id', user.id)
+            .single();
+        if (profRes.data) {
+            result.data.timezone = profRes.data.timezone || 'Europe/Moscow';
+        }
+    } catch (e) {}
+
     return result.data;
 }
-
 // ============================================
 // Отрисовка
 // ============================================
@@ -99,8 +111,11 @@ async function renderProfileForm() {
 
     if (specialtyEl) specialtyEl.value = (psy && psy.specialty) || '';
     if (descriptionEl) descriptionEl.value = (psy && psy.description) || '';
-    if (experienceEl) experienceEl.value = (psy && psy.experience) || '';
+        if (experienceEl) experienceEl.value = (psy && psy.experience) || '';
     if (priceEl) priceEl.value = (psy && psy.price) || '';
+
+    var tzEl = document.getElementById('profileTimezone');
+    if (tzEl) tzEl.value = (psy && psy.timezone) || 'Europe/Moscow';
 
     if (photoEl) {
         if (psy && psy.avatar_url) {
@@ -197,6 +212,9 @@ async function handleProfileSave(e) {
         }
     }
 
+        var tzEl = document.getElementById('profileTimezone');
+    var timezone = tzEl ? tzEl.value : 'Europe/Moscow';
+
     var result = await window.supa
         .from('psychologist_profiles')
         .update({
@@ -215,6 +233,23 @@ async function handleProfileSave(e) {
             msg.textContent = 'Ошибка: ' + result.error.message;
         }
         return;
+    }
+
+    // Часовой пояс — в profiles
+    try {
+        var user = getUser();
+        if (user.id) {
+            await window.supa
+                .from('profiles')
+                .update({ timezone: timezone })
+                .eq('id', user.id);
+
+            // Обновляем кеш localStorage
+            user.timezone = timezone;
+            saveUser(user);
+        }
+    } catch (e) {
+        console.warn('[profile] timezone save error:', e);
     }
 
     if (msg) {
