@@ -223,6 +223,15 @@ profile.js → profiles.timezone
 - `forgot.js`, `reset.js` — не работают с Supabase Auth
 
 ---
+## Технический долг
+
+1. **Layout в каждом файле.** Сайдбар, логотип, топбар копируются в каждой HTML-странице. Надо вынести в `layout.js`.
+2. **PSYHELP → EUPSY.** Название в HTML — в каждой странице. Меняем через Ctrl+Shift+H сейчас, потом — через `layout.js`.
+3. **`profile.js` — старая модель `psyhelp_profile` в localStorage.** Не используется, но остался.
+4. **`demo-seed.js`** — тестовые данные, надо убрать перед запуском.
+5. **`forgot.js`, `reset.js`** — не работают с Supabase Auth.
+6. **`requests.js`, `clients.js`** — удалить (не подключены).
+7. **`settings.js`** — удалить (не подключён).
 
 ## 9. Документация
 
