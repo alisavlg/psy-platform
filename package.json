@@ -1,0 +1,29 @@
+{
+  "name": "psy-platform",
+  "version": "1.0.0",
+  "description": "Онлайн-платформа для психологических консультаций с универсальным планировщиком, видеочатом и мессенджером.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alisavlg/psy-platform.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/alisavlg/psy-platform/issues"
+  },
+  "homepage": "https://github.com/alisavlg/psy-platform#readme",
+  "devDependencies": {
+    "vite": "^8.3.4"
+  }
+}
